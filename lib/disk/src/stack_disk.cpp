@@ -10,7 +10,7 @@ std::expected<std::vector<std::byte>, DiskError> StackDisk::read(size_t address,
     if (address + size > _size) { // size_t is unsigned so we don't need to check lower bound
         return std::unexpected(DiskError::OutOfBounds);
     }
-    return std::vector(_data, _data + size);
+    return std::vector(_data + address, _data + address + size);
 }
 
 std::expected<size_t, DiskError> StackDisk::write(size_t address, const std::vector<std::byte>& data)
