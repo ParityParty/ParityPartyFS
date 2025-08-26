@@ -1,3 +1,5 @@
+set(NAME unit_tests)
+
 # Bring in googletest
 include(FetchContent)
 FetchContent_Declare(
@@ -7,14 +9,19 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_executable(test_ppfs test_ppfs.cpp)
-target_link_libraries(test_ppfs
+add_executable(${NAME}
+        test_ppfs.cpp
+        test_stack_disk.cpp
+)
+
+target_link_libraries(${NAME} PUBLIC
+    disk
     ppfs
     GTest::gtest_main
 )
 
 include(GoogleTest)
-gtest_discover_tests(test_ppfs
+gtest_discover_tests(${NAME}
     PROPERTIES
         LABELS "unit"
         ENVIRONMENT "GTEST_COLOR=1"   # force colors in output 🌈
