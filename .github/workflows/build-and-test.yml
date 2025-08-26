@@ -1,0 +1,26 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ninja-build pkg-config libfuse3-dev fuse3
+      - name: Configure (cmake --preset debug)
+        run: cmake --preset debug
+      - name: Build (cmake --build --preset debug)
+        run: cmake --build --preset debug
+      - name: Test (ctest --preset debug)
+        run: ctest --preset debug
