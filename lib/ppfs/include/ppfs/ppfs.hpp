@@ -1,11 +1,11 @@
 #pragma once
-#include "fusepp/Fuse.hpp"
-#include <cstring>
 #include <stdexcept>
+#include "fusepp/Fuse.hpp"
+#include "disk/idisk.hpp"
 
 class PpFS : public Fusepp::Fuse<PpFS> {
 public:
-    PpFS() = default;
+    PpFS(IDisk &disk);
     ~PpFS() override = default;
 
     /**
@@ -122,7 +122,7 @@ public:
      * - The root path is typically used to identify and match operations specific
      *   to the root directory within the filesystem.
      */
-    const std::string& rootPath() const { return root_path_; }
+    const std::string& rootPath() const { return _root_path; }
 
     /**
      * Retrieves the string content used in the HelloFS filesystem.
@@ -132,7 +132,7 @@ public:
      *
      * @return A constant reference to the internal string containing the hello file content.
      */
-    const std::string& helloStr() const { return hello_str_; }
+    const std::string& helloStr() const { return _hello_str; }
 
     /**
      * Retrieves the path of the hello file in the HelloFS filesystem.
@@ -142,10 +142,13 @@ public:
      *
      * @return A constant reference to a string representing the path of the HelloFS file.
      */
-    const std::string& helloPath() const { return hello_path_; }
+    const std::string& helloPath() const { return _hello_path; }
 
 private:
-    std::string root_path_ = "/";
-    std::string hello_str_ = "Hello World!\n";
-    std::string hello_path_ = "/hello";
+    std::string _root_path = "/";
+    std::string _hello_path = "/hello";
+    std::string _hello_str = "Hello World!";
+
+    IDisk &_disk;
+    size_t _data_length = 0;
 };

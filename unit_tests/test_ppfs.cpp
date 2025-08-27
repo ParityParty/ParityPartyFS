@@ -1,9 +1,10 @@
 #include <gtest/gtest.h>
+#include "ppfs/ppfs.hpp"
+#include "disk/stack_disk.hpp"
 
-TEST(DummyTest, BasicAssertions)
+TEST(PpFS, Compiles)
 {
-    // Expect two strings to be equal.
-    EXPECT_STRNE("hello", "world");
-    // Expect equality.
-    EXPECT_EQ(7 * 6, 42);
+    StackDisk disk;
+    PpFS fs(disk);
+    SUCCEED();
 }
