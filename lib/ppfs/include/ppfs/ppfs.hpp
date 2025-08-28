@@ -3,6 +3,7 @@
 #include "fusepp/Fuse.hpp"
 #include "disk/idisk.hpp"
 
+
 class PpFS : public Fusepp::Fuse<PpFS> {
 public:
     PpFS(IDisk &disk);
@@ -110,6 +111,17 @@ public:
     static int read(
         const char* path, char* buf, size_t size, off_t offset, struct fuse_file_info* fi);
 
+    static int write(const char* path, const char* buf, size_t size, off_t offset, struct fuse_file_info*);
+
+    /**
+     * Formats disk to work with ppfs
+     *
+     * This function writes important metadata into a disk
+     *
+     * @return returns void on success or DiskError in case of an error
+     */
+    std::expected<void, DiskError> formatDisk(unsigned int block_size);
+
     /**
      * Retrieves the root directory path of the filesystem.
      *
@@ -151,4 +163,6 @@ private:
 
     IDisk &_disk;
     size_t _data_length = 0;
+    unsigned int block_size;
+
 };

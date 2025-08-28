@@ -1,4 +1,5 @@
 #include "ppfs/ppfs.hpp"
+#include "ppfs/data_structures.hpp"
 
 template <class T> Fusepp::t_getattr Fusepp::Fuse<T>::getattr = nullptr;
 template <class T> Fusepp::t_readlink Fusepp::Fuse<T>::readlink = nullptr;
@@ -62,7 +63,7 @@ int PpFS::getattr(const char* path, struct stat* stBuffer, struct fuse_file_info
         stBuffer->st_mode = S_IFDIR | 0755;
         stBuffer->st_nlink = 2;
     } else if (path == ptr->helloPath()) {
-        stBuffer->st_mode = S_IFREG | 0444;
+        stBuffer->st_mode = S_IFREG | 0666;
         stBuffer->st_nlink = 1;
         stBuffer->st_size = static_cast<off_t>(ptr->helloStr().length());
     } else
@@ -120,3 +121,50 @@ int PpFS::read(const char* path, char* buf, size_t size, off_t offset, struct fu
     return static_cast<int>(size);
 }
 
+int PpFS::write(const char* path, const char* buf, size_t size, off_t offset, struct fuse_file_info*)
+{
+    const auto ptr = this_();
+    if (path != ptr->helloPath())
+        return -ENOENT;
+    if (offset + size > ptr->_disk.size()) {
+        return -ENOSPC;
+    }
+    auto res = ptr->_disk.write(offset, {reinterpret_cast<const std::byte*>(buf), reinterpret_cast<const std::byte*>(buf + size)});
+    if (!res.has_value()) {
+        return -EIO;
+    }
+    ptr->_data_length = size;
+    return static_cast<int>(size);
+}
+
+std::expected<void, DiskError> PpFS::formatDisk(const unsigned int block_size)
+{
+    this->block_size = block_size;
+
+    if (block_size < sizeof(SuperBlock)) {
+        return std::unexpected(DiskError::InvalidRequest);
+    }
+    unsigned int num_blocks = this->_disk.size()/block_size;
+    unsigned int fat_block_start = 1;
+    unsigned int fat_num_blocks = num_blocks * sizeof(unsigned int);
+
+    auto sb = SuperBlock(num_blocks, block_size, fat_block_start, fat_num_blocks);
+
+    auto ret = _disk.write(0, sb.toBytes());
+    if (!ret.has_value()) {
+        return std::unexpected(DiskError::IOError);
+    }
+
+    auto fat_table = std::vector(num_blocks, 0);
+    auto fat = FileAllocationTable(std::move(fat_table));
+
+    auto ret1 = _disk.write(0, sb.toBytes());
+    auto ret2 = _disk.write(block_size, fat.toBytes());
+    if (!ret1.has_value() || !ret2.has_value()) {
+        return std::unexpected(DiskError::IOError);
+    }
+
+    // TODO: add root directory with header with number of files, name etc.
+
+    return {};
+}

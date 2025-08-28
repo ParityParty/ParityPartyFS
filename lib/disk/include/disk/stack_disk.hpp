@@ -9,8 +9,7 @@ class StackDisk : public IDisk {
 public:
     StackDisk() = default;
 
-    static size_t size();
-
+    size_t size() override;
     std::expected<std::vector<std::byte>, DiskError> read(size_t address, size_t size) override;
     std::expected<size_t, DiskError> write(size_t address, const std::vector<std::byte>& data) override;
 };
