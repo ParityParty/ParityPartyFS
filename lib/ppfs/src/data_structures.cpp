@@ -1,21 +1,25 @@
 #include "ppfs/data_structures.hpp"
+#include "ppfs/ppfs.hpp"
 
 #include <cstring>
 
-SuperBlock::SuperBlock(unsigned int num_blocks, unsigned int block_size, unsigned int fat_block_start, unsigned int fat_size):
-num_blocks(num_blocks),
-block_size(block_size),
-fat_block_start(fat_block_start),
-fat_size(fat_size){}
+SuperBlock::SuperBlock(unsigned int num_blocks, unsigned int block_size,
+    unsigned int fat_block_start, unsigned int fat_size)
+    : num_blocks(num_blocks)
+    , block_size(block_size)
+    , fat_block_start(fat_block_start)
+    , fat_size(fat_size)
+{
+}
 
-
-void appendBytes(std::vector<std::byte>& out, const void* src, size_t size) {
+void appendBytes(std::vector<std::byte>& out, const void* src, size_t size)
+{
     auto p = reinterpret_cast<const std::byte*>(src);
     out.insert(out.end(), p, p + size);
 }
 
-
-std::vector<std::byte> SuperBlock::toBytes() const{
+std::vector<std::byte> SuperBlock::toBytes() const
+{
     std::vector<std::byte> out;
     appendBytes(out, &num_blocks, sizeof(num_blocks));
     appendBytes(out, &block_size, sizeof(block_size));
@@ -25,7 +29,8 @@ std::vector<std::byte> SuperBlock::toBytes() const{
     return out;
 }
 
-SuperBlock SuperBlock::fromBytes(const std::vector<std::byte>& bytes){
+SuperBlock SuperBlock::fromBytes(const std::vector<std::byte>& bytes)
+{
 
     size_t offset = 0;
 
@@ -45,16 +50,22 @@ SuperBlock SuperBlock::fromBytes(const std::vector<std::byte>& bytes){
     std::memcpy(&fat_size, bytes.data() + offset, sizeof(fat_size));
     // offset += sizeof(fat_size);
 
-    return {num_blocks, block_size, fat_block_start, fat_size};
+    return { num_blocks, block_size, fat_block_start, fat_size };
 }
-FileAllocationTable::FileAllocationTable(
-    std::vector<int> fat, std::vector<bool> dirty_entries):_fat(std::move(fat)), _dirty_entries(std::move(dirty_entries)) {
+FileAllocationTable::FileAllocationTable(std::vector<int> fat, std::vector<bool> dirty_entries)
+    : _fat(std::move(fat))
+    , _dirty_entries(std::move(dirty_entries))
+{
 }
-FileAllocationTable::FileAllocationTable(std::vector<int> fat): _fat(std::move(fat)), _dirty_entries(fat.size(), false) { }
+FileAllocationTable::FileAllocationTable(std::vector<int> fat)
+    : _fat(std::move(fat))
+    , _dirty_entries(fat.size(), false)
+{
+}
 
 FileAllocationTable FileAllocationTable::fromBytes(const std::vector<std::byte>& bytes)
 {
-    const int entries = bytes.size()/sizeof(int);
+    const int entries = bytes.size() / sizeof(int);
 
     auto fat = std::vector<int>(entries);
     auto dirty_entries = std::vector(entries, false);
@@ -62,25 +73,27 @@ FileAllocationTable FileAllocationTable::fromBytes(const std::vector<std::byte>&
     std::memcpy(fat.data(), bytes.data(), bytes.size());
 
     // move so there is no copying data
-    return {std::move(fat), std::move(dirty_entries)};
+    return { std::move(fat), std::move(dirty_entries) };
 }
 
 std::vector<std::byte> FileAllocationTable::toBytes() const
 {
-    const size_t bytes_count = _fat.size()*sizeof(int);
+    const size_t bytes_count = _fat.size() * sizeof(int);
     std::vector<std::byte> out(bytes_count);
 
     std::memcpy(out.data(), _fat.data(), bytes_count);
     return out;
 }
 
-std::expected<void, DiskError> FileAllocationTable::updateFat(IDisk& disk, const size_t fat_start_address)
+std::expected<void, DiskError> FileAllocationTable::updateFat(
+    IDisk& disk, const size_t fat_start_address)
 {
     auto bytes = std::vector<std::byte>(sizeof(int));
     for (int i = 0; i < _dirty_entries.size(); i++) {
-        if (!_dirty_entries[i]) continue;
+        if (!_dirty_entries[i])
+            continue;
         std::memcpy(bytes.data(), &_fat[i], sizeof(int));
-        auto ret = disk.write(fat_start_address + i*sizeof(int), bytes);
+        auto ret = disk.write(fat_start_address + i * sizeof(int), bytes);
         if (!ret.has_value()) {
             return std::unexpected(DiskError::IOError);
         }
@@ -98,7 +111,107 @@ void FileAllocationTable::setValue(int index, int value)
     _fat[index] = value;
     _dirty_entries[index] = true;
 }
-int FileAllocationTable::operator[](const int index) const {
-    return _fat[index];
+
+int FileAllocationTable::operator[](const int index) const { return _fat[index]; }
+
+DirectoryEntry DirectoryEntry::fromBytes(const std::array<std::byte, Layout::DIR_ENTRY_SIZE>& bytes)
+{
+    std::array<char, Layout::DIR_ENTRY_NAME_SIZE> file_name;
+    std::memcpy(&file_name, bytes.data(), Layout::DIR_ENTRY_NAME_SIZE);
+    int start_block;
+    std::memcpy(&start_block, bytes.data() + Layout::DIR_ENTRY_NAME_SIZE, sizeof(start_block));
+
+    return { file_name, start_block };
 }
 
+std::array<std::byte, Layout::DIR_ENTRY_SIZE> DirectoryEntry::toBytes() const
+{
+    std::array<std::byte, Layout::DIR_ENTRY_SIZE> out {};
+
+    // Write name including /0
+    std::memcpy(out.data(), file_name.data(), std::strlen(file_name.data()) + 1);
+    std::memcpy(out.data() + Layout::DIR_ENTRY_NAME_SIZE, &start_block, sizeof(start_block));
+
+    return out;
+}
+
+DirectoryEntry::DirectoryEntry(const std::string& name, int start_block)
+    : start_block(start_block)
+{
+    const size_t name_end = std::min(Layout::DIR_ENTRY_NAME_SIZE - 1, name.size());
+    std::memcpy(file_name.data(), name.data(), name_end);
+
+    // cut the name to size
+    file_name[name_end] = '\0';
+}
+
+DirectoryEntry::DirectoryEntry(
+    const std::array<char, Layout::DIR_ENTRY_NAME_SIZE>& name, int start_block)
+    : file_name(name)
+    , start_block(start_block)
+{
+}
+DirectoryEntry::DirectoryEntry()
+    : start_block(FileAllocationTable::FREE_BLOCK)
+{
+}
+
+bool DirectoryEntry::operator==(const DirectoryEntry& other) const
+{
+    return std::strcmp(file_name.data(), other.file_name.data()) == 0;
+}
+
+Directory::Directory(
+    const std::array<char, Layout::DIR_NAME_SIZE>& name, const std::vector<DirectoryEntry>& entries)
+    : name(name)
+    , entries(entries)
+{
+}
+
+Directory::Directory(const std::string& name, const std::vector<DirectoryEntry>& entries)
+    : entries(entries)
+{
+    const size_t name_end = std::min(Layout::DIR_ENTRY_NAME_SIZE - 1, name.size());
+    std::memcpy(this->name.data(), name.data(), name_end);
+
+    this->name[name_end] = '\0';
+}
+
+Directory Directory::fromBytes(const std::vector<std::byte>& bytes)
+{
+    std::array<char, Layout::DIR_NAME_SIZE> name;
+    std::memcpy(name.data(), bytes.data(), Layout::DIR_NAME_SIZE);
+
+    int num_entries;
+    std::memcpy(&num_entries, bytes.data() + Layout::DIR_NAME_SIZE, sizeof(num_entries));
+
+    std::vector<DirectoryEntry> entries(num_entries);
+
+    std::array<std::byte, Layout::DIR_ENTRY_SIZE> entry_bytes;
+    for (int i = 0; i < num_entries; i++) {
+        auto entry_begin = bytes.data() + Layout::DIR_HEADER_SIZE + i * Layout::DIR_ENTRY_SIZE;
+        std::memcpy(entry_bytes.data(), entry_begin, Layout::DIR_ENTRY_SIZE);
+
+        entries[i] = DirectoryEntry::fromBytes(entry_bytes);
+    }
+
+    return { name, entries };
+}
+
+std::vector<std::byte> Directory::toBytes() const
+{
+    std::vector<std::byte> bytes(Layout::DIR_HEADER_SIZE + entries.size() * Layout::DIR_ENTRY_SIZE);
+
+    const int num_entries = entries.size();
+    // copy header
+    std::memcpy(bytes.data(), name.data(), std::strlen(name.data()) + 1);
+    std::memcpy(bytes.data() + Layout::DIR_NAME_SIZE, &num_entries, sizeof(int));
+
+    // copy entries
+    for (int i = 0; i < entries.size(); i++) {
+        std::memcpy(bytes.data() + Layout::DIR_HEADER_SIZE + i * Layout::DIR_ENTRY_SIZE,
+            entries[i].toBytes().data(), Layout::DIR_ENTRY_SIZE);
+    }
+
+    return bytes;
+}
