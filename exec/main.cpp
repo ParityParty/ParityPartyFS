@@ -1,11 +1,12 @@
-#include "fusepp/Fuse-impl.hpp"
+#include "disk/stack_disk.hpp"
 #include "ppfs/ppfs.hpp"
 #include <iostream>
 
 int main(int argc, char* argv[])
 {
     try {
-        PpFS fs;
+        StackDisk disk;
+        PpFS fs(disk);
         return fs.run(argc, argv);
     } catch (const std::exception& e) {
         std::cerr << "Filesystem crashed 😭: " << e.what() << std::endl;
