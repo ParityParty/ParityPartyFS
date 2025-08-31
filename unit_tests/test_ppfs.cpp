@@ -1,14 +1,14 @@
-#include <gtest/gtest.h>
-#include "ppfs/ppfs.hpp"
 #include "disk/stack_disk.hpp"
-
+#include "ppfs/ppfs.hpp"
+#include <gtest/gtest.h>
 
 #include <fuse3/fuse.h>
 
 fuse_context g_fakeContext;
 
 // Fuse context is created on syscall. We need to set it up ourselves
-void setupFakeFuseContext(PpFS* fs) {
+void setupFakeFuseContext(PpFS* fs)
+{
     g_fakeContext.uid = getuid();
     g_fakeContext.gid = getgid();
     g_fakeContext.pid = getpid();
@@ -16,9 +16,7 @@ void setupFakeFuseContext(PpFS* fs) {
 }
 
 // override fuse_get_context so code sees fake one
-extern "C" struct fuse_context* fuse_get_context(void) {
-    return &g_fakeContext;
-}
+extern "C" struct fuse_context* fuse_get_context(void) { return &g_fakeContext; }
 
 TEST(PpFS, Compiles)
 {
@@ -27,23 +25,110 @@ TEST(PpFS, Compiles)
     SUCCEED();
 }
 
+TEST(PpFS, CreatesFiles)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+    setupFakeFuseContext(&fs);
+
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 0);
+
+    PpFS::create("/file1", 0666, 0);
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 1);
+    PpFS::create("/file2", 0666, 0);
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 2);
+}
+
+TEST(PpFS, RemovesFiles)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+    setupFakeFuseContext(&fs);
+
+    PpFS::create("/file1", 0666, 0);
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 1);
+    PpFS::create("/file2", 0666, 0);
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 2);
+
+    PpFS::unlink("/file1");
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 1);
+    PpFS::unlink("/file2");
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 0);
+}
+
 TEST(PpFS, WritesAndReads)
 {
     StackDisk disk;
     PpFS fs(disk);
     setupFakeFuseContext(&fs);
-    const std::string test_message = "Write test!";
 
-    // write
-    const int res = fs.write("/hello", test_message.c_str(), test_message.size(), 0, nullptr);
-    ASSERT_EQ(res, test_message.size());
+    PpFS::create("/file", 0666, 0);
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 1);
 
-    // read
-    const auto buf = new char[1024];
-    const int res_read = fs.read("/hello", buf, test_message.size(), 0, nullptr);
-    ASSERT_EQ(res_read, test_message.size());
-    buf[test_message.size()] = 0;
-    EXPECT_STREQ(test_message.c_str(), buf);
+    PpFS::write("/file", "haha", 5, 0, 0);
+
+    char* buf = new char[5];
+
+    PpFS::read("/file", buf, 5, 0, 0);
+
+    ASSERT_STREQ("haha", buf);
 
     delete[] buf;
+}
+
+TEST(PpFS, MulitBlockMultiFileIO)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+    setupFakeFuseContext(&fs);
+
+    PpFS::create("/file1", 0666, 0);
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 1);
+    PpFS::create("/file2", 0666, 0);
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 2);
+
+    std::string buf1
+        = "Magna adipiscing minim enim dolore sit et quis exercitation ex adipiscing nisi sit "
+          "lorem ut et ut aliqua et adipiscing do sed consequat minim eiusmod ea laboris eiusmod "
+          "et dolor consectetur adipiscing sed consequat consectetur ex dolor nostrud aliquip "
+          "nostrud aliquip tempor dolore amet ad ipsum nostrud do nostrud lorem ex adipiscing ut "
+          "nostrud sed lorem dolor ipsum sit ad nostrud enim incididunt eiusmod eiusmod veniam "
+          "ipsum commodo dolor ipsum tempor minim nostrud quis laboris aliquip amet quis labore "
+          "adipiscing consectetur.";
+    PpFS::write("/file1", buf1.c_str(), buf1.size(), 0, 0);
+    PpFS::write("/file2", buf1.c_str(), buf1.size(), 0, 0);
+    char* buf2 = new char[buf1.size()];
+
+    PpFS::read("/file1", buf2, buf1.size(), 0, 0);
+    ASSERT_STREQ(buf1.c_str(), buf2);
+    PpFS::read("/file2", buf2, buf1.size(), 0, 0);
+    ASSERT_STREQ(buf1.c_str(), buf2);
+
+    delete[] buf2;
+}
+
+TEST(PpFS, WriteChangesAttr)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+    setupFakeFuseContext(&fs);
+
+    PpFS::create("/file1", 0666, 0);
+    ASSERT_EQ(fs.getRootDirectory().entries.size(), 1);
+
+    struct stat s;
+    PpFS::getattr("/file1", &s, 0);
+    EXPECT_EQ(s.st_size, 0);
+
+    std::string buf1
+        = "Magna adipiscing minim enim dolore sit et quis exercitation ex adipiscing nisi sit "
+          "lorem ut et ut aliqua et adipiscing do sed consequat minim eiusmod ea laboris eiusmod "
+          "et dolor consectetur adipiscing sed consequat consectetur ex dolor nostrud aliquip "
+          "nostrud aliquip tempor dolore amet ad ipsum nostrud do nostrud lorem ex adipiscing ut "
+          "nostrud sed lorem dolor ipsum sit ad nostrud enim incididunt eiusmod eiusmod veniam "
+          "ipsum commodo dolor ipsum tempor minim nostrud quis laboris aliquip amet quis labore "
+          "adipiscing consectetur.";
+    PpFS::write("/file1", buf1.c_str(), buf1.size(), 0, 0);
+    PpFS::getattr("/file1", &s, 0);
+    EXPECT_EQ(s.st_size, buf1.size());
 }

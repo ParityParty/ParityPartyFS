@@ -1,10 +1,10 @@
 #pragma once
 #include "disk/idisk.hpp"
-#include "ppfs/layout.hpp"
+#include "ppfs/types.hpp"
+#include <array>
+#include <optional>
 #include <string>
 #include <vector>
-
-#include <array>
 
 struct SuperBlock {
     unsigned int num_blocks;
@@ -13,7 +13,8 @@ struct SuperBlock {
     unsigned int fat_size;
 
     SuperBlock(unsigned int num_blocks, unsigned int block_size, unsigned int fat_block_start,
-        unsigned int fat_num_blocks);
+        unsigned int fat_size);
+    SuperBlock() = default;
 
     std::vector<std::byte> toBytes() const;
 
@@ -25,8 +26,9 @@ class FileAllocationTable {
     std::vector<bool> _dirty_entries;
 
 public:
-    FileAllocationTable(std::vector<int> fat, std::vector<bool> dirty_entries);
-    FileAllocationTable(std::vector<int> fat);
+    FileAllocationTable(std::vector<block_index_t> fat, std::vector<bool> dirty_entries);
+    FileAllocationTable(std::vector<block_index_t> fat);
+    FileAllocationTable() = default;
 
     static FileAllocationTable fromBytes(const std::vector<std::byte>& bytes);
     std::vector<std::byte> toBytes() const;
@@ -36,22 +38,35 @@ public:
     void setValue(int index, int value);
     int operator[](int index) const;
 
-    static constexpr int FREE_BLOCK = 0;
-    static constexpr int LAST_BLOCK = -1;
+    static constexpr block_index_t FREE_BLOCK = 0;
+    static constexpr block_index_t LAST_BLOCK = -1;
+
+    std::expected<block_index_t, FatError> findFreeBlock() const;
+
+    /**
+     * Frees blocks starting from first up to LAST_BLOCK
+     *
+     * @param first first block
+     * @return void on success, FatError on error
+     */
+    std::expected<void, FatError> freeBlocksFrom(block_index_t first);
 };
 
 struct DirectoryEntry {
-    std::array<char, Layout::DIR_ENTRY_NAME_SIZE> file_name {};
-    int start_block;
+    file_name_t file_name {};
+    block_index_t start_block;
+    size_t file_size;
 
     static DirectoryEntry fromBytes(const std::array<std::byte, Layout::DIR_ENTRY_SIZE>& bytes);
     std::array<std::byte, Layout::DIR_ENTRY_SIZE> toBytes() const;
 
-    DirectoryEntry(const std::string& name, int start_block);
-    DirectoryEntry(const std::array<char, Layout::DIR_ENTRY_NAME_SIZE>& name, int start_block);
+    DirectoryEntry(const std::string& name, block_index_t start_block, size_t file_size);
+    DirectoryEntry(const file_name_t& name, block_index_t start_block, size_t file_size);
     DirectoryEntry();
 
     bool operator==(const DirectoryEntry& other) const;
+
+    std::string fileNameStr() const;
 };
 
 struct Directory {
@@ -61,6 +76,12 @@ struct Directory {
     Directory(const std::array<char, Layout::DIR_NAME_SIZE>& name,
         const std::vector<DirectoryEntry>& entries);
     Directory(const std::string& name, const std::vector<DirectoryEntry>& entries);
+    Directory() = default;
+
     static Directory fromBytes(const std::vector<std::byte>& bytes);
     std::vector<std::byte> toBytes() const;
+    std::optional<std::reference_wrapper<DirectoryEntry>> findFile(const std::string& name);
+
+    void addEntry(const DirectoryEntry& entry);
+    void removeEntry(const DirectoryEntry& entry);
 };

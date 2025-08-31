@@ -52,9 +52,20 @@ TEST(FAT, UpdateFat)
     EXPECT_EQ(fat1, fat2);
 }
 
+TEST(FAT, FindFreeBlock)
+{
+    FileAllocationTable table(std::vector(10, FileAllocationTable::LAST_BLOCK));
+    auto ret = table.findFreeBlock();
+    EXPECT_FALSE(ret.has_value());
+    table.setValue(8, FileAllocationTable::FREE_BLOCK);
+    ret = table.findFreeBlock();
+    EXPECT_TRUE(ret.has_value());
+    EXPECT_EQ(ret.value(), 8);
+}
+
 TEST(Directory, DirectoryEntrySerialization)
 {
-    auto entry = DirectoryEntry("abc", 66);
+    auto entry = DirectoryEntry("abc", 66, 88);
 
     auto bytes = entry.toBytes();
     auto entry2 = DirectoryEntry::fromBytes(bytes);
@@ -66,7 +77,7 @@ TEST(Directory, DirectoryEntrySerialization)
 TEST(Directory, DirectorySerialization)
 {
     std::vector<DirectoryEntry> entries
-        = { { "abc", 666 }, { "other entry", 34 }, { "third entry", 1234 } };
+        = { { "abc", 666, 1024 }, { "other entry", 34, 2048 }, { "third entry", 1234, 1234 } };
     auto dir1 = Directory("Directory", entries);
     auto bytes = dir1.toBytes();
     auto dir2 = Directory::fromBytes(bytes);
