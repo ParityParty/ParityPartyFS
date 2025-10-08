@@ -84,4 +84,5 @@ struct Directory {
 
     void addEntry(const DirectoryEntry& entry);
     void removeEntry(const DirectoryEntry& entry);
+    void changeEntry(const DirectoryEntry& entry, const DirectoryEntry& new_entry);
 };

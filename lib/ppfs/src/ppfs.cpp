@@ -1,6 +1,9 @@
 #include "ppfs/ppfs.hpp"
 #include "ppfs/data_structures.hpp"
 
+#include <iostream>
+#include <ostream>
+
 template <class T> Fusepp::t_getattr Fusepp::Fuse<T>::getattr = nullptr;
 template <class T> Fusepp::t_readlink Fusepp::Fuse<T>::readlink = nullptr;
 template <class T> Fusepp::t_mknod Fusepp::Fuse<T>::mknod = nullptr;
@@ -133,6 +136,7 @@ int PpFS::read(const char* path, char* buf, size_t size, off_t offset, struct fu
 
     auto ret = ptr->_readFile(file_opt.value(), size, offset);
     if (!ret.has_value()) {
+        std::cerr << "Error while reading file: " << toString(ret.error()) << std::endl;
         return -EIO;
     }
 
@@ -219,6 +223,30 @@ int PpFS::unlink(const char* path)
 
     return 0;
 }
+int PpFS::truncate(const char* path, off_t offset, fuse_file_info* fi)
+{
+    const auto ptr = this_();
+    std::string str_path(path);
+    if (str_path.substr(0, ptr->rootPath().length()) != ptr->rootPath()) {
+        return -ENOENT;
+    }
+    auto ret = ptr->_root_dir.findFile(str_path.substr(ptr->rootPath().length()));
+    if (!ret.has_value()) {
+        return -ENOENT;
+    }
+
+    auto trunc_ret = ptr->_truncateFile(ret.value(), offset);
+    if (!trunc_ret.has_value()) {
+        return -EIO;
+    }
+
+    auto flush_ret = ptr->_flushChanges();
+    if (!flush_ret.has_value()) {
+        return -EIO;
+    }
+
+    return 0;
+}
 
 std::expected<void, DiskError> PpFS::formatDisk(const unsigned int block_size)
 {
@@ -228,7 +256,7 @@ std::expected<void, DiskError> PpFS::formatDisk(const unsigned int block_size)
         return std::unexpected(DiskError::InvalidRequest);
     }
     unsigned int num_blocks = this->_disk.size() / block_size;
-    const unsigned int fat_block_start = Layout::SUPERBLOCK_NUM_BLOCKS;
+    constexpr unsigned int fat_block_start = Layout::SUPERBLOCK_NUM_BLOCKS;
     const unsigned int fat_size = num_blocks * sizeof(block_index_t);
 
     _super_block = SuperBlock(num_blocks, block_size, fat_block_start, fat_size);
@@ -284,7 +312,11 @@ std::expected<void, DiskError> PpFS::_createFile(const std::string& name)
 }
 std::expected<void, DiskError> PpFS::_removeFile(const DirectoryEntry& entry)
 {
-    _fat.freeBlocksFrom(entry.start_block);
+    auto ret = _fat.freeBlocksFrom(entry.start_block);
+    if (!ret.has_value()) {
+        std::cerr << "Error in _removeFile: couldn't free blocks" << std::endl;
+        return std::unexpected(DiskError::InternalError);
+    }
     _root_dir.removeEntry(entry);
     return {};
 }
@@ -294,6 +326,8 @@ std::expected<std::vector<std::byte>, DiskError> PpFS::_readFile(
     std::vector<std::byte> data;
     auto ret_find = _findFileOffset(entry, offset);
     if (!ret_find.has_value()) {
+        std::cerr << "Error in _readFile: _findFileOffset failed:" << toString(ret_find.error())
+                  << std::endl;
         return std::unexpected(ret_find.error());
     }
 
@@ -303,23 +337,28 @@ std::expected<std::vector<std::byte>, DiskError> PpFS::_readFile(
 
     auto ret = _disk.read(data_start, to_read);
     if (!ret.has_value()) {
+        std::cerr << "Error in _readFile: couldn't read from disk:" << toString(ret.error())
+                  << std::endl;
         return std::unexpected(ret.error());
     }
 
     data.insert(data.begin(), ret.value().begin(), ret.value().end());
     size_t read = to_read;
+
     while (read < size) {
+        block_ind = _fat[block_ind];
         if (block_ind == FileAllocationTable::LAST_BLOCK) {
             return data;
         }
-        block_ind = _fat[block_ind];
         if (block_ind == FileAllocationTable::FREE_BLOCK) {
+            std::cerr << "Error in _readFile: fat pointed to free block" << std::endl;
             return std::unexpected(DiskError::InternalError);
         }
         to_read = std::min(static_cast<size_t>(_block_size), size - read);
         auto bytes_ex = _disk.read(
             block_ind * _block_size, std::min(static_cast<size_t>(_block_size), to_read));
         if (!bytes_ex.has_value()) {
+            std::cerr << "Error in _readFile: couldn't read from disk" << std::endl;
             return std::unexpected(bytes_ex.error());
         }
         auto bytes = bytes_ex.value();
@@ -412,6 +451,24 @@ std::expected<size_t, DiskError> PpFS::_findFileOffset(const DirectoryEntry& ent
     }
 
     return offset % _block_size + block_ind * _block_size;
+}
+std::expected<void, DiskError> PpFS::_truncateFile(DirectoryEntry& entry, size_t size)
+{
+    auto offset_ret = _findFileOffset(entry, size);
+    if (!offset_ret.has_value()) {
+        return std::unexpected(offset_ret.error());
+    }
+
+    auto next_block = _fat[offset_ret.value() / _block_size];
+    if (next_block != FileAllocationTable::LAST_BLOCK
+        && next_block != FileAllocationTable::FREE_BLOCK) {
+        auto free_ret = _fat.freeBlocksFrom(next_block);
+        if (!free_ret.has_value()) {
+            return std::unexpected(DiskError::InternalError);
+        }
+    }
+    entry.file_size = size;
+    return {};
 }
 std::expected<void, DiskError> PpFS::_flushChanges()
 {

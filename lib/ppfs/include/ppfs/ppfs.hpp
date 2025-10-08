@@ -118,6 +118,8 @@ public:
 
     static int unlink(const char* path);
 
+    static int truncate(const char* path, off_t offset, fuse_file_info* fi);
+
     /**
      * Formats disk to work with ppfs
      *
@@ -178,6 +180,7 @@ private:
      * @return returns memory address on success, error otherwise
      */
     std::expected<size_t, DiskError> _findFileOffset(const DirectoryEntry& entry, size_t offset);
+    std::expected<void, DiskError> _truncateFile(DirectoryEntry& entry, size_t size);
 
     std::expected<void, DiskError> _flushChanges();
 };

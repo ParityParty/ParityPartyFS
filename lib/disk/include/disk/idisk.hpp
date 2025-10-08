@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <expected>
+#include <string_view>
 #include <vector>
 
 enum class DiskError {
@@ -9,7 +10,26 @@ enum class DiskError {
     InvalidRequest,
     InternalError,
     OutOfMemory,
+
 };
+
+inline std::string_view toString(DiskError err)
+{
+    switch (err) {
+    case DiskError::IOError:
+        return "IOError";
+    case DiskError::OutOfBounds:
+        return "OutOfBounds";
+    case DiskError::InvalidRequest:
+        return "InvalidRequest";
+    case DiskError::InternalError:
+        return "InternalError";
+    case DiskError::OutOfMemory:
+        return "OutOfMemory";
+    default:
+        return "UnknownError";
+    }
+}
 
 struct IDisk {
     virtual ~IDisk() = default;

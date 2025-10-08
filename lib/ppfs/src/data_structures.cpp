@@ -134,10 +134,13 @@ std::expected<void, FatError> FileAllocationTable::freeBlocksFrom(block_index_t 
     size_t max_iters = _fat.size();
     size_t iters = 0;
 
+    block_index_t next;
+
     while (iters++ < max_iters && _fat[block] != LAST_BLOCK) {
+        next = _fat[block];
         _fat[block] = FREE_BLOCK;
         _dirty_entries[block] = true;
-        block++;
+        block = next;
     }
     if (_fat[block] != LAST_BLOCK) {
         std::cerr << "Error while freeing blocks. Probably a loop in fat";
@@ -281,4 +284,9 @@ void Directory::addEntry(const DirectoryEntry& entry) { entries.push_back(entry)
 void Directory::removeEntry(const DirectoryEntry& entry)
 {
     entries.erase(std::find(entries.begin(), entries.end(), entry));
+}
+void Directory::changeEntry(const DirectoryEntry& entry, const DirectoryEntry& new_entry)
+{
+    removeEntry(entry);
+    addEntry(new_entry);
 }
