@@ -10,7 +10,6 @@ enum class DiskError {
     InvalidRequest,
     InternalError,
     OutOfMemory,
-
 };
 
 inline std::string_view toString(DiskError err)
