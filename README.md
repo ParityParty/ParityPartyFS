@@ -1,6 +1,6 @@
 # ParityPartyFS (ppfs)
 
-A toy filesystem implemented with **FUSE** and **C++23**, built using [Fusepp](https://github.com/jachappell/Fusepp).  
+A toy filesystem implemented with **FUSE** and **C++23**, built using [Fusepp](https://github.com/jachappell/Fusepp).
 
 ## 📦 Dependencies
 
@@ -21,9 +21,9 @@ cmake --build --preset debug   # build everything
 ```
 
 Other presets you can use:
+
 - `debug` → Debug mode (with tests, symbols).
 - `release` → Release mode (optimized).
-
 
 ## ▶️ Run the filesystem
 
@@ -40,19 +40,18 @@ mkdir mnt
 ./build/debug/exec/ppfs_bin mnt
 ```
 
-Now you should see files inside `/tmp/ppfs`, e.g.:
+Now you can add files to mnt
 
 ```bash
-ls mnt
-# hello.txt
-cat mnt/hello.txt
-# Hello, world!
+echo "abc" > mnt/file
+cat mnt/file
+# abc
 ```
 
 To unmount:
 
 ```bash
-fusermount3 -u /tmp/ppfs
+umount mnt
 ```
 
 ## 🧪 Run Tests

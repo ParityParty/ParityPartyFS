@@ -28,11 +28,11 @@ TEST(StackDisk, Writes)
 TEST(StackDisk, OutOfBounds)
 {
     StackDisk stack_disk;
-    auto res_read = stack_disk.read(StackDisk::size() - 1, 3);
+    auto res_read = stack_disk.read(stack_disk.size() - 1, 3);
     EXPECT_FALSE(res_read.has_value());
     EXPECT_EQ(res_read.error(), DiskError::OutOfBounds);
 
-    auto res_write = stack_disk.write(StackDisk::size() - 1, {std::byte{1}, std::byte{2}, std::byte{3}});
+    auto res_write = stack_disk.write(stack_disk.size() - 1, {std::byte{1}, std::byte{2}, std::byte{3}});
     EXPECT_FALSE(res_write.has_value());
     EXPECT_EQ(res_write.error(), DiskError::OutOfBounds);
 }
