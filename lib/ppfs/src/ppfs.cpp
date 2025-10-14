@@ -47,8 +47,8 @@ template <class T> Fusepp::t_fallocate Fusepp::Fuse<T>::fallocate = nullptr;
 
 template <class T> struct fuse_operations Fusepp::Fuse<T>::operations_;
 
-PpFS::PpFS(IDisk& disk)
-    : _disk(disk)
+PpFS::PpFS(IDisk& disk, IBlockDevice& block_device)
+    : _disk(disk), _block_device(block_device)
 {
     // Always format disk for now
     if (const auto ret = formatDisk(512); !ret.has_value()) {

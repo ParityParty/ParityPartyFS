@@ -18,6 +18,7 @@ add_executable(${NAME}
 target_link_libraries(${NAME} PUBLIC
     disk
     ppfs
+    blockdevice
     GTest::gtest_main
 )
 

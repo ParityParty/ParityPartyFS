@@ -3,9 +3,9 @@
 class RawBlockDevice : public IBlockDevice {
 private:
     size_t _block_size;
-    IDisk* _disk;
+    IDisk& _disk;
 public:
-    RawBlockDevice(size_t block_size, IDisk* disk);
+    RawBlockDevice(size_t block_size, IDisk& disk);
 
     std::expected<size_t, DiskError> writeBlock(
         const std::vector<std::byte>& data, size_t block_index, size_t offset) override;

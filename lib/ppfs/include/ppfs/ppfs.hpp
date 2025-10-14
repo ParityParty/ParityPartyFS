@@ -2,11 +2,12 @@
 #include "data_structures.hpp"
 #include "disk/idisk.hpp"
 #include "fusepp/Fuse.hpp"
+#include <blockdevice/iblock_device.hpp>
 #include <stdexcept>
 
 class PpFS : public Fusepp::Fuse<PpFS> {
 public:
-    PpFS(IDisk& disk);
+    PpFS(IDisk& disk, IBlockDevice& block_device);
     ~PpFS() override = default;
 
     static int getattr(const char*, struct stat*, fuse_file_info*);
@@ -57,6 +58,8 @@ private:
     std::string _root_path = "/";
 
     IDisk& _disk;
+    IBlockDevice& _block_device;
+    
     unsigned int _block_size;
     unsigned int _root_dir_block;
 

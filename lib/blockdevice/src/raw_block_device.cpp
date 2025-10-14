@@ -1,6 +1,6 @@
 #include "blockdevice/raw_block_device.hpp"
 
-RawBlockDevice::RawBlockDevice(size_t block_size, IDisk* disk)
+RawBlockDevice::RawBlockDevice(size_t block_size, IDisk& disk)
     : _block_size(block_size), _disk(disk)
 {
 }
@@ -21,7 +21,7 @@ std::expected<size_t, DiskError> RawBlockDevice::writeBlock(
     size_t to_write = std::min(data.size(), _block_size - offset);
 
     size_t address = block_index * _block_size + offset;
-    auto disk_result = _disk->write(address, data);
+    auto disk_result = _disk.write(address, data);
     if (!disk_result.has_value()) {
         return std::unexpected(disk_result.error());
     }
@@ -35,5 +35,5 @@ std::expected<std::vector<std::byte>, DiskError> RawBlockDevice::readBlock(
     size_t to_read = std::min(bytes_to_read, _block_size - offset);
 
     size_t address = block_index * _block_size + offset;
-    return _disk->read(address, bytes_to_read);
+    return _disk.read(address, bytes_to_read);
 }
