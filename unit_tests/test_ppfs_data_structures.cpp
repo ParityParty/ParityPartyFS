@@ -65,19 +65,21 @@ TEST(FAT, FindFreeBlock)
 
 TEST(Directory, DirectoryEntrySerialization)
 {
-    auto entry = DirectoryEntry("abc", 66, 88);
+    auto entry = DirectoryEntry(true, "abc", 66, 88);
 
     auto bytes = entry.toBytes();
     auto entry2 = DirectoryEntry::fromBytes(bytes);
 
     EXPECT_STREQ(entry.file_name.data(), entry2.file_name.data());
     EXPECT_EQ(entry.start_block, entry2.start_block);
+    EXPECT_EQ(entry.file_size, entry2.file_size);
+    EXPECT_TRUE(entry2.is_directory);
 }
 
 TEST(Directory, DirectorySerialization)
 {
-    std::vector<DirectoryEntry> entries
-        = { { "abc", 666, 1024 }, { "other entry", 34, 2048 }, { "third entry", 1234, 1234 } };
+    std::vector<DirectoryEntry> entries = { { true, "abc", 666, 1024 },
+        { false, "other entry", 34, 2048 }, { true, "third entry", 1234, 1234 } };
     auto dir1 = Directory("Directory", entries);
     auto bytes = dir1.toBytes();
     auto dir2 = Directory::fromBytes(bytes);

@@ -305,7 +305,7 @@ std::expected<void, DiskError> PpFS::_createFile(const std::string& name)
 
     block_index_t block_index = ret.value();
 
-    _root_dir.addEntry({ name, block_index, 0 });
+    _root_dir.addEntry({ false, name, block_index, 0 });
     _fat.setValue(block_index, FileAllocationTable::LAST_BLOCK);
 
     return {};

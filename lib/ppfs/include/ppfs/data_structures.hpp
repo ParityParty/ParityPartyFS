@@ -53,6 +53,7 @@ public:
 };
 
 struct DirectoryEntry {
+    bool is_directory;
     file_name_t file_name {};
     block_index_t start_block;
     size_t file_size;
@@ -60,8 +61,10 @@ struct DirectoryEntry {
     static DirectoryEntry fromBytes(const std::array<std::byte, Layout::DIR_ENTRY_SIZE>& bytes);
     std::array<std::byte, Layout::DIR_ENTRY_SIZE> toBytes() const;
 
-    DirectoryEntry(const std::string& name, block_index_t start_block, size_t file_size);
-    DirectoryEntry(const file_name_t& name, block_index_t start_block, size_t file_size);
+    DirectoryEntry(
+        bool is_directory, const std::string& name, block_index_t start_block, size_t file_size);
+    DirectoryEntry(
+        bool is_directory, const file_name_t& name, block_index_t start_block, size_t file_size);
     DirectoryEntry();
 
     bool operator==(const DirectoryEntry& other) const;

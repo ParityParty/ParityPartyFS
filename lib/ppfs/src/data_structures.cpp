@@ -33,7 +33,6 @@ std::vector<std::byte> SuperBlock::toBytes() const
 
 SuperBlock SuperBlock::fromBytes(const std::vector<std::byte>& bytes)
 {
-
     size_t offset = 0;
 
     unsigned int num_blocks;
@@ -153,38 +152,49 @@ std::expected<void, FatError> FileAllocationTable::freeBlocksFrom(block_index_t 
 
 DirectoryEntry DirectoryEntry::fromBytes(const std::array<std::byte, Layout::DIR_ENTRY_SIZE>& bytes)
 {
-    file_name_t file_name;
     size_t offset = 0;
-    std::memcpy(&file_name, bytes.data(), Layout::DIR_ENTRY_NAME_SIZE);
+    bool is_directory;
+    std::memcpy(&is_directory, bytes.data() + offset, sizeof(is_directory));
+    offset += sizeof(is_directory);
 
+    file_name_t file_name;
+    std::memcpy(&file_name, bytes.data() + offset, Layout::DIR_ENTRY_NAME_SIZE);
     offset += Layout::DIR_ENTRY_NAME_SIZE;
+
     block_index_t start_block;
     std::memcpy(&start_block, bytes.data() + offset, sizeof(start_block));
+    offset += Layout::DIR_ENTRY_START_BLOCK_INDEX_SIZE;
 
     size_t file_size;
-    offset += Layout::DIR_ENTRY_START_BLOCK_INDEX_SIZE;
     std::memcpy(&file_size, bytes.data() + offset, sizeof(file_size));
 
-    return { file_name, start_block, file_size };
+    return { is_directory, file_name, start_block, file_size };
 }
 
 std::array<std::byte, Layout::DIR_ENTRY_SIZE> DirectoryEntry::toBytes() const
 {
     std::array<std::byte, Layout::DIR_ENTRY_SIZE> out {};
 
-    // Write name including /0
     size_t offset = 0;
-    std::memcpy(out.data(), file_name.data(), std::strlen(file_name.data()) + 1);
+    std::memcpy(out.data() + offset, &is_directory, Layout::DIR_ENTRY_FILE_TYPE_SIZE);
+    offset += Layout::DIR_ENTRY_FILE_TYPE_SIZE;
+
+    // Write name including /0
+    std::memcpy(out.data() + offset, file_name.data(), std::strlen(file_name.data()) + 1);
     offset += Layout::DIR_ENTRY_NAME_SIZE;
+
     std::memcpy(out.data() + offset, &start_block, sizeof(start_block));
     offset += Layout::DIR_ENTRY_START_BLOCK_INDEX_SIZE;
+
     std::memcpy(out.data() + offset, &file_size, sizeof(file_size));
 
     return out;
 }
 
-DirectoryEntry::DirectoryEntry(const std::string& name, int start_block, size_t file_size)
-    : start_block(start_block)
+DirectoryEntry::DirectoryEntry(
+    bool is_directory, const std::string& name, int start_block, size_t file_size)
+    : is_directory(is_directory)
+    , start_block(start_block)
     , file_size(file_size)
 {
     const size_t name_end = std::min(Layout::DIR_ENTRY_NAME_SIZE - 1, name.size());
@@ -194,16 +204,18 @@ DirectoryEntry::DirectoryEntry(const std::string& name, int start_block, size_t 
     file_name[name_end] = '\0';
 }
 
-DirectoryEntry::DirectoryEntry(
+DirectoryEntry::DirectoryEntry(bool is_directory,
     const std::array<char, Layout::DIR_ENTRY_NAME_SIZE>& name, int start_block, size_t file_size)
-    : file_name(name)
+    : is_directory(is_directory)
+    , file_name(name)
     , start_block(start_block)
     , file_size(file_size)
 {
 }
 
 DirectoryEntry::DirectoryEntry()
-    : start_block(FileAllocationTable::FREE_BLOCK)
+    : is_directory(false)
+    , start_block(FileAllocationTable::FREE_BLOCK)
     , file_size(0)
 {
 }
@@ -211,7 +223,8 @@ DirectoryEntry::DirectoryEntry()
 bool DirectoryEntry::operator==(const DirectoryEntry& other) const
 {
     return std::strcmp(file_name.data(), other.file_name.data()) == 0
-        && start_block == other.start_block && file_size == other.file_size;
+        && start_block == other.start_block && file_size == other.file_size
+        && is_directory == other.is_directory;
 }
 std::string DirectoryEntry::fileNameStr() const { return { file_name.data() }; }
 

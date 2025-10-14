@@ -18,10 +18,11 @@ constexpr size_t DIR_NUM_ENTRIES_SIZE = sizeof(num_entries_t);
 constexpr size_t DIR_NAME_SIZE = DIR_HEADER_SIZE - DIR_NUM_ENTRIES_SIZE;
 
 constexpr size_t DIR_ENTRY_SIZE = 128;
+constexpr size_t DIR_ENTRY_FILE_TYPE_SIZE = sizeof(bool);
 constexpr size_t DIR_ENTRY_START_BLOCK_INDEX_SIZE = sizeof(block_index_t);
 constexpr size_t DIR_ENTRY_FILE_SIZE_SIZE = sizeof(size_t);
-constexpr size_t DIR_ENTRY_NAME_SIZE
-    = DIR_ENTRY_SIZE - DIR_ENTRY_START_BLOCK_INDEX_SIZE - DIR_ENTRY_FILE_SIZE_SIZE;
+constexpr size_t DIR_ENTRY_NAME_SIZE = DIR_ENTRY_SIZE - DIR_ENTRY_FILE_TYPE_SIZE
+    - DIR_ENTRY_START_BLOCK_INDEX_SIZE - DIR_ENTRY_FILE_SIZE_SIZE;
 }
 
 typedef std::array<char, Layout::DIR_ENTRY_NAME_SIZE> file_name_t;
