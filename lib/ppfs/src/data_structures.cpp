@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 
 SuperBlock::SuperBlock(unsigned int num_blocks, unsigned int block_size,
     unsigned int fat_block_start, unsigned int fat_size)
@@ -94,7 +95,7 @@ std::expected<void, DiskError> FileAllocationTable::updateFat(
         if (!_dirty_entries[i])
             continue;
         std::memcpy(bytes.data(), &_fat[i], sizeof(int));
-        auto ret = disk.write(fat_start_address + i * sizeof(int), bytes);
+        auto ret = disk.write(fat_start_address + i * sizeof(block_index_t), bytes);
         if (!ret.has_value()) {
             return std::unexpected(DiskError::IOError);
         }
@@ -302,4 +303,45 @@ void Directory::changeEntry(const DirectoryEntry& entry, const DirectoryEntry& n
 {
     removeEntry(entry);
     addEntry(new_entry);
+}
+Path::Path(const std::string& path)
+    : path(path)
+{
+    normalize();
+}
+void Path::normalize()
+{
+    std::vector<std::string> parts = split(path, '/');
+    std::vector<std::string> stack;
+
+    for (const auto& part : parts) {
+        if (part == "." || part.empty())
+            continue;
+        if (part == "..") {
+            if (!stack.empty())
+                stack.pop_back();
+            // ignore .. at root
+        } else {
+            stack.push_back(part);
+        }
+    }
+
+    path.clear();
+    for (const auto& dir : stack) {
+        path += "/" + dir;
+    }
+
+    if (path.empty())
+        path = "/";
+}
+std::vector<std::string> Path::split(const std::string& s, char delimiter)
+{
+    std::vector<std::string> elems;
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delimiter)) {
+        if (!item.empty())
+            elems.push_back(item);
+    }
+    return elems;
 }

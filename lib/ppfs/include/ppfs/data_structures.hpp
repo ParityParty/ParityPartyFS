@@ -89,3 +89,13 @@ struct Directory {
     void removeEntry(const DirectoryEntry& entry);
     void changeEntry(const DirectoryEntry& entry, const DirectoryEntry& new_entry);
 };
+
+struct Path {
+    std::string path;
+
+    Path(const std::string& path);
+
+    void normalize();
+
+    static std::vector<std::string> split(const std::string& s, char delimiter);
+};

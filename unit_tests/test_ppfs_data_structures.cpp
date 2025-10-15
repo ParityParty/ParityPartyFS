@@ -87,3 +87,12 @@ TEST(Directory, DirectorySerialization)
     EXPECT_STREQ(dir1.name.data(), dir2.name.data());
     EXPECT_EQ(dir1.entries, dir2.entries);
 }
+
+TEST(Path, RemovesDots)
+{
+    std::string path("/dir1/dir2/.././file");
+    std::string expected = "/dir1/file";
+
+    Path p(path);
+    EXPECT_EQ(expected, p.path);
+}
