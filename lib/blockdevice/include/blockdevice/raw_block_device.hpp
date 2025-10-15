@@ -43,4 +43,7 @@ public:
     /// @return The size of data that fits in a single block (equal to the block size here).
     size_t dataSize() const override;
 
+    /// @brief  Returns the number of available blocks.
+    /// @return Number of blocks.
+     size_t numOfBlocks() const override;
 };

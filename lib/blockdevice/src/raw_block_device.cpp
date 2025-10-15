@@ -55,6 +55,12 @@ std::expected<std::vector<std::byte>, DiskError> RawBlockDevice::readBlock(
     return _disk.read(address, bytes_to_read);
 }
 
+/// @brief  Returns the number of available blocks.
+/// @return Number of blocks.
+size_t RawBlockDevice::numOfBlocks() const {
+    return _disk.size() / _block_size;
+}
+
 /// @brief Constructs a DataLocation object representing a position on the disk.
 /// @param block_index The index of the block on the disk.
 /// @param offset The offset within the block where data starts.

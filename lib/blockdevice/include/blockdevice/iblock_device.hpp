@@ -63,4 +63,8 @@ public:
     ///
     /// @return The size of usable (payload) data in a single block.
     virtual size_t dataSize() const = 0;
+
+    /// @brief  Returns the number of available blocks.
+    /// @return Number of blocks.
+    virtual size_t numOfBlocks() const = 0;
 };

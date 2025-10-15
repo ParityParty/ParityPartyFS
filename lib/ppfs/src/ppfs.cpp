@@ -47,8 +47,8 @@ template <class T> Fusepp::t_fallocate Fusepp::Fuse<T>::fallocate = nullptr;
 
 template <class T> struct fuse_operations Fusepp::Fuse<T>::operations_;
 
-PpFS::PpFS(IDisk& disk, IBlockDevice& block_device)
-    : _disk(disk), _block_device(block_device)
+PpFS::PpFS(IBlockDevice& block_device)
+    : _block_device(block_device)
 {
     // Always format disk for now
     if (const auto ret = formatDisk(512); !ret.has_value()) {
@@ -250,12 +250,11 @@ int PpFS::truncate(const char* path, off_t offset, fuse_file_info* fi)
 
 std::expected<void, DiskError> PpFS::formatDisk(const unsigned int block_size)
 {
-    this->_block_size = block_size;
 
     if (block_size < sizeof(SuperBlock)) {
         return std::unexpected(DiskError::InvalidRequest);
     }
-    unsigned int num_blocks = this->_disk.size() / _block_device.rawBlockSize();
+    unsigned int num_blocks = _block_device.numOfBlocks();
     constexpr unsigned int fat_block_start = Layout::SUPERBLOCK_NUM_BLOCKS;
     const unsigned int fat_size = num_blocks * sizeof(block_index_t);
 
