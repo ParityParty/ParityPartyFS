@@ -328,38 +328,24 @@ std::expected<std::vector<std::byte>, DiskError> PpFS::_readFile(
 
     DataLocation file_location = ret_find.value();
 
-    size_t to_read = std::min(_block_device.dataSize() - file_location.offset, size);
-
-    auto ret = _block_device.readBlock(file_location, to_read);
-    if (!ret.has_value()) {
-        std::cerr << "Error in _readFile: couldn't read from disk:" << toString(ret.error())
-                  << std::endl;
-        return std::unexpected(ret.error());
-    }
-
-    data.insert(data.begin(), ret.value().begin(), ret.value().end());
-    size_t read = to_read;
-
-    while (read < size) {
-        file_location.offset = 0;
-        file_location.block_index = _fat[file_location.block_index];
-        if (file_location.block_index == FileAllocationTable::LAST_BLOCK) {
-            return data;
-        }
+    while(data.size() < size && file_location.block_index != FileAllocationTable::LAST_BLOCK) {
+        //TODO: Add check for reading beyond file size
         if (file_location.block_index == FileAllocationTable::FREE_BLOCK) {
             std::cerr << "Error in _readFile: fat pointed to free block" << std::endl;
             return std::unexpected(DiskError::InternalError);
         }
-        to_read = std::min(static_cast<size_t>(_block_device.dataSize()), size - read);
-        auto bytes_ex = _block_device.readBlock(file_location, std::min(static_cast<size_t>(_block_device.dataSize()), to_read));
+        auto bytes_ex = _block_device.readBlock(file_location, size - data.size());
         if (!bytes_ex.has_value()) {
             std::cerr << "Error in _readFile: couldn't read from disk" << std::endl;
             return std::unexpected(bytes_ex.error());
         }
         auto bytes = bytes_ex.value();
         data.insert(data.end(), bytes.begin(), bytes.end());
-        read += to_read;
+
+        file_location.block_index = _fat[file_location.block_index];
+        file_location.offset = 0;
     }
+
     return data;
 }
 
@@ -384,31 +370,34 @@ std::expected<void, DiskError> PpFS::_writeFile(
 }
 std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& data, DataLocation address)
 {
+    //TODO: I think we can simplify this logic even more in the future
     size_t written = 0;
 
-
-    size_t to_write
-        = std::min(static_cast<size_t>(_block_device.dataSize()) - address.offset, data.size());
-    auto ret = _block_device.writeBlock(
-        { data.begin(), data.begin() + to_write }, address);
+    auto ret = _block_device.writeBlock(data, address);
     if (!ret.has_value()) {
         return std::unexpected(ret.error());
     }
 
-    written = to_write;
+    written += ret.value();
+
+    address.offset = 0;
 
     while (written < data.size() && _fat[address.block_index] != FileAllocationTable::LAST_BLOCK) {
         auto next_block = _fat[address.block_index];
         _fat.setValue(address.block_index, next_block);
+        address.block_index = next_block;
 
-        to_write = std::min(static_cast<size_t>(_block_device.dataSize()), data.size() - written);
         auto write_ret = _block_device.writeBlock(
-            { data.begin() + written, data.begin() + written + to_write }, DataLocation(next_block, 0));
+            { data.begin() + written, data.end()}, address);
         if (!write_ret.has_value()) {
             return std::unexpected(write_ret.error());
         }
-        written += to_write;
-        address.block_index = next_block;
+        written += write_ret.value();
+    }
+
+    // If we finished writing, we shouldn't mark the end of the file in fat
+    if (written == data.size()) {
+        return;
     }
 
     while (written < data.size()) {
@@ -419,13 +408,12 @@ std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& d
         auto next_block = next_block_ex.value();
         _fat.setValue(address.block_index, next_block);
 
-        to_write = std::min(static_cast<size_t>(_block_device.dataSize()), data.size() - written);
         auto write_ret = _block_device.writeBlock(
-            { data.begin() + written, data.begin() + written + to_write }, DataLocation(next_block, 0));
+            { data.begin() + written, data.end()}, DataLocation(next_block, 0));
         if (!write_ret.has_value()) {
             return std::unexpected(write_ret.error());
         }
-        written += to_write;
+        written += write_ret.value();
         address.block_index = next_block;
     }
     _fat.setValue(address.block_index, FileAllocationTable::LAST_BLOCK);
