@@ -276,9 +276,9 @@ std::expected<void, DiskError> PpFS::formatDisk(const unsigned int block_size)
 
     _fat = FileAllocationTable(std::move(fat_table));
 
-    const auto ret1 = _block_device.writeBlock(_super_block.toBytes(), 0, 0);
-    const auto ret2 = _block_device.writeBlock(_fat.toBytes(), 1, 0);
-    const auto ret3 = _block_device.writeBlock(_root_dir.toBytes(), _root_dir_block, 0);
+    const auto ret1 = _block_device.writeBlock(_super_block.toBytes(), DataLocation(0, 0));
+    const auto ret2 = _block_device.writeBlock(_fat.toBytes(), DataLocation(fat_block_start, 0));
+    const auto ret3 = _block_device.writeBlock(_root_dir.toBytes(), DataLocation(_root_dir_block, 0));
     if (!ret1.has_value() || !ret2.has_value() || !ret3.has_value()) {
         return std::unexpected(DiskError::IOError);
     }
@@ -325,10 +325,10 @@ std::expected<std::vector<std::byte>, DiskError> PpFS::_readFile(
         return std::unexpected(ret_find.error());
     }
 
-    AbstractFileLocation file_location = ret_find.value();
+    DataLocation file_location = ret_find.value();
     size_t to_read = std::min(_block_device.dataSize() - file_location.offset, size);
 
-    auto ret = _block_device.readBlock(file_location.block_index, file_location.offset, to_read);
+    auto ret = _block_device.readBlock(file_location, to_read);
     if (!ret.has_value()) {
         std::cerr << "Error in _readFile: couldn't read from disk:" << toString(ret.error())
                   << std::endl;
@@ -339,6 +339,7 @@ std::expected<std::vector<std::byte>, DiskError> PpFS::_readFile(
     size_t read = to_read;
 
     while (read < size) {
+        file_location.offset = 0;
         file_location.block_index = _fat[file_location.block_index];
         if (file_location.block_index == FileAllocationTable::LAST_BLOCK) {
             return data;
@@ -348,7 +349,7 @@ std::expected<std::vector<std::byte>, DiskError> PpFS::_readFile(
             return std::unexpected(DiskError::InternalError);
         }
         to_read = std::min(static_cast<size_t>(_block_device.dataSize()), size - read);
-        auto bytes_ex = _block_device.readBlock(file_location.block_index, 0, std::min(static_cast<size_t>(_block_device.dataSize()), to_read));
+        auto bytes_ex = _block_device.readBlock(file_location, std::min(static_cast<size_t>(_block_device.dataSize()), to_read));
         if (!bytes_ex.has_value()) {
             std::cerr << "Error in _readFile: couldn't read from disk" << std::endl;
             return std::unexpected(bytes_ex.error());
@@ -379,7 +380,7 @@ std::expected<void, DiskError> PpFS::_writeFile(
     }
     return {};
 }
-std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& data, AbstractFileLocation address)
+std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& data, DataLocation address)
 {
     size_t written = 0;
 
@@ -387,7 +388,7 @@ std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& d
     size_t to_write
         = std::min(static_cast<size_t>(_block_device.dataSize()) - address.offset, data.size());
     auto ret = _block_device.writeBlock(
-        { data.begin(), data.begin() + to_write }, address.block_index, address.offset);
+        { data.begin(), data.begin() + to_write }, address);
     if (!ret.has_value()) {
         return std::unexpected(ret.error());
     }
@@ -400,7 +401,7 @@ std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& d
 
         to_write = std::min(static_cast<size_t>(_block_device.dataSize()), data.size() - written);
         auto write_ret = _block_device.writeBlock(
-            { data.begin() + written, data.begin() + written + to_write }, next_block, 0);
+            { data.begin() + written, data.begin() + written + to_write }, DataLocation(next_block, 0));
         if (!write_ret.has_value()) {
             return std::unexpected(write_ret.error());
         }
@@ -418,7 +419,7 @@ std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& d
 
         to_write = std::min(static_cast<size_t>(_block_device.dataSize()), data.size() - written);
         auto write_ret = _block_device.writeBlock(
-            { data.begin() + written, data.begin() + written + to_write }, next_block, 0);
+            { data.begin() + written, data.begin() + written + to_write }, DataLocation(next_block, 0));
         if (!write_ret.has_value()) {
             return std::unexpected(write_ret.error());
         }
@@ -428,7 +429,7 @@ std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& d
     _fat.setValue(address.block_index, FileAllocationTable::LAST_BLOCK);
     return {};
 }
-std::expected<AbstractFileLocation, DiskError> PpFS::_findFileOffset(const DirectoryEntry& entry, size_t offset)
+std::expected<DataLocation, DiskError> PpFS::_findFileOffset(const DirectoryEntry& entry, size_t offset)
 {
     block_index_t num_blocks = offset / _block_device.dataSize();
     block_index_t block_ind = entry.start_block;
@@ -443,7 +444,7 @@ std::expected<AbstractFileLocation, DiskError> PpFS::_findFileOffset(const Direc
         }
     }
 
-    return AbstractFileLocation(block_ind, offset % _block_device.dataSize());
+    return DataLocation(block_ind, offset % _block_device.dataSize());
 }
 std::expected<void, DiskError> PpFS::_truncateFile(DirectoryEntry& entry, size_t size)
 {
@@ -468,7 +469,7 @@ std::expected<void, DiskError> PpFS::_truncateFile(DirectoryEntry& entry, size_t
 std::expected<void, DiskError> PpFS::_flushChanges()
 {
     auto dir_bytes = _root_dir.toBytes();
-    auto ret = _writeBytes(dir_bytes, AbstractFileLocation(_root_dir_block, 0));
+    auto ret = _writeBytes(dir_bytes, DataLocation(_root_dir_block, 0));
     if (!ret.has_value()) {
         return std::unexpected(ret.error());
     }
