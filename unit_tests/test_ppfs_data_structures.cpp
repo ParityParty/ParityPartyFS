@@ -1,4 +1,5 @@
 #include "disk/stack_disk.hpp"
+#include "blockdevice/raw_block_device.hpp"
 #include "ppfs/data_structures.hpp"
 #include "ppfs/ppfs.hpp"
 #include <gtest/gtest.h>
@@ -29,6 +30,7 @@ TEST(FAT, Serialization)
 TEST(FAT, UpdateFat)
 {
     StackDisk disk;
+    RawBlockDevice block_device(512, disk);
     std::vector fat = { -1, -1, -1, 0, 0, 0, 7, -1, 9, 10, -1, 0 };
     auto dirty_entries = std::vector(fat.size(), false);
     auto fat1 = FileAllocationTable(std::move(fat), std::move(dirty_entries));
@@ -41,7 +43,7 @@ TEST(FAT, UpdateFat)
     fat1.setValue(1, 2222);
     fat1.setValue(2, 222222);
 
-    const auto ret_update = fat1.updateFat(disk, 0);
+    const auto ret_update = fat1.updateFat(block_device, 0);
     ASSERT_TRUE(ret_update.has_value()) << "Failed to update fat";
 
     const auto ret_after_update = disk.read(0, bytes.size());

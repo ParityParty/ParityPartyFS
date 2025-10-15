@@ -88,14 +88,15 @@ std::vector<std::byte> FileAllocationTable::toBytes() const
 }
 
 std::expected<void, DiskError> FileAllocationTable::updateFat(
-    IDisk& disk, const size_t fat_start_address)
+    IBlockDevice& block_device, const size_t fat_start_address)
 {
     auto bytes = std::vector<std::byte>(sizeof(int));
     for (int i = 0; i < _dirty_entries.size(); i++) {
         if (!_dirty_entries[i])
             continue;
         std::memcpy(bytes.data(), &_fat[i], sizeof(int));
-        auto ret = disk.write(fat_start_address + i * sizeof(int), bytes);
+        auto ret = block_device.writeBlock(bytes, fat_start_address 
+            / block_device.rawBlockSize(), i * sizeof(int));
         if (!ret.has_value()) {
             return std::unexpected(DiskError::IOError);
         }
