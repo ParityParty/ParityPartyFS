@@ -81,7 +81,7 @@ private:
      * @param address start address
      * @return returns DiskError on error, void otherwise
      */
-    std::expected<void, DiskError> _writeBytes(const std::vector<std::byte>& data, size_t address);
+    std::expected<void, DiskError> _writeBytes(const std::vector<std::byte>& data, AbstractFileLocation address);
 
     /**
      * Method finds address in memory of offset of given file
@@ -90,7 +90,7 @@ private:
      * @param offset offset
      * @return returns memory address on success, error otherwise
      */
-    std::expected<size_t, DiskError> _findFileOffset(const DirectoryEntry& entry, size_t offset);
+    std::expected<AbstractFileLocation, DiskError> _findFileOffset(const DirectoryEntry& entry, size_t offset);
     std::expected<void, DiskError> _truncateFile(DirectoryEntry& entry, size_t size);
 
     std::expected<void, DiskError> _flushChanges();

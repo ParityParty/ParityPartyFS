@@ -86,3 +86,11 @@ struct Directory {
     void removeEntry(const DirectoryEntry& entry);
     void changeEntry(const DirectoryEntry& entry, const DirectoryEntry& new_entry);
 };
+
+struct AbstractFileLocation {
+    block_index_t block_index;
+    size_t offset;
+
+    AbstractFileLocation(block_index_t block_index, size_t offset);
+    AbstractFileLocation() = default;
+};

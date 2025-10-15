@@ -291,3 +291,9 @@ void Directory::changeEntry(const DirectoryEntry& entry, const DirectoryEntry& n
     removeEntry(entry);
     addEntry(new_entry);
 }
+
+AbstractFileLocation::AbstractFileLocation(block_index_t block_index, size_t offset)
+    : block_index(block_index)
+    , offset(offset)
+{
+}
