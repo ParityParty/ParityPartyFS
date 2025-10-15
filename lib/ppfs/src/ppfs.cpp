@@ -314,10 +314,12 @@ std::expected<void, DiskError> PpFS::_removeFile(const DirectoryEntry& entry)
 std::expected<std::vector<std::byte>, DiskError> PpFS::_readFile(
     const DirectoryEntry& entry, size_t size, size_t offset)
 {
+    //reserve data upfront to avoid multiple allocations
     std::vector<std::byte> data;
     data.reserve(size);
     
     auto ret_find = _findFileOffset(entry, offset);
+    
     if (!ret_find.has_value()) {
         std::cerr << "Error in _readFile: _findFileOffset failed:" << toString(ret_find.error())
                   << std::endl;
@@ -325,6 +327,7 @@ std::expected<std::vector<std::byte>, DiskError> PpFS::_readFile(
     }
 
     DataLocation file_location = ret_find.value();
+
     size_t to_read = std::min(_block_device.dataSize() - file_location.offset, size);
 
     auto ret = _block_device.readBlock(file_location, to_read);

@@ -24,7 +24,7 @@ TEST(PpFS, Compiles)
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
 
-    PpFS fs(disk, block_device);
+    PpFS fs(block_device);
     SUCCEED();
 }
 
@@ -32,7 +32,7 @@ TEST(PpFS, CreatesFiles)
 {
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
-    PpFS fs(disk, block_device);
+    PpFS fs(block_device);
     
     setupFakeFuseContext(&fs);
 
@@ -48,7 +48,7 @@ TEST(PpFS, RemovesFiles)
 {
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
-    PpFS fs(disk, block_device);
+    PpFS fs(block_device);
     setupFakeFuseContext(&fs);
 
     PpFS::create("/file1", 0666, nullptr);
@@ -66,7 +66,7 @@ TEST(PpFS, WritesAndReads)
 {
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
-    PpFS fs(disk, block_device);
+    PpFS fs(block_device);
     setupFakeFuseContext(&fs);
 
     PpFS::create("/file", 0666, nullptr);
@@ -87,7 +87,7 @@ TEST(PpFS, MulitBlockMultiFileIO)
 {
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
-    PpFS fs(disk, block_device);
+    PpFS fs(block_device);
     setupFakeFuseContext(&fs);
 
     PpFS::create("/file1", 0666, nullptr);
@@ -119,7 +119,7 @@ TEST(PpFS, WriteChangesAttr)
 {
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
-    PpFS fs(disk, block_device);
+    PpFS fs(block_device);
     setupFakeFuseContext(&fs);
 
     PpFS::create("/file1", 0666, nullptr);
@@ -146,7 +146,7 @@ TEST(PpFS, Truncates)
 {
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
-    PpFS fs(disk, block_device);
+    PpFS fs(block_device);
     setupFakeFuseContext(&fs);
 
     PpFS::create("/file1", 0666, nullptr);

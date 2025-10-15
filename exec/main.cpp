@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
     try {
         StackDisk disk;
         RawBlockDevice block_device(512, disk);
-        PpFS fs(disk, block_device);
+        PpFS fs(block_device);
         return fs.run(argc, argv);
     } catch (const std::exception& e) {
         std::cerr << "Filesystem crashed 😭: " << e.what() << std::endl;
