@@ -33,7 +33,7 @@ std::expected<size_t, DiskError> RawBlockDevice::writeBlock(
     size_t to_write = std::min(data.size(), _block_size - data_location.offset);
 
     size_t address = data_location.block_index * _block_size + data_location.offset;
-    auto disk_result = _disk.write(address, data);
+    auto disk_result = _disk.write(address, {data.begin(), data.begin() + to_write});
     if (!disk_result.has_value()) {
         return std::unexpected(disk_result.error());
     }
@@ -52,7 +52,7 @@ std::expected<std::vector<std::byte>, DiskError> RawBlockDevice::readBlock(
     size_t to_read = std::min(bytes_to_read, _block_size - data_location.offset);
 
     size_t address = data_location.block_index * _block_size + data_location.offset;
-    return _disk.read(address, bytes_to_read);
+    return _disk.read(address, to_read);
 }
 
 /// @brief  Returns the number of available blocks.

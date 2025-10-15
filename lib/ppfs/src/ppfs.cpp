@@ -383,9 +383,7 @@ std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& d
     address.offset = 0;
 
     while (written < data.size() && _fat[address.block_index] != FileAllocationTable::LAST_BLOCK) {
-        auto next_block = _fat[address.block_index];
-        _fat.setValue(address.block_index, next_block);
-        address.block_index = next_block;
+        address.block_index = _fat[address.block_index];
 
         auto write_ret = _block_device.writeBlock(
             { data.begin() + written, data.end()}, address);
@@ -397,7 +395,7 @@ std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& d
 
     // If we finished writing, we shouldn't mark the end of the file in fat
     if (written == data.size()) {
-        return;
+        return {};
     }
 
     while (written < data.size()) {
