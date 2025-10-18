@@ -1,6 +1,5 @@
 #pragma once
 #include "data_structures.hpp"
-#include "disk/idisk.hpp"
 #include "fusepp/Fuse.hpp"
 #include <blockdevice/iblock_device.hpp>
 #include <stdexcept>
