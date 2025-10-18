@@ -1,12 +1,12 @@
 #pragma once
 #include "data_structures.hpp"
-#include "disk/idisk.hpp"
 #include "fusepp/Fuse.hpp"
+#include <blockdevice/iblock_device.hpp>
 #include <stdexcept>
 
 class PpFS : public Fusepp::Fuse<PpFS> {
 public:
-    PpFS(IDisk& disk);
+    PpFS(IBlockDevice& block_device);
     ~PpFS() override = default;
 
     static int getattr(const char*, struct stat*, fuse_file_info*);
@@ -56,8 +56,8 @@ public:
 private:
     std::string _root_path = "/";
 
-    IDisk& _disk;
-    unsigned int _block_size;
+    IBlockDevice& _block_device;
+    
     unsigned int _root_dir_block;
 
     SuperBlock _super_block;
@@ -78,7 +78,7 @@ private:
      * @param address start address
      * @return returns DiskError on error, void otherwise
      */
-    std::expected<void, DiskError> _writeBytes(const std::vector<std::byte>& data, size_t address);
+    std::expected<void, DiskError> _writeBytes(const std::vector<std::byte>& data, DataLocation address);
 
     /**
      * Method finds address in memory of offset of given file
@@ -87,7 +87,7 @@ private:
      * @param offset offset
      * @return returns memory address on success, error otherwise
      */
-    std::expected<size_t, DiskError> _findFileOffset(const DirectoryEntry& entry, size_t offset);
+    std::expected<DataLocation, DiskError> _findFileOffset(const DirectoryEntry& entry, size_t offset);
     std::expected<void, DiskError> _truncateFile(DirectoryEntry& entry, size_t size);
 
     std::expected<void, DiskError> _flushChanges();

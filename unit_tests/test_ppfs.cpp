@@ -1,6 +1,7 @@
 #include "disk/stack_disk.hpp"
 #include "ppfs/ppfs.hpp"
 #include <gtest/gtest.h>
+#include <blockdevice/raw_block_device.hpp>
 
 #include <fuse3/fuse.h>
 
@@ -21,14 +22,18 @@ extern "C" struct fuse_context* fuse_get_context(void) { return &g_fakeContext; 
 TEST(PpFS, Compiles)
 {
     StackDisk disk;
-    PpFS fs(disk);
+    RawBlockDevice block_device(512, disk);
+
+    PpFS fs(block_device);
     SUCCEED();
 }
 
 TEST(PpFS, CreatesFiles)
 {
     StackDisk disk;
-    PpFS fs(disk);
+    RawBlockDevice block_device(512, disk);
+    PpFS fs(block_device);
+    
     setupFakeFuseContext(&fs);
 
     ASSERT_EQ(fs.getRootDirectory().entries.size(), 0);
@@ -42,7 +47,8 @@ TEST(PpFS, CreatesFiles)
 TEST(PpFS, RemovesFiles)
 {
     StackDisk disk;
-    PpFS fs(disk);
+    RawBlockDevice block_device(512, disk);
+    PpFS fs(block_device);
     setupFakeFuseContext(&fs);
 
     PpFS::create("/file1", 0666, nullptr);
@@ -59,7 +65,8 @@ TEST(PpFS, RemovesFiles)
 TEST(PpFS, WritesAndReads)
 {
     StackDisk disk;
-    PpFS fs(disk);
+    RawBlockDevice block_device(512, disk);
+    PpFS fs(block_device);
     setupFakeFuseContext(&fs);
 
     PpFS::create("/file", 0666, nullptr);
@@ -79,7 +86,8 @@ TEST(PpFS, WritesAndReads)
 TEST(PpFS, MulitBlockMultiFileIO)
 {
     StackDisk disk;
-    PpFS fs(disk);
+    RawBlockDevice block_device(512, disk);
+    PpFS fs(block_device);
     setupFakeFuseContext(&fs);
 
     PpFS::create("/file1", 0666, nullptr);
@@ -110,7 +118,8 @@ TEST(PpFS, MulitBlockMultiFileIO)
 TEST(PpFS, WriteChangesAttr)
 {
     StackDisk disk;
-    PpFS fs(disk);
+    RawBlockDevice block_device(512, disk);
+    PpFS fs(block_device);
     setupFakeFuseContext(&fs);
 
     PpFS::create("/file1", 0666, nullptr);
@@ -136,7 +145,8 @@ TEST(PpFS, WriteChangesAttr)
 TEST(PpFS, Truncates)
 {
     StackDisk disk;
-    PpFS fs(disk);
+    RawBlockDevice block_device(512, disk);
+    PpFS fs(block_device);
     setupFakeFuseContext(&fs);
 
     PpFS::create("/file1", 0666, nullptr);
