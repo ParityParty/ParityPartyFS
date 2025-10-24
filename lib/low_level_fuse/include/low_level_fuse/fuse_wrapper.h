@@ -25,7 +25,7 @@ namespace low_level_fuse {
 	typedef void (*t_read) (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info *fi);
 	typedef void (*t_write) (fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size, off_t off, struct fuse_file_info *fi);
 	typedef void (*t_flush) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
-	typedef void (*release) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
+	typedef void (*t_release) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
 	typedef void (*t_fsync) (fuse_req_t req, fuse_ino_t ino, int datasync, struct fuse_file_info *fi);
 	typedef void (*t_opendir) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
 	typedef void (*t_readdir) (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info *fi);
@@ -207,7 +207,7 @@ private:
     static t_read read;
     static t_write write;
     static t_flush flush;
-    static release release;
+    static t_release release;
     static t_fsync fsync;
     static t_opendir opendir;
     static t_readdir readdir;
