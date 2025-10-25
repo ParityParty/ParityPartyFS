@@ -5,6 +5,7 @@
 #endif
 
 #include <fuse_lowlevel.h>
+#include <iostream>
 
 namespace low_level_fuse {
     typedef void (*t_init)(void *userdata, struct fuse_conn_info *conn);
@@ -54,13 +55,13 @@ namespace low_level_fuse {
 	typedef void (*t_fallocate) (fuse_req_t req, fuse_ino_t ino, int mode, off_t offset, off_t length, struct fuse_file_info *fi);
 	typedef void (*t_readdirplus) (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info *fi);
 	typedef void (*t_copy_file_range) (fuse_req_t req, fuse_ino_t ino_in, off_t off_in, struct fuse_file_info *fi_in, fuse_ino_t ino_out, off_t off_out, struct fuse_file_info *fi_out, size_t len, int flags);
-	typedef void (*_lseek) (fuse_req_t req, fuse_ino_t ino, off_t off, int whence, struct fuse_file_info *fi);
-}
+	typedef void (*t_lseek) (fuse_req_t req, fuse_ino_t ino, off_t off, int whence, struct fuse_file_info *fi);
+
 template <class T> class Fuse {
 public:
 
     Fuse() {
-        memset(&T::operations_, 0, sizeof(struct fuse_lowlevel_ops));
+        memset(&T::_operations, 0, sizeof(struct fuse_lowlevel_ops));
         _load_operations();
     }
 
@@ -70,76 +71,76 @@ public:
     Fuse& operator=(const Fuse&) = delete;
     Fuse& operator=(Fuse&&) = delete;
 
-    virual ~Fuse() = default;
+    virtual ~Fuse() = default;
 
     virtual int Run(int argc, char** argv) {
-	
+    
         struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
-	    struct fuse_session *se;
-	    struct fuse_cmdline_opts opts;
-	    struct fuse_loop_config config;
-	    int ret = -1;
+        struct fuse_session *se;
+        struct fuse_cmdline_opts opts;
+        struct fuse_loop_config config;
+        int ret = -1;
 
-	    if (fuse_parse_cmdline(&args, &opts) != 0)
-	    	return 1;
-    	if (opts.show_help) {
-	    	printf("usage: %s [options] <mountpoint>\n\n", argv[0]);
-		    fuse_cmdline_help();
-    		fuse_lowlevel_help();
-	    	ret = 0;
-    		goto err_out1;
-    	} else if (opts.show_version) {
-    		printf("FUSE library version %s\n", fuse_pkgversion());
-	    	fuse_lowlevel_version();
-		    ret = 0;
-    		goto err_out1;
-	    }
+        if (fuse_parse_cmdline(&args, &opts) != 0)
+        	return 1;
+        if (opts.show_help) {
+        	std::cout << "usage: " << argv[0] << " [options] <mountpoint>\n\n";
+            fuse_cmdline_help();
+            fuse_lowlevel_help();
+        	ret = 0;
+            goto err_out1;
+        } else if (opts.show_version) {
+            std::cout << "FUSE library version " << fuse_pkgversion() << std::endl;
+        	fuse_lowlevel_version();
+            ret = 0;
+            goto err_out1;
+        }
 
-    	if(opts.mountpoint == NULL) {
-    		printf("usage: %s [options] <mountpoint>\n", argv[0]);
-	    	printf("       %s --help\n", argv[0]);
-		    ret = 1;
-    		goto err_out1;
-	    }
+        if(opts.mountpoint == NULL) {
+            std::cout << "usage: " << argv[0] << " [options] <mountpoint>\n";
+        	std::cout << "       " << argv[0] << " --help\n";
+            ret = 1;
+            goto err_out1;
+        }
 
-    	se = fuse_session_new(&args, &hello_ll_oper,
-	    		      sizeof(hello_ll_oper), NULL);
-	    if (se == NULL)
-	        goto err_out1;
+        se = fuse_session_new(&args, &_operations,
+        		      sizeof(_operations), this);
+        if (se == NULL)
+            goto err_out1;
 
-	    if (fuse_set_signal_handlers(se) != 0)
-	        goto err_out2;
+        if (fuse_set_signal_handlers(se) != 0)
+            goto err_out2;
 
-	    if (fuse_session_mount(se, opts.mountpoint) != 0)
-	        goto err_out3;
+        if (fuse_session_mount(se, opts.mountpoint) != 0)
+            goto err_out3;
 
-    	fuse_daemonize(opts.foreground);
+        fuse_daemonize(opts.foreground);
 
-	    /* Block until ctrl+c or fusermount -u */
-	    if (opts.singlethread)
-		    ret = fuse_session_loop(se);
-    	else {
-	    	config.clone_fd = opts.clone_fd;
-		    config.max_idle_threads = opts.max_idle_threads;
-    		ret = fuse_session_loop_mt(se, &config);
-	    }
+        /* Block until ctrl+c or fusermount -u */
+        if (opts.singlethread)
+            ret = fuse_session_loop(se);
+        else {
+            config.clone_fd = opts.clone_fd;
+            config.max_idle_threads = opts.max_idle_threads;
+            ret = fuse_session_loop_mt(se, &config);
+        }
 
-    	fuse_session_unmount(se);
+        fuse_session_unmount(se);
     err_out3:
-	    fuse_remove_signal_handlers(se);
+        fuse_remove_signal_handlers(se);
     err_out2:
-	    fuse_session_destroy(se);
+        fuse_session_destroy(se);
     err_out1:
-	    free(opts.mountpoint);
-	    fuse_opt_free_args(&args);
+        free(opts.mountpoint);
+        fuse_opt_free_args(&args);
 
-	    return ret ? 1 : 0;
+        return ret ? 1 : 0;
     }
 
-    static auto this_() { return static_cast<T*>(fuse_get_context()->private_data); }
+    static auto this_(fuse_req_t req) { return static_cast<T*>(fuse_req_userdata(req)); }
 
 private:
-    static struct fuse_lovwlevel_ops _operations;
+    static struct fuse_lowlevel_ops _operations;
 
     static void _load_operations()
     {
@@ -232,5 +233,7 @@ private:
     static t_fallocate fallocate;
     static t_readdirplus readdirplus;
     static t_copy_file_range copy_file_range;
-    static _lseek _lseek;
+    static t_lseek _lseek;
+};
+
 };
