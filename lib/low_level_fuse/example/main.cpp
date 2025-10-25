@@ -1,3 +1,15 @@
+/**
+ * @file main.cpp
+ * @brief Example FUSE filesystem using low-level FUSE wrapper.
+ * 
+ * I have added this file to demonstrate how to use the low-level FUSE wrapper 
+ * and to see if it works (we can remove it later).
+ * 
+ * The functionality is copied from the hello_ll.c example from the FUSE
+ * repository, release 3.10.5. I have decided to use this release, because
+ * this release is available on most Ubuntu / Debian systems (like mine xd).
+ */
+
 #include "low_level_fuse/fuse_wrapper.h"
 
 #include <cstring>

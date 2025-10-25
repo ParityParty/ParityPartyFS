@@ -1,3 +1,14 @@
+/**
+ * @brief FUSE low-level wrapper class header file.
+ * This file defines a template class `Fuse` that serves as a wrapper for
+ * the low-level FUSE (Filesystem in Userspace) API, release 3.10.5.
+ * 
+ * To see documentation on what each function does, please refer to the
+ * FUSE low-level header files, like fuse_lowlevel.h and fuse_common.h for 3.10.5.
+ * 
+ * The Run function is based on the hello_ll.c example from the FUSE repository.
+ */
+
 #pragma once
 
 #ifndef FUSE_USE_VERSION
