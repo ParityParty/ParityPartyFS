@@ -30,7 +30,7 @@ public:
      * @param data_location The block index and offset specifying where to write the data.
      * @return On success, returns the number of bytes written; otherwise returns a DiskError.
      */
-    std::expected<size_t, DiskError> writeBlock(
+    std::expected<size_t, BlockDeviceError> writeBlock(
         const std::vector<std::byte>& data, DataLocation data_location) override;
     
     /**
@@ -40,7 +40,7 @@ public:
      * @param bytes_to_read The number of bytes requested to be read.
      * @return On success, returns a vector of bytes read; otherwise returns a DiskError.
      */
-    std::expected<std::vector<std::byte>, DiskError> readBlock(
+    std::expected<std::vector<std::byte>, BlockDeviceError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
     
     /**
