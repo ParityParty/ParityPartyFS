@@ -84,37 +84,32 @@ std::vector<std::byte> HammingBlockDevice::_extractData(const std::vector<std::b
 
 std::vector<std::byte> HammingBlockDevice::_encodeData(const std::vector<std::byte>& data) {
     std::vector<std::byte> encoded_data(_block_size, std::byte(0));
-    unsigned int raw_index = 0;
     
     bool parity = true;
+
+    unsigned int parity_xor = 0;
     
+    HammingDataIterator it(_block_size, _data_size);
     for (unsigned int i = 0; i < _data_size * 8; i++) {
-        while ((raw_index & (raw_index - 1)) == 0) { 
-            raw_index++;
-        }
         int bit_value = _getBit(data, i);
+        int raw_index = it.next();
         if (bit_value) {
             parity = !parity;
+            parity_xor ^= raw_index;
         }
         _setBit(encoded_data, raw_index, bit_value);
-        raw_index++;
     }
     
     unsigned int parity_index = 1;
-    while (parity_index < _block_size * 8) {
-        uint8_t parity_bit_value = 0;
-        for (unsigned int i = 1; i < _block_size * 8; i++) {
-            if (i & parity_index) {
-                parity_bit_value ^= _getBit(encoded_data, i);
-            }
-        }
-        if(parity_bit_value){
+    while(parity_index <= _block_size * 8){
+        int parity_bit_value = 0;
+        if(parity_xor & parity_index){
             parity = !parity;
+            parity_bit_value = 1;
         }
         _setBit(encoded_data, parity_index, parity_bit_value);
         parity_index <<= 1;
-        
-    };
+    }
     
     uint8_t parity_bit = parity ? 0 : 1;
     _setBit(encoded_data, 0, parity_bit);
