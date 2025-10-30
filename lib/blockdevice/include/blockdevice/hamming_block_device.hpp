@@ -1,6 +1,6 @@
 #include "iblock_device.hpp"
 
-class HammingBlockDevice : IBlockDevice {
+class HammingBlockDevice : public IBlockDevice {
 public:
     HammingBlockDevice(int block_size_power, IDisk& disk);
 
@@ -12,6 +12,7 @@ public:
 
     size_t rawBlockSize() const override;
     size_t dataSize() const override;
+    size_t numOfBlocks() const override;
 
 private:
     size_t _block_size;

@@ -51,7 +51,7 @@ PpFS::PpFS(IBlockDevice& block_device)
     : _block_device(block_device)
 {
     // Always format disk for now
-    if (const auto ret = formatDisk(512); !ret.has_value()) {
+    if (const auto ret = formatDisk(); !ret.has_value()) {
         throw std::runtime_error("PpFS::formatDisk failed");
     }
 }
@@ -248,9 +248,9 @@ int PpFS::truncate(const char* path, off_t offset, fuse_file_info* fi)
     return 0;
 }
 
-std::expected<void, DiskError> PpFS::formatDisk(const unsigned int block_size)
+std::expected<void, DiskError> PpFS::formatDisk()
 {
-
+    unsigned int block_size = _block_device.dataSize();
     if (block_size < sizeof(SuperBlock)) {
         return std::unexpected(DiskError::InvalidRequest);
     }

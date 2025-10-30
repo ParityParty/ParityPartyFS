@@ -7,8 +7,8 @@ HammingBlockDevice::HammingBlockDevice(int block_size_power, IDisk& disk)
 : _disk(disk)
 {
     _block_size = 1 << block_size_power;
-    int parity_bytes = (int) std::ceil((float)(block_size_power + 1) / 8.0);
-    _data_size = _block_size - (block_size_power + 1) / 8;
+    int parity_bytes = (int) std::ceil(((float)(block_size_power * 3 + 1)) / 8.0);
+    _data_size = _block_size - parity_bytes;
 }
 
 std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::_readAndFixBlock(int block_index) {
@@ -31,7 +31,7 @@ std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::_readAndFix
     if(!parity){
         unsigned int flipped_bit_value = _getBit(encoded_data, error_position) ? 0 : 1;
         _setBit(encoded_data, error_position, flipped_bit_value);
-        auto disk_result = _disk.write(block_index * _block_size + error_position / 8, encoded_data);
+        auto disk_result = _disk.write(block_index * _block_size + error_position / 8, { encoded_data.begin() + error_position / 8, encoded_data.begin() + error_position / 8 + 1} );
         if (!disk_result.has_value()) {
             return std::unexpected(disk_result.error());
         }
@@ -111,6 +111,8 @@ std::vector<std::byte> HammingBlockDevice::_encodeData(const std::vector<std::by
         parity_index <<= 1;
 
     };
+
+    return encoded_data;
 }
 
 std::expected<size_t, DiskError> HammingBlockDevice::writeBlock(const std::vector<std::byte>& data, DataLocation data_location){
@@ -153,4 +155,9 @@ size_t HammingBlockDevice::rawBlockSize() const
 size_t HammingBlockDevice::dataSize() const
 {
     return _data_size;
+}
+
+size_t HammingBlockDevice::numOfBlocks() const 
+{
+    return _disk.size() / _block_size;
 }
