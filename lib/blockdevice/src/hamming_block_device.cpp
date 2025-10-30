@@ -3,6 +3,8 @@
 #include <cmath>
 #include <cstdint>
 
+#include <iostream>
+
 HammingBlockDevice::HammingBlockDevice(int block_size_power, IDisk& disk) 
 : _disk(disk)
 {
@@ -38,7 +40,6 @@ std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::_readAndFix
     }
     else{
         if(error_position != 0){
-            // Detected double bit error, cannot correct
             return std::unexpected(DiskError::CorrectionError);
         }
     }
@@ -95,10 +96,6 @@ std::vector<std::byte> HammingBlockDevice::_encodeData(const std::vector<std::by
         raw_index++;
     }
 
-    uint8_t parity_bit = parity ? 0 : 1;
-
-    _setBit(encoded_data, 0, parity_bit);
-
     unsigned int parity_index = 1;
     while (parity_index < _block_size * 8) {
         uint8_t parity_bit_value = 0;
@@ -107,10 +104,16 @@ std::vector<std::byte> HammingBlockDevice::_encodeData(const std::vector<std::by
                 parity_bit_value ^= _getBit(encoded_data, i);
             }
         }
+        if(parity_bit_value){
+            parity = !parity;
+        }
         _setBit(encoded_data, parity_index, parity_bit_value);
         parity_index <<= 1;
 
     };
+
+    uint8_t parity_bit = parity ? 0 : 1;
+    _setBit(encoded_data, 0, parity_bit);
 
     return encoded_data;
 }
