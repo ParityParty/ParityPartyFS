@@ -68,4 +68,32 @@ private:
 
     std::expected<std::vector<std::byte>, DiskError> _readAndFixBlock(int block_index);
 
+    int _getNextDataBitIndex(int parity_index);
+    int _getNextBitIndex(int current_index);
+
 };
+
+class HammingDataIterator {
+public:
+    HammingDataIterator(int block_size, int data_size);
+    int next();
+private:
+    int _block_size;
+    int _data_size;
+    unsigned int _current_index;
+    int _data_bits_returned;
+};
+
+class HammingUsedBytesIterator {
+public:
+    HammingUsedBytesIterator(int block_size, int data_size);
+    int next();
+private:
+    int _block_size;
+    int _data_size;
+    unsigned int _current_index;
+    int _data_bits_returned;
+    int _next_parity_bit;
+};
+    
+
