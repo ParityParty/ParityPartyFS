@@ -4,23 +4,6 @@
 
 #include "disk/idisk.hpp"
 
-enum class BlockDeviceError  {
-    DiskError,
-    CorrectionError,
-};
-
-inline std::string_view toString(BlockDeviceError err)
-{
-    switch (err) {
-    case BlockDeviceError::DiskError:
-        return "DiskError";
-    case BlockDeviceError::CorrectionError:
-        return "CorrectionError";
-    default:
-        return "UnknownError";
-    }
-}
-
 /** 
  * Represents a specific position on the disk defined by a block index and an offset.
  * It represents location as seen from the upper ppfs layer, not the raw disk layer.
@@ -59,7 +42,7 @@ public:
      * @param data_location The target location (block index and offset) on the device.
      * @return On success, returns the number of bytes written; otherwise returns a DiskError.
      */
-    virtual std::expected<size_t, BlockDeviceError> writeBlock(
+    virtual std::expected<size_t, DiskError> writeBlock(
         const std::vector<std::byte>& data, DataLocation data_location) = 0;
 
     /**
@@ -72,7 +55,7 @@ public:
      * @param bytes_to_read Number of bytes to read starting from the specified location.
      * @return On success, returns the bytes read; otherwise returns a DiskError.
      */
-    virtual std::expected<std::vector<std::byte>, BlockDeviceError> readBlock(
+    virtual std::expected<std::vector<std::byte>, DiskError> readBlock(
         DataLocation data_location, size_t bytes_to_read) = 0;
 
     /**

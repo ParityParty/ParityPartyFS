@@ -4,10 +4,10 @@ class HammingBlockDevice : IBlockDevice {
 public:
     HammingBlockDevice(int block_size_power, IDisk& disk);
 
-    std::expected<size_t, BlockDeviceError> writeBlock(
+    std::expected<size_t, DiskError> writeBlock(
         const std::vector<std::byte>& data, DataLocation data_location) override;
 
-    std::expected<std::vector<std::byte>, BlockDeviceError> readBlock(
+    std::expected<std::vector<std::byte>, DiskError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     size_t rawBlockSize() const override;
@@ -24,6 +24,6 @@ private:
     int _getBit(const std::vector<std::byte>& data, unsigned int index);
     void _setBit(std::vector<std::byte>& data, unsigned int index, int value);
 
-    std::expected<std::vector<std::byte>, BlockDeviceError> _readAndFixBlock(int block_index);
+    std::expected<std::vector<std::byte>, DiskError> _readAndFixBlock(int block_index);
 
 };

@@ -11,10 +11,10 @@ HammingBlockDevice::HammingBlockDevice(int block_size_power, IDisk& disk)
     _data_size = _block_size - (block_size_power + 1) / 8;
 }
 
-std::expected<std::vector<std::byte>, BlockDeviceError> HammingBlockDevice::_readAndFixBlock(int block_index) {
+std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::_readAndFixBlock(int block_index) {
     auto read_result = _disk.read(block_index * _block_size, _block_size);
     if (!read_result.has_value()) {
-        return std::unexpected(BlockDeviceError::DiskError);
+        return std::unexpected(read_result.error());
     }
 
     auto encoded_data = read_result.value();
@@ -33,13 +33,13 @@ std::expected<std::vector<std::byte>, BlockDeviceError> HammingBlockDevice::_rea
         _setBit(encoded_data, error_position, flipped_bit_value);
         auto disk_result = _disk.write(block_index * _block_size + error_position / 8, encoded_data);
         if (!disk_result.has_value()) {
-            return std::unexpected(BlockDeviceError::DiskError);
+            return std::unexpected(disk_result.error());
         }
     }
     else{
         if(error_position != 0){
             // Detected double bit error, cannot correct
-            return std::unexpected(BlockDeviceError::CorrectionError);
+            return std::unexpected(DiskError::CorrectionError);
         }
     }
 
@@ -113,7 +113,7 @@ std::vector<std::byte> HammingBlockDevice::_encodeData(const std::vector<std::by
     };
 }
 
-std::expected<size_t, BlockDeviceError> HammingBlockDevice::writeBlock(const std::vector<std::byte>& data, DataLocation data_location){
+std::expected<size_t, DiskError> HammingBlockDevice::writeBlock(const std::vector<std::byte>& data, DataLocation data_location){
     size_t to_write = std::min(data.size(), _data_size - data_location.offset);
 
     auto raw_block = _readAndFixBlock(data_location.block_index);
@@ -130,7 +130,7 @@ std::expected<size_t, BlockDeviceError> HammingBlockDevice::writeBlock(const std
     return to_write;
 }
 
-std::expected<std::vector<std::byte>, BlockDeviceError> HammingBlockDevice::readBlock(
+std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::readBlock(
         DataLocation data_location, size_t bytes_to_read){
     bytes_to_read = std::min(_data_size - data_location.offset, bytes_to_read);
 
