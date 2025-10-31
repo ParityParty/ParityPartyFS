@@ -3,8 +3,6 @@
 #include <cmath>
 #include <cstdint>
 
-#include <iostream>
-
 HammingBlockDevice::HammingBlockDevice(int block_size_power, IDisk& disk) 
 : _disk(disk)
 {
@@ -186,7 +184,6 @@ HammingUsedBitsIterator::HammingUsedBitsIterator(int block_size, int data_size)
 }
 
 int HammingUsedBitsIterator::next() {
-    std::cout << "Block size: " << _block_size << ", Data size: " << _data_size << "Data bits returned: " << _data_bits_returned << ", Next parity bit: " << _next_parity_bit << ", Current index: " << _current_index << std::endl;
     if (_data_bits_returned >= _data_size * 8 && _next_parity_bit >= _block_size * 8) {
         return -1; // No more data bytes
     }
@@ -205,7 +202,6 @@ int HammingUsedBitsIterator::next() {
         _data_bits_returned++;
     }
     
-    std::cout << "Returning index: " << _current_index << std::endl;
     return _current_index++;
     
 }
