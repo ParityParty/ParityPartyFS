@@ -74,9 +74,9 @@ void HammingBlockDevice::_setBit(std::vector<std::byte>& data, unsigned int inde
 
 std::vector<std::byte> HammingBlockDevice::_extractData(const std::vector<std::byte>& encoded_data) {
     std::vector<std::byte> data(_data_size, std::byte(0));
-    for (unsigned int i = 0, j = 1; i < _data_size * 8; ++j)
-        if (!std::has_single_bit(j))
-            _setBit(data, i++, _getBit(encoded_data, j));
+    HammingDataBitsIterator it(_block_size, _data_size);
+    for (unsigned int i = 0; i < _data_size * 8; i++)
+            _setBit(data, it.next(), _getBit(encoded_data, i));
     return data;
 }
 
