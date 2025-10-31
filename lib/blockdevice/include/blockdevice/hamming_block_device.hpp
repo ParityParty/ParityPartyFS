@@ -73,6 +73,11 @@ private:
 
 };
 
+/**
+ * @brief Iterator to traverse data bit indices in a Hamming-encoded block.
+ *
+ * This iterator skips parity bits and returns indices of data bits only.
+ */
 class HammingDataIterator {
 public:
     HammingDataIterator(int block_size, int data_size);
@@ -84,6 +89,12 @@ private:
     int _data_bits_returned;
 };
 
+/**
+ * @brief Iterator to traverse used byte indices in a Hamming-encoded block.
+ *
+ * This iterator returns indices of bytes that contain data bits and
+ * parity bits.
+ */
 class HammingUsedBytesIterator {
 public:
     HammingUsedBytesIterator(int block_size, int data_size);
