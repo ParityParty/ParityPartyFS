@@ -76,7 +76,7 @@ std::vector<std::byte> HammingBlockDevice::_extractData(const std::vector<std::b
     std::vector<std::byte> data(_data_size, std::byte(0));
     HammingDataBitsIterator it(_block_size, _data_size);
     for (unsigned int i = 0; i < _data_size * 8; i++)
-            _setBit(data, it.next(), _getBit(encoded_data, i));
+            _setBit(data, i, _getBit(encoded_data, it.next()));
     return data;
 }
 

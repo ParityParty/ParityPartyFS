@@ -87,5 +87,5 @@ public:
      * 
      * After formatting, the block is set to a correct state (e.g., all zeros with valid ECC).
      */
-    virtual std::expected<void, DiskError> formatBlock(unsigned int block_index);
+    virtual std::expected<void, DiskError> formatBlock(unsigned int block_index) = 0;
 };
