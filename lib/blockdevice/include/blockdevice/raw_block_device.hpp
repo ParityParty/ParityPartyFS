@@ -42,6 +42,11 @@ public:
      */
     std::expected<std::vector<std::byte>, DiskError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
+
+    /**
+     * This function does nothing - every state is valid.
+     */
+    std::expected<void, DiskError> formatBlock(unsigned int block_index) override;
     
     /**
      * Returns the raw block size, all metadata included.

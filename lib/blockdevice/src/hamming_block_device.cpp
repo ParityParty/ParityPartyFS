@@ -1,4 +1,4 @@
-    #include "blockdevice/hamming_block_device.hpp"
+#include "blockdevice/hamming_block_device.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -75,8 +75,8 @@ void HammingBlockDevice::_setBit(std::vector<std::byte>& data, unsigned int inde
 std::vector<std::byte> HammingBlockDevice::_extractData(const std::vector<std::byte>& encoded_data) {
     std::vector<std::byte> data(_data_size, std::byte(0));
     for (unsigned int i = 0, j = 1; i < _data_size * 8; ++j)
-    if (!std::has_single_bit(j))
-    _setBit(data, i++, _getBit(encoded_data, j));
+        if (!std::has_single_bit(j))
+            _setBit(data, i++, _getBit(encoded_data, j));
     return data;
 }
 
@@ -145,7 +145,12 @@ std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::readBlock(
         
     return std::vector<std::byte>(decoded_data.begin() + data_location.offset, decoded_data.begin() + data_location.offset + bytes_to_read);
 }
-    
+
+std::expected<void, DiskError> HammingBlockDevice::formatBlock(unsigned int block_index) {
+    std::vector<std::byte> zero_data(_block_size, std::byte(0));
+    auto write_result = _disk.write(block_index * _block_size, zero_data);
+    return write_result.has_value() ? std::expected<void, DiskError>{} : std::unexpected(write_result.error());
+}
     
 size_t HammingBlockDevice::rawBlockSize() const
 {

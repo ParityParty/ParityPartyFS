@@ -42,6 +42,11 @@ public:
         DataLocation data_location, size_t bytes_to_read) override;
 
     /**
+     * @brief Fills a specific block with zeros.
+     */
+    std::expected<void, DiskError> formatBlock(unsigned int block_index) override;
+
+    /**
      * @brief Returns the total raw block size in bytes (including ECC bits).
      */
     size_t rawBlockSize() const override;

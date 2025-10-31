@@ -36,10 +36,11 @@ std::expected<std::vector<std::byte>, DiskError> RawBlockDevice::readBlock(
 
     size_t address = data_location.block_index * _block_size + data_location.offset;
     auto result = _disk.read(address, to_read);
-    if (!result.has_value()) {
-        return std::unexpected(result.error());
-    }
-    return result.value();
+    return result;
+}
+
+std::expected<void, DiskError> RawBlockDevice::formatBlock(unsigned int block_index) {
+    return {};
 }
 
 size_t RawBlockDevice::numOfBlocks() const {

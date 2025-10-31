@@ -296,6 +296,7 @@ std::expected<void, DiskError> PpFS::_createFile(const std::string& name)
 
     block_index_t block_index = ret.value();
 
+    _block_device.formatBlock(block_index);
     _root_dir.addEntry({ name, block_index, 0 });
     _fat.setValue(block_index, FileAllocationTable::LAST_BLOCK);
 
@@ -400,6 +401,7 @@ std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& d
 
     while (written < data.size()) {
         auto next_block_ex = _fat.findFreeBlock();
+        _block_device.formatBlock(next_block_ex.value());
         if (!next_block_ex.has_value()) {
             return std::unexpected(DiskError::OutOfMemory);
         }
