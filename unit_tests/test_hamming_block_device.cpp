@@ -50,7 +50,7 @@ TEST(HammingBlockDevice, BasicWriteRead)
 TEST(HammingBlockDevice, SingleBitErrorIsCorrected)
 {
     StackDisk disk;
-    HammingBlockDevice hbd(4, disk); // small block size for easy testing
+    HammingBlockDevice hbd(4, disk);
     DataLocation loc(0, 0);
 
     std::vector<std::byte> data = {std::byte('s'), std::byte('l'), std::byte('a'), std::byte('y')};
@@ -62,7 +62,6 @@ TEST(HammingBlockDevice, SingleBitErrorIsCorrected)
     size_t bitToFlip = randomBit(totalBits);
     flipBit(disk, bitToFlip);
 
-    // read – should auto-correct
     auto read_res = hbd.readBlock(loc, data.size());
     ASSERT_TRUE(read_res.has_value());
     auto read_data = read_res.value();
