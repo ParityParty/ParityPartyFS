@@ -78,9 +78,9 @@ private:
  *
  * This iterator skips parity bits and returns indices of data bits only.
  */
-class HammingDataIterator {
+class HammingDataBitsIterator {
 public:
-    HammingDataIterator(int block_size, int data_size);
+    HammingDataBitsIterator(int block_size, int data_size);
     int next();
 private:
     int _block_size;
@@ -95,9 +95,9 @@ private:
  * This iterator returns indices of bytes that contain data bits and
  * parity bits.
  */
-class HammingUsedBytesIterator {
+class HammingUsedBitsIterator {
 public:
-    HammingUsedBytesIterator(int block_size, int data_size);
+    HammingUsedBitsIterator(int block_size, int data_size);
     int next();
 private:
     int _block_size;

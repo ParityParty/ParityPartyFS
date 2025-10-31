@@ -24,7 +24,7 @@ std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::_readAndFix
     unsigned int error_position = 0;
     bool parity = true;
     
-    HammingUsedBytesIterator it(_block_size, _data_size);
+    HammingUsedBitsIterator it(_block_size, _data_size);
     int index = it.next();
     while (index != -1) {
         if (_getBit(encoded_data, index)) {
@@ -89,7 +89,7 @@ std::vector<std::byte> HammingBlockDevice::_encodeData(const std::vector<std::by
 
     unsigned int parity_xor = 0;
     
-    HammingDataIterator it(_block_size, _data_size);
+    HammingDataBitsIterator it(_block_size, _data_size);
     for (unsigned int i = 0; i < _data_size * 8; i++) {
         int bit_value = _getBit(data, i);
         int raw_index = it.next();
@@ -164,12 +164,12 @@ size_t HammingBlockDevice::numOfBlocks() const
     return _disk.size() / _block_size;
 }
 
-HammingDataIterator::HammingDataIterator(int block_size, int data_size)
+HammingDataBitsIterator::HammingDataBitsIterator(int block_size, int data_size)
 : _block_size(block_size), _data_size(data_size), _current_index(0), _data_bits_returned(0)
 {
 }
 
-int HammingDataIterator::next() {
+int HammingDataBitsIterator::next() {
     if (_data_bits_returned >= _data_size * 8) {
         return -1; // No more data bits
     }
@@ -180,12 +180,12 @@ int HammingDataIterator::next() {
     return _current_index++;
 }
 
-HammingUsedBytesIterator::HammingUsedBytesIterator(int block_size, int data_size)
+HammingUsedBitsIterator::HammingUsedBitsIterator(int block_size, int data_size)
 : _block_size(block_size), _data_size(data_size), _current_index(0), _data_bits_returned(0), _next_parity_bit(1)
 {
 }
 
-int HammingUsedBytesIterator::next() {
+int HammingUsedBitsIterator::next() {
     std::cout << "Block size: " << _block_size << ", Data size: " << _data_size << "Data bits returned: " << _data_bits_returned << ", Next parity bit: " << _next_parity_bit << ", Current index: " << _current_index << std::endl;
     if (_data_bits_returned >= _data_size * 8 && _next_parity_bit >= _block_size * 8) {
         return -1; // No more data bytes
