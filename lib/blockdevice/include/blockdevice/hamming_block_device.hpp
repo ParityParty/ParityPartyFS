@@ -1,3 +1,5 @@
+#include <optional>
+
 #include "iblock_device.hpp"
 
 /**
@@ -68,14 +70,10 @@ private:
     std::vector<std::byte> _encodeData(const std::vector<std::byte>& data);
     std::vector<std::byte> _extractData(const std::vector<std::byte>& encoded_data);
 
-    int _getBit(const std::vector<std::byte>& data, unsigned int index);
-    void _setBit(std::vector<std::byte>& data, unsigned int index, int value);
+    bool _getBit(const std::vector<std::byte>& data, unsigned int index);
+    void _setBit(std::vector<std::byte>& data, unsigned int index, bool value);
 
     std::expected<std::vector<std::byte>, DiskError> _readAndFixBlock(int block_index);
-
-    int _getNextDataBitIndex(int parity_index);
-    int _getNextBitIndex(int current_index);
-
 };
 
 /**
@@ -86,7 +84,7 @@ private:
 class HammingDataBitsIterator {
 public:
     HammingDataBitsIterator(int block_size, int data_size);
-    int next();
+    std::optional<unsigned int> next();
 private:
     int _block_size;
     int _data_size;
@@ -103,7 +101,7 @@ private:
 class HammingUsedBitsIterator {
 public:
     HammingUsedBitsIterator(int block_size, int data_size);
-    int next();
+    std::optional<unsigned int> next();
 private:
     int _block_size;
     int _data_size;

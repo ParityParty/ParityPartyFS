@@ -401,10 +401,10 @@ std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& d
 
     while (written < data.size()) {
         auto next_block_ex = _fat.findFreeBlock();
-        _block_device.formatBlock(next_block_ex.value());
         if (!next_block_ex.has_value()) {
             return std::unexpected(DiskError::OutOfMemory);
         }
+        _block_device.formatBlock(next_block_ex.value());
         auto next_block = next_block_ex.value();
         _fat.setValue(address.block_index, next_block);
 
