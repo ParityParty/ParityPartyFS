@@ -1,5 +1,5 @@
 #include "disk/stack_disk.hpp"
-#include "blockdevice/raw_block_device.hpp"
+#include "blockdevice/hamming_block_device.hpp"
 #include "ppfs/ppfs.hpp"
 #include <iostream>
 
@@ -7,7 +7,7 @@ int main(int argc, char* argv[])
 {
     try {
         StackDisk disk;
-        RawBlockDevice block_device(512, disk);
+        HammingBlockDevice block_device(9, disk);
         PpFS fs(block_device);
         return fs.run(argc, argv);
     } catch (const std::exception& e) {

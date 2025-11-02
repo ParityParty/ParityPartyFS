@@ -51,7 +51,7 @@ PpFS::PpFS(IBlockDevice& block_device)
     : _block_device(block_device)
 {
     // Always format disk for now
-    if (const auto ret = formatDisk(512); !ret.has_value()) {
+    if (const auto ret = formatDisk(); !ret.has_value()) {
         throw std::runtime_error("PpFS::formatDisk failed");
     }
 }
@@ -248,9 +248,9 @@ int PpFS::truncate(const char* path, off_t offset, fuse_file_info* fi)
     return 0;
 }
 
-std::expected<void, DiskError> PpFS::formatDisk(const unsigned int block_size)
+std::expected<void, DiskError> PpFS::formatDisk()
 {
-
+    unsigned int block_size = _block_device.dataSize();
     if (block_size < sizeof(SuperBlock)) {
         return std::unexpected(DiskError::InvalidRequest);
     }
@@ -296,6 +296,7 @@ std::expected<void, DiskError> PpFS::_createFile(const std::string& name)
 
     block_index_t block_index = ret.value();
 
+    _block_device.formatBlock(block_index);
     _root_dir.addEntry({ name, block_index, 0 });
     _fat.setValue(block_index, FileAllocationTable::LAST_BLOCK);
 
@@ -403,6 +404,7 @@ std::expected<void, DiskError> PpFS::_writeBytes(const std::vector<std::byte>& d
         if (!next_block_ex.has_value()) {
             return std::unexpected(DiskError::OutOfMemory);
         }
+        _block_device.formatBlock(next_block_ex.value());
         auto next_block = next_block_ex.value();
         _fat.setValue(address.block_index, next_block);
 

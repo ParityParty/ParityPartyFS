@@ -38,6 +38,10 @@ std::expected<std::vector<std::byte>, DiskError> RawBlockDevice::readBlock(
     return _disk.read(address, to_read);
 }
 
+std::expected<void, DiskError> RawBlockDevice::formatBlock(unsigned int block_index) {
+    return {};
+}
+
 size_t RawBlockDevice::numOfBlocks() const {
     return _disk.size() / _block_size;
 }

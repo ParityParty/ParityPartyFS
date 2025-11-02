@@ -79,4 +79,13 @@ public:
      * @return Number of blocks.
      */
     virtual size_t numOfBlocks() const = 0;
+
+    /**
+     * Formats a specific block on the device.
+     * @param block_index The index of the block to format.
+     * @return On success, returns void; otherwise returns a DiskError.
+     * 
+     * After formatting, the block is set to a correct state (e.g., all zeros with valid ECC).
+     */
+    virtual std::expected<void, DiskError> formatBlock(unsigned int block_index) = 0;
 };

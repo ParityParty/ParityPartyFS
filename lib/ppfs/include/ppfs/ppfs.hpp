@@ -35,7 +35,7 @@ public:
      *
      * @return returns void on success or DiskError in case of an error
      */
-    std::expected<void, DiskError> formatDisk(unsigned int block_size);
+    std::expected<void, DiskError> formatDisk();
 
     /**
      * Retrieves the root directory path of the filesystem.
