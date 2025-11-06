@@ -6,6 +6,9 @@
 
 /**
  * Interface of directory operations
+ *
+ * Directory is just a file with list of directory entries, composed of inode and file name.
+ * This interface is operations on those lists.
  */
 struct IDirectoryManager {
     /**
