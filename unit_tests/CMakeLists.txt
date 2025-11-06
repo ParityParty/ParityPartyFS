@@ -11,6 +11,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(${NAME}
         test_ppfs.cpp
+        test_ppfs_fat.cpp
         test_stack_disk.cpp
         test_ppfs_data_structures.cpp
         test_hamming_block_device.cpp
@@ -21,6 +22,7 @@ add_executable(${NAME}
 )
 
 target_link_libraries(${NAME} PUBLIC
+        filesystem
         super_block_manager
         block_manager
         inode_manager
