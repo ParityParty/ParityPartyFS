@@ -62,7 +62,7 @@ struct IFilesystem {
     /**
      * Write data from buffer to file.
      *
-     * Write data from buffer starting at offset. If file size is to small, method makes it larger.
+     * Write data from buffer starting at offset. If file size is too small, method makes it larger.
      *
      * @param inode inode of file to write to
      * @param buffer data to write
