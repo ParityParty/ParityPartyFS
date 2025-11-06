@@ -1,7 +1,7 @@
 #pragma once
 
-typedef int num_entries_t;
 typedef int block_index_t;
+typedef int num_entries_t;
 
 // Memory layout of the file system
 namespace Layout {

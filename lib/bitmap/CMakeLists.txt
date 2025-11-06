@@ -1,9 +1,9 @@
-set(NAME inode_manager)
+set(NAME bitmap)
 
 add_library(${NAME} STATIC)
 
 target_sources(${NAME} PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/inode_manager.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/bitmap.cpp
 )
 
 target_include_directories(${NAME} PUBLIC
@@ -12,4 +12,5 @@ target_include_directories(${NAME} PUBLIC
 
 target_link_libraries(${NAME}
         blockdevice
+        common
 )
