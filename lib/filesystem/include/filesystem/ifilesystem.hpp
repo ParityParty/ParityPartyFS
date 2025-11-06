@@ -13,9 +13,9 @@ struct IFilesystem {
     /**
      * Formats underlying disk to be used with filesystem.
      *
-     * Method should create all needed structures (i.e. Superblocks, inode table, bitmaps, journal)
-     * for filesystem on a disk.
-     * Format can destroy all data on disk.
+     * Method should create all needed structures (i.e. Superblocks, inode
+     * table, bitmaps, journal)
+     * for filesystem on a disk. Format can destroy all data on disk.
      *
      * @return void in case of success, error otherwise.
      */
@@ -24,11 +24,12 @@ struct IFilesystem {
     /**
      * Opens file for read/write operations.
      *
-     * Method can check data integrity. Every call to open should be paired with close one the
-     * returned inode
+     * Method can check data integrity. Every call to open should be paired with
+     * close one the returned inode
      *
      * @param path absolute path to file to be opened
-     * @return inode to be used with read, write, close operations on success, error otherwise
+     * @return inode to be used with read, write, close operations on success,
+     * error otherwise
      */
     std::expected<inode_index_t, DiskError> open(std::string path);
 
@@ -62,7 +63,8 @@ struct IFilesystem {
     /**
      * Write data from buffer to file.
      *
-     * Write data from buffer starting at offset. If file size is too small, method makes it larger.
+     * Write data from buffer starting at offset. If file size is too small,
+     * method makes it larger.
      *
      * @param inode inode of file to write to
      * @param buffer data to write
@@ -75,7 +77,8 @@ struct IFilesystem {
     /**
      * Creat new directory
      *
-     * @param path absolute path to new directory, including new directory's name
+     * @param path absolute path to new directory, including new directory's
+     * name
      * @return inode of new directory on success, error otherwise
      */
     std::expected<inode_index_t, DiskError> createDirectory(std::string path);
