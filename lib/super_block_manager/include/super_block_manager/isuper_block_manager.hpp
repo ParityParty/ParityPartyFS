@@ -4,7 +4,22 @@
 
 #include <expected>
 
+/**
+ * Interface with superblock operations
+ */
 struct ISuperBlockManager {
+    /**
+     * Read superblock from disk.
+     *
+     * @return Superblock on success, error otherwise
+     */
     std::expected<SuperBlock, DiskError> get();
+
+    /**
+     * Update superblock on disk
+     *
+     * @param new_super_block new superblock data
+     * @return void on success, error otherwise
+     */
     std::expected<void, DiskError> update(SuperBlock new_super_block);
 };
