@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-TEST(Bitmap, Exists)
+TEST(Bitmap, Compiles)
 {
     StackDisk disk;
     HammingBlockDevice device(8, disk);

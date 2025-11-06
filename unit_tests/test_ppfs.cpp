@@ -1,7 +1,7 @@
 #include "disk/stack_disk.hpp"
-#include "ppfs/ppfs.hpp"
-#include <gtest/gtest.h>
+#include "ppfs_fat/ppfs.hpp"
 #include <blockdevice/raw_block_device.hpp>
+#include <gtest/gtest.h>
 
 #include <fuse3/fuse.h>
 
@@ -33,7 +33,7 @@ TEST(PpFS, CreatesFiles)
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
     PpFS fs(block_device);
-    
+
     setupFakeFuseContext(&fs);
 
     ASSERT_EQ(fs.getRootDirectory().entries.size(), 0);

@@ -1,3 +1,4 @@
+#pragma once
 #include "blockdevice/iblock_device.hpp"
 #include "common/types.hpp"
 
