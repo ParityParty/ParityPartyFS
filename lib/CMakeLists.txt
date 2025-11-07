@@ -1,5 +1,12 @@
-add_subdirectory(ppfs)
+add_subdirectory(ppfs_fat)
 add_subdirectory(fusepp)
 add_subdirectory(disk)
 add_subdirectory(blockdevice)
+add_subdirectory(common)
+add_subdirectory(inode_manager)
+add_subdirectory(bitmap)
+add_subdirectory(block_manager)
+add_subdirectory(super_block_manager)
+add_subdirectory(filesystem)
+add_subdirectory(directory_manager)
 

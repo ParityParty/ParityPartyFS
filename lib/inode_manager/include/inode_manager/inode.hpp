@@ -1,0 +1,38 @@
+#pragma once
+#include "common/types.hpp"
+
+#include <array>
+
+enum FileType {
+    File,
+    Directory,
+};
+
+/**
+ * Structure representing one entry in inode table.
+ *
+ * Inode is assumed to have allocated enough data blocks to contain all data. All unoccupied block
+ * pointers have undefied values. Time values are unix time in milliseconds.
+ */
+struct Inode {
+    FileType type;
+    unsigned int file_size;
+    unsigned long int time_creation;
+    unsigned long int time_modified;
+    /**
+     * First 12 block pointers are stored directly in the inode.
+     */
+    std::array<block_index_t, 12> direct_blocks;
+    /**
+     * Points to block with pointers to data blocks
+     */
+    block_index_t indirect_block;
+    /**
+     * Points to block with pointers to indirect blocks
+     */
+    block_index_t doubly_indirect_block;
+    /**
+     * Points to block with pointers to doubly indirect blocks
+     */
+    block_index_t trebly_indirect_block;
+};
