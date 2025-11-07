@@ -1,7 +1,8 @@
 #pragma once
+#include "directory_manager/directory.hpp"
 #include "disk/idisk.hpp"
 
-#include <common/types.hpp>
+#include "common/types.hpp"
 #include <expected>
 
 // TODO: change errors to be more descriptive
@@ -20,6 +21,16 @@ struct IFilesystem {
      * @return void in case of success, error otherwise.
      */
     std::expected<void, DiskError> format();
+
+    /**
+     * Create new file
+     *
+     * The file needs to be opened to write after creation.
+     *
+     * @param path absolute path to new file, including its name
+     * @return void on success, error otherwise
+     */
+    std::expected<void, DiskError> create(std::string path);
 
     /**
      * Opens file for read/write operations.
@@ -53,8 +64,8 @@ struct IFilesystem {
      * Read bytes from disk
      *
      * @param inode inode of a file to read from
-     * @param offset beggining of byte sequence to read
-     * @param size amout of bytes to read
+     * @param offset beginning of byte sequence to read
+     * @param size amount of bytes to read
      * @return vector of bytes on success, error otherwise
      */
     std::expected<std::vector<std::byte>, DiskError> read(
@@ -75,11 +86,19 @@ struct IFilesystem {
         inode_index_t inode, std::vector<std::byte> buffer, size_t offset);
 
     /**
-     * Creat new directory
+     * Create new directory
      *
      * @param path absolute path to new directory, including new directory's
      * name
-     * @return inode of new directory on success, error otherwise
+     * @return void success, error otherwise
      */
-    std::expected<inode_index_t, DiskError> createDirectory(std::string path);
+    std::expected<void, DiskError> createDirectory(std::string path);
+
+    /**
+     * Read entries of a directory
+     *
+     * @param path Absolute path to directory
+     * @return list of filenames on success, error otherwise
+     */
+    std::expected<std::vector<std::string>, DiskError> readDirectory(std::string path);
 };

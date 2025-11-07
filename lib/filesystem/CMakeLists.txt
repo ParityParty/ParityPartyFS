@@ -14,6 +14,7 @@ target_link_libraries(${NAME}
         inode_manager
         block_manager
         super_block_manager
+        directory_manager
         blockdevice
         common
 )
