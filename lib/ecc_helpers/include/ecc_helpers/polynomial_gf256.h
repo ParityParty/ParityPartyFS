@@ -8,7 +8,9 @@ public:
     explicit PolynomialGF256(const std::vector<GF256>& coeffs);
 
     PolynomialGF256 operator+(const PolynomialGF256& other) const;
+    PolynomialGF256 operator*(const PolynomialGF256& other) const;
     PolynomialGF256& operator+=(const PolynomialGF256& other);
+    PolynomialGF256& operator*=(const PolynomialGF256& other);
 
     PolynomialGF256 multiply_by_xk(size_t k) const;
 

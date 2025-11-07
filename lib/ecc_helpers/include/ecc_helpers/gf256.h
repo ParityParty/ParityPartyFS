@@ -24,9 +24,12 @@ public:
     GF256 operator*(GF256 other) const;
     GF256 operator/(GF256 other) const;
 
+    GF256 operator-() const;
+
     static GF256 inv(GF256 a);
+
+    static GF256 getPrimitiveElement();
 
 private:
     uint8_t value;
-
 };

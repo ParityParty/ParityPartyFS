@@ -30,6 +30,28 @@ PolynomialGF256& PolynomialGF256::operator+=(const PolynomialGF256& other) {
     return *this;
 }
 
+PolynomialGF256 PolynomialGF256::operator*(const PolynomialGF256& other) const {
+    if (coeffs.empty() || other.coeffs.empty())
+        return PolynomialGF256();
+
+    std::vector<GF256> result(coeffs.size() + other.coeffs.size() - 1, GF256(0));
+
+    for (size_t i = 0; i < coeffs.size(); ++i) {
+        for (size_t j = 0; j < other.coeffs.size(); ++j) {
+            result[i + j] = result[i + j] + coeffs[i] * other.coeffs[j];
+        }
+    }
+
+    auto p = PolynomialGF256(result);
+    p.trim();
+    return p;
+}
+
+PolynomialGF256& PolynomialGF256::operator*=(const PolynomialGF256& other) {
+    *this = *this * other;
+    return *this;
+}
+
 PolynomialGF256 PolynomialGF256::multiply_by_xk(size_t k) const {
     std::vector<GF256> result(k, GF256(0));
     result.insert(result.end(), coeffs.begin(), coeffs.end());

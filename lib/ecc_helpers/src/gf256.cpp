@@ -58,3 +58,7 @@ GF256 GF256::inv(GF256 a) {
     if (a.value == 0) return 0;
     return EXP[255 - LOG[a.value]];
 }
+
+GF256 GF256::getPrimitiveElement() {
+    return GF256(2);
+}
