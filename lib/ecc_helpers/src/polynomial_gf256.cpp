@@ -1,4 +1,4 @@
-#include "polynomial_gf256.h"
+#include "ecc_helpers/polynomial_gf256.hpp"
 #include <algorithm>
 
 PolynomialGF256::PolynomialGF256(const std::vector<GF256>& coeffs)

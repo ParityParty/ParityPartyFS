@@ -1,5 +1,5 @@
 #include "blockdevice/rs_block_device.hpp"
-#include "ecc_helpers/gf256_utils.h"
+#include "ecc_helpers/gf256_utils.hpp"
 
 ReedSolomonBlockDevice::ReedSolomonBlockDevice(IDisk& disk) : _disk(disk) { 
     _generator = _calculateGenerator();
@@ -66,10 +66,6 @@ std::expected<size_t, DiskError> ReedSolomonBlockDevice::writeBlock(const std::v
     return to_write;
 }
 
-
-
-
-
 std::vector<std::byte> ReedSolomonBlockDevice::_encodeBlock(std::vector<std::byte> data){
     int t = BLOCK_LENGTH - MESSAGE_LENGTH;
     
@@ -81,6 +77,11 @@ std::vector<std::byte> ReedSolomonBlockDevice::_encodeBlock(std::vector<std::byt
     return gf256_utils::gf_to_bytes(encoded.slice(0, BLOCK_LENGTH));
 
 }
+
+std::vector<std::byte> ReedSolomonBlockDevice::_extractMessage(PolynomialGF256 p){
+    return gf256_utils::gf_to_bytes(p.slice(BLOCK_LENGTH - MESSAGE_LENGTH, BLOCK_LENGTH));
+}
+
 
 std::expected<std::vector<std::byte>, DiskError> ReedSolomonBlockDevice::_readAndFixBlock(std::vector<std::byte> raw_bytes){
     // Calculate syndroms

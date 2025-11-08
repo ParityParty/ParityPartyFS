@@ -11,15 +11,15 @@ class GF256 {
 public:
     static constexpr uint16_t PRIMITIVE_POLY = 0x11D;
 
-    constexpr GF256() : value(0) {}
-    constexpr GF256(uint8_t v) : value(v) {}
-    constexpr GF256(std::byte b) : value(static_cast<uint8_t>(b)) {}
+    GF256();
+    GF256(uint8_t v);
+    GF256(std::byte b);
 
-    explicit operator std::byte() const { return static_cast<std::byte>(value); }
-    explicit operator uint8_t() const { return value; }
+    explicit operator std::byte() const;
+    explicit operator uint8_t() const;
 
-    constexpr GF256 operator+(GF256 other) const;
-    constexpr GF256 operator-(GF256 other) const;
+    GF256 operator+(GF256 other) const;
+    GF256 operator-(GF256 other) const;
 
     GF256 operator*(GF256 other) const;
     GF256 operator/(GF256 other) const;

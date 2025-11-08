@@ -1,4 +1,4 @@
-#include "gf256_utils.h"
+#include "ecc_helpers/gf256_utils.hpp"
 
 namespace gf256_utils {
 

@@ -1,5 +1,5 @@
 #include "blockdevice/iblock_device.hpp"
-#include "ecc_helpers/polynomial_gf256.h"
+#include "ecc_helpers/polynomial_gf256.hpp"
 
 #define BLOCK_LENGTH 255
 #define MESSAGE_LENGTH 251

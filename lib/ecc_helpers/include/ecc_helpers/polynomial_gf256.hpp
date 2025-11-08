@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "gf256.h"
+#include "gf256.hpp"
 
 class PolynomialGF256 {
 public:

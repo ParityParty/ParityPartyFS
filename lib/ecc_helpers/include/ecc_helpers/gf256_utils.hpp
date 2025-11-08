@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <cstddef>
-#include "gf256.h"
+#include "gf256.hpp"
 
 namespace gf256_utils {
 

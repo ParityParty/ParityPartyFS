@@ -1,4 +1,4 @@
-#include "ecc_helpers/gf256.h"
+#include "ecc_helpers/gf256.hpp"
 
 namespace {
     constexpr std::array<uint8_t, 256> make_exp_table() {
@@ -64,6 +64,14 @@ bool GF256::operator!=(const uint8_t other) const {
 
 GF256 GF256::operator-() const {
     return *this;
+}
+
+GF256::operator std::byte() const{
+    return static_cast<std::byte>(value);
+}
+
+GF256::operator uint8_t() const{
+    return value;
 }
 
 GF256 GF256::inv(GF256 a) {
