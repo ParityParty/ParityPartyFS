@@ -54,6 +54,18 @@ GF256 GF256::operator/(GF256 other) const {
     return GF256(EXP[log_diff]);
 }
 
+bool GF256::operator==(const uint8_t other) const {
+    return value == other;
+}
+
+bool GF256::operator!=(const uint8_t other) const {
+    return value != other;
+}
+
+GF256 GF256::operator-() const {
+    return *this;
+}
+
 GF256 GF256::inv(GF256 a) {
     if (a.value == 0) return 0;
     return EXP[255 - LOG[a.value]];

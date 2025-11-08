@@ -26,6 +26,9 @@ public:
 
     GF256 operator-() const;
 
+    bool operator==(const uint8_t other) const;
+    bool operator!=(const uint8_t other) const;
+
     static GF256 inv(GF256 a);
 
     static GF256 getPrimitiveElement();

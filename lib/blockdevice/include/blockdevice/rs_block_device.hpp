@@ -26,6 +26,8 @@ private:
     IDisk& _disk;
     PolynomialGF256 _generator;
 
-    std::vector<std::byte> _encode(std::vector<std::byte>);
+    std::vector<std::byte> _encodeBlock(std::vector<std::byte>);
+    std::expected<std::vector<std::byte>, DiskError> _readAndFixBlock(std::vector<std::byte>);
     PolynomialGF256 _calculateGenerator();
+    std::vector<std::byte> _extractMessage(PolynomialGF256);
 };
