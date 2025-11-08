@@ -3,8 +3,8 @@ set(NAME unit_tests)
 # Bring in googletest
 include(FetchContent)
 FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+        googletest
+        URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
@@ -14,18 +14,20 @@ add_executable(${NAME}
         test_stack_disk.cpp
         test_ppfs_data_structures.cpp
         test_hamming_block_device.cpp
+        test_crc_block_device.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC
-    disk
-    ppfs
-    blockdevice
-    GTest::gtest_main
+        blockdevice
+        disk
+        ppfs
+        blockdevice
+        GTest::gtest_main
 )
 
 include(GoogleTest)
 gtest_discover_tests(${NAME}
-    PROPERTIES
+        PROPERTIES
         LABELS "unit"
         ENVIRONMENT "GTEST_COLOR=1"   # force colors in output 🌈
 )
