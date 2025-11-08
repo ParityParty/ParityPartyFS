@@ -15,6 +15,7 @@ add_executable(${NAME}
         test_ppfs_data_structures.cpp
         test_hamming_block_device.cpp
         test_crc_block_device.cpp
+        test_bits.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC

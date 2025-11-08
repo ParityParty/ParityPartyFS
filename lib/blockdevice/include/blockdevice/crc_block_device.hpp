@@ -51,6 +51,9 @@ public:
 class CrcBlockDevice : public IBlockDevice {
     CrcPolynomial _polynomial;
     IDisk& _disk;
+    size_t _block_size;
+
+    bool _checkBlock(const std::vector<std::byte>& block);
 
 public:
     /**
@@ -62,7 +65,7 @@ public:
      *
      * @param polynomial polynomial used for crc with most significant bit first with explicit +1
      */
-    CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk);
+    CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t block_size);
 
     /**
      * Writes a sequence of bytes into the device at a specified data location.
