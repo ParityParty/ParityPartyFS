@@ -9,18 +9,18 @@ public:
     ReedSolomonBlockDevice(IDisk& disk);
 
     virtual std::expected<size_t, DiskError> writeBlock(
-        const std::vector<std::byte>& data, DataLocation data_location) = 0;
+        const std::vector<std::byte>& data, DataLocation data_location);
     
     virtual std::expected<std::vector<std::byte>, DiskError> readBlock(
-        DataLocation data_location, size_t bytes_to_read) = 0;
+        DataLocation data_location, size_t bytes_to_read);
 
-    virtual size_t rawBlockSize() const = 0;
+    virtual size_t rawBlockSize() const;
 
-    virtual size_t dataSize() const = 0;
+    virtual size_t dataSize() const;
 
-    virtual size_t numOfBlocks() const = 0;
+    virtual size_t numOfBlocks() const;
 
-    virtual std::expected<void, DiskError> formatBlock(unsigned int block_index) = 0;
+    virtual std::expected<void, DiskError> formatBlock(unsigned int block_index);
 
 private:
     IDisk& _disk;

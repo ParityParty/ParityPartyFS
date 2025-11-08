@@ -20,6 +20,7 @@ add_executable(${NAME}
         test_block_manager.cpp
         test_super_block_manager.cpp
         test_directory_manager.cpp
+        test_rs_block_device.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC
@@ -32,6 +33,7 @@ target_link_libraries(${NAME} PUBLIC
         disk
         ppfs_fat
         blockdevice
+        ecc_helpers
         GTest::gtest_main
 )
 

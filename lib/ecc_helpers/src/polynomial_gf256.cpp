@@ -52,6 +52,11 @@ PolynomialGF256& PolynomialGF256::operator*=(const PolynomialGF256& other) {
     return *this;
 }
 
+GF256 PolynomialGF256::operator[](size_t i) const {
+    if (i < coeffs.size()) return coeffs[i];
+    return GF256(0);
+}
+
 PolynomialGF256 PolynomialGF256::multiply_by_xk(size_t k) const {
     std::vector<GF256> result(k, GF256(0));
     result.insert(result.end(), coeffs.begin(), coeffs.end());
@@ -101,4 +106,32 @@ std::vector<GF256> PolynomialGF256::slice(size_t from, size_t to) const {
             res.push_back(GF256(0));
     }
     return res;
+}
+
+std::vector<GF256> PolynomialGF256::slice(size_t from) const {
+    std::vector<GF256> res;
+    for (size_t i = from; i < coeffs.size(); ++i)
+            res.push_back(coeffs[i]);
+    return res;
+}
+
+size_t PolynomialGF256::degree(){
+    trim();
+    return coeffs.size();
+}
+
+void PolynomialGF256::print(std::ostream& os) const {
+    bool first = true;
+    for (size_t i = 0; i < coeffs.size(); ++i) {
+        GF256 c = coeffs[i];
+        if (c != GF256(0)) {
+            if (!first) os << " + ";
+            os << static_cast<int>(uint8_t(c));
+            if (i > 0) os << "x";
+            if (i > 1) os << "^" << i;
+            first = false;
+        }
+    }
+    if (first) os << "0";  // jeśli wszystkie współczynniki = 0
+    os << "\n";
 }

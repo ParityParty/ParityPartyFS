@@ -66,6 +66,14 @@ GF256 GF256::operator-() const {
     return *this;
 }
 
+bool GF256::operator==(const GF256 other) const{
+    return value == other.value;
+}
+
+uint8_t GF256::log(){
+    return LOG[value];
+}
+
 GF256::operator std::byte() const{
     return static_cast<std::byte>(value);
 }

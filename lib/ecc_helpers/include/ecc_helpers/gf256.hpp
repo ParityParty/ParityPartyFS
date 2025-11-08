@@ -29,6 +29,10 @@ public:
     bool operator==(const uint8_t other) const;
     bool operator!=(const uint8_t other) const;
 
+    bool operator==(const GF256 other) const;
+
+    uint8_t log();
+
     static GF256 inv(GF256 a);
 
     static GF256 getPrimitiveElement();
