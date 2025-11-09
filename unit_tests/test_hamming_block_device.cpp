@@ -58,7 +58,7 @@ TEST(HammingBlockDevice, SingleBitErrorIsCorrected)
     ASSERT_TRUE(write_res.has_value());
 
     // flip one random bit
-    size_t totalBits = hbd.rawBlockSize() * 8;
+    size_t totalBits = hbd.dataSize() * 8;
     size_t bitToFlip = randomBit(totalBits);
     flipBit(disk, bitToFlip);
 
@@ -82,7 +82,7 @@ TEST(HammingBlockDevice, DoubleBitErrorTriggersFailure)
     ASSERT_TRUE(write_res.has_value());
 
     // flip two random bits
-    size_t totalBits = hbd.rawBlockSize() * 8;
+    size_t totalBits = hbd.dataSize() * 8;
     size_t bit1 = randomBit(totalBits);
     size_t bit2 = randomBit(totalBits);
     while (bit2 == bit1) bit2 = randomBit(totalBits);
@@ -111,7 +111,7 @@ TEST(HammingBlockDevice, MultipleRandomSingleBitCorrections)
         auto write_res = hbd.writeBlock(data, loc);
         ASSERT_TRUE(write_res.has_value());
 
-        size_t totalBits = hbd.rawBlockSize() * 8;
+        size_t totalBits = hbd.dataSize() * 8;
         size_t bit = randomBit(totalBits);
 
         flipBit(disk, bit);

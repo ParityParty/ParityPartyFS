@@ -1,5 +1,5 @@
-#include "ppfs/data_structures.hpp"
-#include "ppfs/ppfs.hpp"
+#include "ppfs_fat/data_structures.hpp"
+#include "ppfs_fat/ppfs.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -33,7 +33,6 @@ std::vector<std::byte> SuperBlock::toBytes() const
 
 SuperBlock SuperBlock::fromBytes(const std::vector<std::byte>& bytes)
 {
-
     size_t offset = 0;
 
     unsigned int num_blocks;
@@ -95,8 +94,7 @@ std::expected<void, DiskError> FileAllocationTable::updateFat(
         if (!_dirty_entries[i])
             continue;
         std::memcpy(bytes.data(), &_fat[i], sizeof(int));
-        auto ret = block_device.writeBlock(bytes, DataLocation( 
-            fat_start_block, i * sizeof(int)));
+        auto ret = block_device.writeBlock(bytes, DataLocation(fat_start_block, i * sizeof(int)));
         if (!ret.has_value()) {
             return std::unexpected(DiskError::IOError);
         }

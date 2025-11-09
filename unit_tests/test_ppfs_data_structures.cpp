@@ -1,7 +1,7 @@
-#include "disk/stack_disk.hpp"
 #include "blockdevice/raw_block_device.hpp"
-#include "ppfs/data_structures.hpp"
-#include "ppfs/ppfs.hpp"
+#include "disk/stack_disk.hpp"
+#include "ppfs_fat/data_structures.hpp"
+#include "ppfs_fat/ppfs.hpp"
 #include <gtest/gtest.h>
 
 TEST(SuperBlock, Serialization)
