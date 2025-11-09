@@ -59,7 +59,6 @@ std::expected<std::vector<std::byte>, DiskError> ParityBlockDevice::readBlock(
     return std::vector<std::byte>(data.begin() + data_location.offset, data.begin() + data_location.offset + to_read);
 }
 
-
 bool ParityBlockDevice::_checkParity(std::vector<std::byte> data){
     size_t ones = 0;
     for (auto b : data) {

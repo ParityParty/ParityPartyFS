@@ -1,13 +1,13 @@
+#pragma once
+
+#include "blockdevice/iblock_device.hpp"
+
 /**
  * Simple parity-based block device for error detection.
  * 
  * This device wraps a lower-level disk and adds a single parity bit per block.
  * It can detect single-bit flips but cannot correct them.
  */
-#pragma once
-
-#include "blockdevice/iblock_device.hpp"
-
 class ParityBlockDevice : public IBlockDevice {
 public:
     /** Constructs a parity-protected block device of given block size. */
