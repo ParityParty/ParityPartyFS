@@ -1,6 +1,7 @@
 #pragma once
 
 #include "blockdevice/iblock_device.hpp"
+#include "common/types.hpp"
 
 /**
  * Class representing polynomial used in crc error detection
@@ -62,6 +63,16 @@ class CrcBlockDevice : public IBlockDevice {
     size_t _block_size;
 
     bool _checkBlock(const std::vector<std::byte>& block);
+
+    /**
+     *  Calculate block crc and write to disk
+     *
+     * @param block block to be written, block has rawBlockSize bytes, redundancy bits at the end
+     * will be changed
+     * @return void if successful, error otherwise
+     */
+    std::expected<void, DiskError> _calculateAndWrite(
+        std::vector<std::byte>& block, block_index_t block_index);
 
 public:
     /**
