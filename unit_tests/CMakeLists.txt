@@ -20,19 +20,21 @@ add_executable(${NAME}
         test_block_manager.cpp
         test_super_block_manager.cpp
         test_directory_manager.cpp
+        test_crc_block_device.cpp
+        test_bits.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC
+        disk
+        GTest::gtest_main
         directory_manager
         filesystem
         super_block_manager
         block_manager
         inode_manager
         bitmap
-        disk
         ppfs_fat
         blockdevice
-        GTest::gtest_main
 )
 
 include(GoogleTest)
