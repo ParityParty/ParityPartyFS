@@ -16,7 +16,6 @@ namespace {
 
     constexpr std::array<uint8_t, 256> make_log_table(const std::array<uint8_t, 256>& exp) {
         std::array<uint8_t, 256> log{};
-        for (auto& v : log) v = 0xFF;
         for (size_t i = 0; i < 255; ++i)
             log[exp[i]] = static_cast<uint8_t>(i);
         return log;
@@ -43,7 +42,7 @@ GF256 GF256::operator-(GF256 other) const {
 GF256 GF256::operator*(GF256 other) const {
     if (value == 0 || other.value == 0) return GF256(0);
     unsigned int log_sum = LOG[value] + LOG[other.value];
-    log_sum &= 255;
+    if (log_sum >= 255) log_sum -= 255;
     return GF256(EXP[log_sum]);
 }
 

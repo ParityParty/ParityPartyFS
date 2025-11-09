@@ -57,6 +57,12 @@ GF256 PolynomialGF256::operator[](size_t i) const {
     return GF256(0);
 }
 
+GF256& PolynomialGF256::operator[](size_t i) {
+    if (i >= coeffs.size())
+        coeffs.resize(i+1, GF256(0));
+    return coeffs[i];
+}
+
 PolynomialGF256 PolynomialGF256::multiply_by_xk(size_t k) const {
     std::vector<GF256> result(k, GF256(0));
     result.insert(result.end(), coeffs.begin(), coeffs.end());
@@ -134,4 +140,16 @@ void PolynomialGF256::print(std::ostream& os) const {
     }
     if (first) os << "0";  // jeśli wszystkie współczynniki = 0
     os << "\n";
+}
+
+PolynomialGF256 PolynomialGF256::derivative() {
+    std::vector<GF256> deriv;
+    deriv.reserve(coeffs.size());
+    for (size_t i = 1; i < coeffs.size(); i ++) {  // tylko nieparzyste potęgi
+        if(i % 2)
+            deriv.push_back(coeffs[i]);
+        else 
+            deriv.push_back(0);
+    }
+    return PolynomialGF256(deriv);
 }
