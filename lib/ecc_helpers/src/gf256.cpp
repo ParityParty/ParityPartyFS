@@ -1,5 +1,7 @@
 #include "ecc_helpers/gf256.hpp"
 
+#include <array>
+
 namespace {
     constexpr std::array<uint8_t, 256> make_exp_table() {
         std::array<uint8_t, 256> exp{};
@@ -53,14 +55,6 @@ GF256 GF256::operator/(GF256 other) const {
     return GF256(EXP[log_diff]);
 }
 
-bool GF256::operator==(const uint8_t other) const {
-    return value == other;
-}
-
-bool GF256::operator!=(const uint8_t other) const {
-    return value != other;
-}
-
 GF256 GF256::operator-() const {
     return *this;
 }
@@ -69,7 +63,11 @@ bool GF256::operator==(const GF256 other) const{
     return value == other.value;
 }
 
-uint8_t GF256::log(){
+bool GF256::operator!=(const GF256 other) const {
+    return value != other.value;
+}
+
+uint8_t GF256::log() const{
     return LOG[value];
 }
 
@@ -81,9 +79,9 @@ GF256::operator uint8_t() const{
     return value;
 }
 
-GF256 GF256::inv(GF256 a) {
-    if (a.value == 0) return 0;
-    return EXP[255 - LOG[a.value]];
+GF256 GF256::inv() const {
+    if (value == 0) return 0;
+    return EXP[255 - LOG[value]];
 }
 
 GF256 GF256::getPrimitiveElement() {

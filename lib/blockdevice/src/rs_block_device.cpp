@@ -11,7 +11,7 @@ std::vector<GF256> forney(const PolynomialGF256& omega,
     PolynomialGF256 sigma_derivative = sigma.derivative(); // tylko nieparzyste potęgi
 
     for (auto& X : error_locations) {
-        GF256 Xi_inv = GF256::inv(X);
+        GF256 Xi_inv = X.inv();
         GF256 numerator = omega.evaluate(Xi_inv);
         GF256 denominator = sigma_derivative.evaluate(Xi_inv);
         error_values.push_back(numerator / denominator); // minus nie trzeba w GF(256)
@@ -69,7 +69,7 @@ std::vector<GF256> errorLocations(PolynomialGF256 error_location_polynomial) {
 
     for(int i = 1; i <= 255; i++){
         if (error_location_polynomial.evaluate(i) == 0){
-            error_locations.push_back(GF256::inv(i));
+            error_locations.push_back(GF256(i).inv());
     }}
 
     return error_locations;
@@ -217,28 +217,14 @@ ReedSolomonBlockDevice::_readAndFixBlock(std::vector<std::byte> raw_bytes) {
     //auto error_values = calculateErrorValues(error_positions, z);
 
     // === 8. Popraw błędy w słowie kodowym
-for (size_t i = 0; i < error_positions.size(); i++) {
-    auto pos = error_positions[i].log();
+    for (size_t i = 0; i < error_positions.size(); i++) {
+        auto pos = error_positions[i].log();
+        
+        
+        code_word[pos] = code_word[pos] + error_values[i];
 
-    uint8_t byte_before = static_cast<uint8_t>(code_word[pos]);
-    code_word[pos] = code_word[pos] + error_values[i];  // poprawka
-    uint8_t byte_after = static_cast<uint8_t>(code_word[pos]);
-
-    // wypisywanie w systemie binarnym
-    std::cout << "Correcting error - at position: " << (int)pos
-              << " error value: " << (int)(uint8_t)error_values[i] 
-              << " byte before: ";
-    for (int bit = 7; bit >= 0; --bit) {
-        std::cout << ((byte_before >> bit) & 1);
+        std::cout << "Correcting error - at position:" <<(int)(uint8_t) pos << "error value" << (int)(uint8_t)error_values[i] << std::endl;
     }
-
-    std::cout << " byte after: ";
-    for (int bit = 7; bit >= 0; --bit) {
-        std::cout << ((byte_after >> bit) & 1);
-    }
-
-    std::cout << std::endl;
-}
 
     // === 9. Zwróć poprawioną wiadomość ===
     return _extractMessage(code_word);

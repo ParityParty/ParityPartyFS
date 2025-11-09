@@ -1,12 +1,14 @@
 #pragma once
-#include <array>
-#include <cstdint>
-#include <cstddef>
-#include <cstddef>
-#include <cstdint>
-#include <cstddef>
-#include <cstddef>
 
+#include <cstdint>
+#include <cstddef>
+/**
+ * Represents an element of the finite field GF(256), used in Reed-Solomon error correction.
+ * 
+ * This class encapsulates arithmetic in GF(2^8) with a fixed primitive polynomial.
+ * It supports addition, subtraction, multiplication, division, inversion, and logarithms
+ * of field elements.
+ */
 class GF256 {
 public:
     static constexpr uint16_t PRIMITIVE_POLY = 0x11D;
@@ -26,14 +28,12 @@ public:
 
     GF256 operator-() const;
 
-    bool operator==(const uint8_t other) const;
-    bool operator!=(const uint8_t other) const;
-
     bool operator==(const GF256 other) const;
+    bool operator!=(const GF256 other) const;
 
-    uint8_t log();
+    uint8_t log() const;
 
-    static GF256 inv(GF256 a);
+    GF256 inv() const;
 
     static GF256 getPrimitiveElement();
 
