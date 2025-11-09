@@ -1,80 +1,7 @@
 #include "blockdevice/rs_block_device.hpp"
 #include "ecc_helpers/gf256_utils.hpp"
 
-#include<error.h>
 #include <iostream>
-
-std::vector<GF256> forney(const PolynomialGF256& omega,
-                          PolynomialGF256& sigma,
-                          const std::vector<GF256>& error_locations) {
-    std::vector<GF256> error_values;
-    PolynomialGF256 sigma_derivative = sigma.derivative(); // tylko nieparzyste potęgi
-
-    for (auto& X : error_locations) {
-        GF256 Xi_inv = X.inv();
-        GF256 numerator = omega.evaluate(Xi_inv);
-        GF256 denominator = sigma_derivative.evaluate(Xi_inv);
-        error_values.push_back(numerator / denominator); // minus nie trzeba w GF(256)
-    }
-
-    return error_values;
-}
-
-PolynomialGF256 calculateOmega(const std::vector<GF256>& syndromes, PolynomialGF256& sigma) {
-    PolynomialGF256 S(syndromes);
-    auto omega = (S * sigma).slice(0, syndromes.size()); // mod x^(2t) -> slice(0, 2t)
-    return PolynomialGF256(omega);
-}
-
-
-PolynomialGF256 berlekamp_massey(const std::vector<GF256>& syndromes) {
-    PolynomialGF256 sigma({ GF256(1) });  // σ(x) = 1
-    PolynomialGF256 B({ GF256(1) });      // kopia poprzedniego σ(x)
-    GF256 b(1);
-
-    int L = 0; // liczba błędów (stopień σ)
-    int m = 1; // licznik kroków od ostatniej zmiany
-
-    for (size_t n = 0; n < syndromes.size(); n++) {
-        // 🔹 discrepancy d_n
-        GF256 d = syndromes[n];
-        for (int i = 1; i <= L; i++) {
-            d = d+ sigma[i] * syndromes[n - i];
-        }
-
-        if (d != 0) {
-            auto T = sigma;
-            PolynomialGF256 diff = B * PolynomialGF256({d / b});
-            diff = diff.multiply_by_xk(m);
-            sigma += diff;
-
-            if (2 * L <= static_cast<int>(n)) {
-                L = n + 1 - L;
-                B = T;
-                b = d;
-                m = 1;
-            } else {
-                m++;
-            }
-        } else {
-            m++;
-        }
-    }
-    
-    return sigma;
-}
-
-std::vector<GF256> errorLocations(PolynomialGF256 error_location_polynomial) {
-    std::vector<GF256> error_locations;
-
-    for(int i = 1; i <= 255; i++){
-        if (error_location_polynomial.evaluate(i) == 0){
-            error_locations.push_back(GF256(i).inv());
-    }}
-
-    return error_locations;
-}
-
 
 ReedSolomonBlockDevice::ReedSolomonBlockDevice(IDisk& disk) : _disk(disk) { 
     _generator = _calculateGenerator();
@@ -108,12 +35,8 @@ std::expected<std::vector<std::byte>, DiskError> ReedSolomonBlockDevice::readBlo
         return std::unexpected(raw_block.error());
     }
 
-    auto decoded = _readAndFixBlock(raw_block.value());
-    if(!decoded.has_value()){
-        return std::unexpected(decoded.error());
-    }
+    auto decoded_data = _fixBlockAndExtract(raw_block.value());
 
-    auto decoded_data = decoded.value();
     return std::vector<std::byte>(decoded_data.begin() + data_location.offset, decoded_data.begin() + data_location.offset + bytes_to_read);
 }
 
@@ -125,12 +48,7 @@ std::expected<size_t, DiskError> ReedSolomonBlockDevice::writeBlock(const std::v
         return std::unexpected(raw_block.error());
     }
 
-    auto decoding_res = _readAndFixBlock(raw_block.value());
-    if (!decoding_res.has_value()){
-        return std::unexpected(decoding_res.error());
-    }
-
-    auto decoded = decoding_res.value();
+    auto decoded = _fixBlockAndExtract(raw_block.value());
 
     std::copy(data.begin(), data.begin() + to_write, decoded.begin() + data_location.offset);
     
@@ -149,16 +67,7 @@ std::vector<std::byte> ReedSolomonBlockDevice::_encodeBlock(std::vector<std::byt
 
     auto encoded = shifted_message + shifted_message.mod(_generator);
 
-    GF256 alpha = GF256::getPrimitiveElement();
-    GF256 power = GF256(alpha);
-     for (int i = 0; i < BLOCK_LENGTH - MESSAGE_LENGTH; i++) {
-        auto s = _generator.evaluate(power);
-        if (s != 0)
-        power = power * alpha;
-    }
-
     return gf256_utils::gf_to_bytes(encoded.slice(0, BLOCK_LENGTH));
-
 }
 
 std::vector<std::byte> ReedSolomonBlockDevice::_extractMessage(PolynomialGF256 p){
@@ -166,14 +75,12 @@ std::vector<std::byte> ReedSolomonBlockDevice::_extractMessage(PolynomialGF256 p
 }
 
 
-std::expected<std::vector<std::byte>, DiskError> 
-ReedSolomonBlockDevice::_readAndFixBlock(std::vector<std::byte> raw_bytes) {
+std::vector<std::byte> ReedSolomonBlockDevice::_fixBlockAndExtract(std::vector<std::byte> raw_bytes) {
     using namespace gf256_utils;
 
-    // === 1. Konwersja bajtów na elementy GF(256)
     auto code_word = PolynomialGF256(bytes_to_gf(raw_bytes));
 
-    // === 2. Oblicz syndromy ===
+    // Calculate syndromes
     std::vector<GF256> syndromes;
     syndromes.reserve(BLOCK_LENGTH - MESSAGE_LENGTH);
 
@@ -189,44 +96,28 @@ ReedSolomonBlockDevice::_readAndFixBlock(std::vector<std::byte> raw_bytes) {
         power = power * alpha;
     }
 
-     //return _extractMessage(code_word);
-
-    // === 3. Jeśli brak błędów, zwróć wiadomość ===
     if (is_message_correct)
         return _extractMessage(code_word);
 
-    // === 4. Oblicz wielomian lokalizacji błędów σ(x) (error locator polynomial)
-    // za pomocą np. algorytmu Berlekampa–Masseya
-    auto sigma = berlekamp_massey(syndromes);
+    // Calculate error locator polynomial
+    auto sigma = _berlekamp_massey(syndromes);
 
 
-    // === 5. Znajdź pozycje błędów (roots of σ(x))
-    auto error_positions = errorLocations(sigma);
+    // Find locations of errors
+    auto error_positions = _errorLocations(sigma);
 
-    auto omega = calculateOmega(syndromes, sigma);
+    // Calculate omega polynomial to find error values
+    auto omega = _calculateOmega(syndromes, sigma);
 
-    auto error_values = forney(omega, sigma, error_positions);
+    // Calculate error valuer
+    auto error_values = _forney(omega, sigma, error_positions);
 
-
-    // === 6. Oblicz wielomian korekcji błędów (error evaluator)
-    //auto z = calculateZ(syndromes, sigma);
-
-    //return std::unexpected(DiskError::CorrectionError);
-
-    // === 7. Wylicz wartości błędów (Forney’s algorithm)
-    //auto error_values = calculateErrorValues(error_positions, z);
-
-    // === 8. Popraw błędy w słowie kodowym
+    // Correct errors
     for (size_t i = 0; i < error_positions.size(); i++) {
         auto pos = error_positions[i].log();
-        
-        
         code_word[pos] = code_word[pos] + error_values[i];
-
-        std::cout << "Correcting error - at position:" <<(int)(uint8_t) pos << "error value" << (int)(uint8_t)error_values[i] << std::endl;
     }
-
-    // === 9. Zwróć poprawioną wiadomość ===
+    
     return _extractMessage(code_word);
 }
 
@@ -251,6 +142,75 @@ PolynomialGF256 ReedSolomonBlockDevice::_calculateGenerator() {
 }
 
 
+std::vector<GF256> ReedSolomonBlockDevice::_forney(const PolynomialGF256& omega,
+                          PolynomialGF256& sigma,
+                          const std::vector<GF256>& error_locations) {
+    std::vector<GF256> error_values;
+    PolynomialGF256 sigma_derivative = sigma.derivative();
+
+    for (auto& X : error_locations) {
+        GF256 Xi_inv = X.inv();
+        GF256 numerator = omega.evaluate(Xi_inv);
+        GF256 denominator = sigma_derivative.evaluate(Xi_inv);
+        error_values.push_back(numerator / denominator);
+    }
+
+    return error_values;
+}
+
+PolynomialGF256 ReedSolomonBlockDevice::_calculateOmega(const std::vector<GF256>& syndromes, PolynomialGF256& sigma) {
+    PolynomialGF256 S(syndromes);
+    auto omega = (S * sigma).slice(0, syndromes.size());
+    return PolynomialGF256(omega);
+}
+
+
+PolynomialGF256 ReedSolomonBlockDevice::_berlekamp_massey(const std::vector<GF256>& syndromes) {
+    PolynomialGF256 sigma({ GF256(1) });
+    PolynomialGF256 B({ GF256(1) }); 
+    GF256 b(1);
+
+    int L = 0;
+    int m = 1;
+
+    for (size_t n = 0; n < syndromes.size(); n++) {
+        GF256 d = syndromes[n];
+        for (int i = 1; i <= L; i++) {
+            d = d+ sigma[i] * syndromes[n - i];
+        }
+
+        if (d != 0) {
+            auto T = sigma;
+            PolynomialGF256 diff = B * PolynomialGF256({d / b});
+            diff = diff.multiply_by_xk(m);
+            sigma += diff;
+
+            if (2 * L <= static_cast<int>(n)) {
+                L = n + 1 - L;
+                B = T;
+                b = d;
+                m = 1;
+            } else {
+                m++;
+            }
+        } else {
+            m++;
+        }
+    }
+    
+    return sigma;
+}
+
+std::vector<GF256> ReedSolomonBlockDevice::_errorLocations(PolynomialGF256 error_location_polynomial) {
+    std::vector<GF256> error_locations;
+
+    for(int i = 1; i <= 255; i++){
+        if (error_location_polynomial.evaluate(i) == 0){
+            error_locations.push_back(GF256(i).inv());
+    }}
+
+    return error_locations;
+}
 
 
 
