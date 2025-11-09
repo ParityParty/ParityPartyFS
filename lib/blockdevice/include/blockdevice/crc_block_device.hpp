@@ -62,8 +62,6 @@ class CrcBlockDevice : public IBlockDevice {
     IDisk& _disk;
     size_t _block_size;
 
-    bool _checkBlock(const std::vector<std::byte>& block);
-
     /**
      *  Calculate block crc and write to disk
      *
@@ -73,6 +71,14 @@ class CrcBlockDevice : public IBlockDevice {
      */
     std::expected<void, DiskError> _calculateAndWrite(
         std::vector<std::byte>& block, block_index_t block_index);
+
+    /**
+     * reads whole block with redundancy bits and checks integrity
+     *
+     * @param block index of a block to read
+     * @return block with redundancy bits on success, error othewise
+     */
+    std::expected<std::vector<std::byte>, DiskError> _readAndCheckRaw(block_index_t block);
 
 public:
     /**

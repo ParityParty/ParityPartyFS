@@ -25,10 +25,7 @@ add_executable(${NAME}
 )
 
 target_link_libraries(${NAME} PUBLIC
-        blockdevice
         disk
-        ppfs
-        blockdevice
         GTest::gtest_main
         directory_manager
         filesystem
@@ -36,10 +33,8 @@ target_link_libraries(${NAME} PUBLIC
         block_manager
         inode_manager
         bitmap
-        disk
         ppfs_fat
         blockdevice
-        GTest::gtest_main
 )
 
 include(GoogleTest)

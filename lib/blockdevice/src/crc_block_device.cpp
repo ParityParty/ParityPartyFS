@@ -59,10 +59,6 @@ unsigned long int CrcPolynomial::getCoefficients() const { return _coefficients;
 
 unsigned int CrcPolynomial::getDegree() const { return _n; }
 
-bool CrcBlockDevice::_checkBlock(const std::vector<std::byte>& block)
-{
-    auto bits = BitHelpers::blockToBits(block);
-}
 std::expected<void, DiskError> CrcBlockDevice::_calculateAndWrite(
     std::vector<std::byte>& block, block_index_t block_index)
 {
@@ -86,6 +82,28 @@ std::expected<void, DiskError> CrcBlockDevice::_calculateAndWrite(
     }
     return {};
 }
+std::expected<std::vector<std::byte>, DiskError> CrcBlockDevice::_readAndCheckRaw(
+    block_index_t block_index)
+{
+    auto bytes_res = _disk.read(block_index * _block_size, _block_size);
+    if (!bytes_res.has_value()) {
+        return std::unexpected(bytes_res.error());
+    }
+    auto block = bytes_res.value();
+    auto block_bits = BitHelpers::blockToBits(block);
+    auto amount_unused_bits = (_block_size - dataSize()) * 8 - _polynomial.getDegree();
+    for (int i = 0; i < amount_unused_bits; i++) {
+        block_bits.pop_back();
+    }
+
+    auto remainder = _polynomial.divide(block_bits);
+
+    // reminder should be 0
+    if (std::ranges::contains(remainder.begin(), remainder.end(), true)) {
+        return std::unexpected(DiskError::CorrectionError);
+    }
+    return block;
+}
 
 CrcBlockDevice::CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t block_size)
     : _polynomial(polynomial)
@@ -97,7 +115,7 @@ CrcBlockDevice::CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t blo
 std::expected<size_t, DiskError> CrcBlockDevice::writeBlock(
     const std::vector<std::byte>& data, DataLocation data_location)
 {
-    auto read_res = readBlock(DataLocation(data_location.block_index, 0), _block_size);
+    auto read_res = _readAndCheckRaw(data_location.block_index);
     if (!read_res.has_value()) {
         return std::unexpected(read_res.error());
     }
@@ -114,24 +132,11 @@ std::expected<size_t, DiskError> CrcBlockDevice::writeBlock(
 std::expected<std::vector<std::byte>, DiskError> CrcBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read)
 {
-    auto bytes_res = _disk.read(data_location.block_index * _block_size, _block_size);
-    if (!bytes_res.has_value()) {
-        return std::unexpected(bytes_res.error());
+    auto read_ret = _readAndCheckRaw(data_location.block_index);
+    if (!read_ret.has_value()) {
+        return std::unexpected(read_ret.error());
     }
-    auto block = bytes_res.value();
-    auto block_bits = BitHelpers::blockToBits(block);
-    auto amount_unused_bits = (_block_size - dataSize()) - _polynomial.getDegree();
-    for (int i = 0; i < amount_unused_bits; i++) {
-        block_bits.pop_back();
-    }
-
-    auto remainder = _polynomial.divide(block_bits);
-
-    // reminder should be 0
-    if (std::ranges::contains(remainder.begin(), remainder.end(), true)) {
-        return std::unexpected(DiskError::CorrectionError);
-    }
-
+    auto block = read_ret.value();
     size_t to_read = std::min(bytes_to_read, dataSize() - data_location.offset);
     return std::vector(
         block.begin() + data_location.offset, block.begin() + data_location.offset + to_read);

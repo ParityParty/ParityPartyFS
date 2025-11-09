@@ -52,7 +52,7 @@ TEST(CrcBlockDevice, Compiles)
 
     CrcBlockDevice crc(CrcPolynomial::MsgImplicit(0xea), disk, 256);
     EXPECT_EQ(crc.rawBlockSize(), 256);
-    EXPECT_EQ(crc.dataSize(), 256 - 8);
+    EXPECT_EQ(crc.dataSize(), 256 - 1 /* one byte of redundancy with this polynomial*/);
 }
 
 TEST(CrcBlockDevice, ReadsAndWrites)
@@ -70,4 +70,22 @@ TEST(CrcBlockDevice, ReadsAndWrites)
     for (int i = 0; i < data_size; i++) {
         EXPECT_EQ(data[i], read_ret.value()[i]);
     }
+}
+
+TEST(CrcBlockDevice, FindsError)
+{
+    StackDisk disk;
+    auto poly = CrcPolynomial::MsgImplicit(0xea);
+    CrcBlockDevice crc(poly, disk, 256);
+
+    auto data_size = crc.dataSize();
+    std::vector<std::byte> data(data_size, static_cast<std::byte>(0x00));
+    ASSERT_TRUE(crc.formatBlock(0).has_value());
+    ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
+
+    // change one bit
+    ASSERT_TRUE(disk.write(1, { static_cast<std::byte>(0x01) }).has_value());
+
+    auto read_ret = crc.readBlock({ 0, 0 }, data_size);
+    EXPECT_EQ(read_ret.error(), DiskError::CorrectionError);
 }
