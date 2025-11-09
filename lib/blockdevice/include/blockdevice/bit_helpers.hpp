@@ -39,4 +39,14 @@ inline std::vector<bool> blockToBits(const std::vector<std::byte> block)
     return bits;
 }
 
+inline std::vector<bool> ulongToBits(unsigned long int value)
+{
+    auto size = sizeof(unsigned long int) * 8;
+    std::vector<bool> bits(size);
+    for (int i = 0; i < size; ++i) {
+        bits[i] = ((value >> (size - 1 - i)) & 1) > 0;
+    }
+    return bits;
+}
+
 }

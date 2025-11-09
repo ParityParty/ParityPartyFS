@@ -30,6 +30,28 @@ CrcPolynomial CrcPolynomial::MsgImplicit(unsigned long int polynomial)
     return { explicitPolynomial, _findDegree(explicitPolynomial) };
 }
 
+std::vector<bool> CrcPolynomial::divide(const std::vector<bool>& other)
+{
+    std::vector<bool> result(other.begin(), other.end());
+    auto poly_with_zeros = BitHelpers::ulongToBits(_coefficients);
+    std::vector<bool> poly(poly_with_zeros.end() - _n - 1, poly_with_zeros.end());
+
+    for (int i = 0; i < other.size() - poly.size(); i++) {
+        if (!result[i]) {
+            continue;
+        }
+        for (int j = 0; j < poly.size(); j++) {
+            result[i + j] = result[i + j] ^ poly[j];
+        }
+    }
+
+    std::vector<bool> remainder(_n);
+    for (int i = 0; i < _n; i++) {
+        remainder[i] = result[result.size() - _n + i];
+    }
+    return remainder;
+}
+
 unsigned long int CrcPolynomial::getCoefficients() const { return _coefficients; }
 
 unsigned int CrcPolynomial::getDegree() const { return _n; }
@@ -59,6 +81,8 @@ std::expected<std::vector<std::byte>, DiskError> CrcBlockDevice::readBlock(
         return std::unexpected(bytes_res.error());
     }
     auto block = bytes_res.value();
+
+    auto block_bits = BitHelpers::blockToBits(block);
 }
 
 size_t CrcBlockDevice::rawBlockSize() const { return _block_size; }

@@ -39,6 +39,14 @@ public:
      */
     static CrcPolynomial MsgImplicit(unsigned long int polynomial);
 
+    /**
+     * Divide long polynomial by self
+     *
+     * @param other Coefficients of other polynomial
+     * @return remainder after division other/self
+     */
+    std::vector<bool> divide(const std::vector<bool>& other);
+
     unsigned long int getCoefficients() const;
     unsigned int getDegree() const;
 };

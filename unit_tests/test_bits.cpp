@@ -14,3 +14,15 @@ TEST(Bits, BlockToBits)
         EXPECT_FALSE(bits[i + 8]);
     }
 }
+
+TEST(Bits, UlongToBits)
+{
+    unsigned long a = 0xffffffff;
+
+    auto bits = BitHelpers::ulongToBits(a);
+
+    for (int i = 0; i < 32; i++) {
+        EXPECT_FALSE(bits[i]);
+        EXPECT_TRUE(bits[i + 32]);
+    }
+}
