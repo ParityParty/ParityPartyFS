@@ -1,8 +1,39 @@
 #include "bitmap/bitmap.hpp"
 
+DataLocation Bitmap::_getByteLocation(unsigned int bit_index)
+{
+    auto byte = bit_index / 8;
+    block_index_t block = byte / _block_device.dataSize();
+    auto offset = byte % _block_device.dataSize();
+    return { block, offset };
+}
+
+std::expected<unsigned char, DiskError> Bitmap::_getByte(unsigned int bit_index)
+{
+    auto location = _getByteLocation(bit_index);
+    auto read_ret = _block_device.readBlock(location, 1);
+    if (!read_ret.has_value()) {
+        return std::unexpected(read_ret.error());
+    }
+    return static_cast<unsigned char>(read_ret.value().front());
+}
+
 Bitmap::Bitmap(IBlockDevice& block_device, size_t start_block, size_t size)
     : _block_device(block_device)
     , _start_block(start_block)
     , _size(size)
 {
+}
+
+std::expected<bool, DiskError> Bitmap::getBit(unsigned int bit_index)
+{
+    auto byte_ret = _getByte(bit_index);
+    if (!byte_ret.has_value()) {
+        return std::unexpected(byte_ret.error());
+    }
+    auto byte = byte_ret.value();
+
+    auto bit = bit_index % 8;
+
+    return (byte >> (7 - bit)) > 0;
 }
