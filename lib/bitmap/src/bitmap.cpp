@@ -35,5 +35,28 @@ std::expected<bool, DiskError> Bitmap::getBit(unsigned int bit_index)
 
     auto bit = bit_index % 8;
 
-    return (byte >> (7 - bit)) > 0;
+    return ((byte >> (7 - bit)) & 1) > 0;
+}
+std::expected<void, DiskError> Bitmap::setBit(unsigned int bit_index, bool value)
+{
+    auto byte_ret = _getByte(bit_index);
+    if (!byte_ret.has_value()) {
+        return std::unexpected(byte_ret.error());
+    }
+    auto byte = byte_ret.value();
+    auto bit = bit_index % 8;
+
+    if (value) {
+        byte = byte | (1 << (7 - bit));
+    } else {
+        byte = byte & ~(1 << (7 - bit));
+    }
+
+    auto location = _getByteLocation(bit_index);
+
+    auto write_ret = _block_device.writeBlock({ static_cast<std::byte>(byte) }, location);
+    if (write_ret.has_value()) {
+        return {};
+    };
+    return std::unexpected(write_ret.error());
 }
