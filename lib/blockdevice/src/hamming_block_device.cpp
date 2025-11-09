@@ -113,6 +113,10 @@ std::expected<size_t, DiskError> HammingBlockDevice::writeBlock(
 
     auto disk_result = _disk.write(data_location.block_index * _block_size, new_encoded_block);
 
+    if (!disk_result.has_value()) {
+        return std::unexpected(disk_result.error());
+    }
+
     return to_write;
 }
 
