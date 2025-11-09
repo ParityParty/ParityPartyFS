@@ -1,5 +1,5 @@
 #include "bitmap/bitmap.hpp"
-#include "blockdevice/"
+#include "blockdevice/bit_helpers.hpp"
 
 #include <cmath>
 
@@ -69,13 +69,22 @@ std::expected<unsigned int, DiskError> Bitmap::getFirstEq(bool value)
         / static_cast<float>(_block_device.dataSize()));
 
     for (int block = 0; block < blocks_spanned; block++) {
-        auto block_ret = _block_device.readBlock(DataLocation(_start_block + block, 0), _block_device.dataSize());
+        auto block_ret = _block_device.readBlock(
+            DataLocation(_start_block + block, 0), _block_device.dataSize());
         if (!block_ret.has_value()) {
             return std::unexpected(block_ret.error());
         }
-        for (int i = 0; i < _block_device.dataSize(); i++) {
-            BitHelpers::
-        }
+        auto block_data = block_ret.value();
 
+        for (int i = 0; i < _block_device.dataSize() * 8; i++) {
+            if (block * _block_device.dataSize() + i >= _size) {
+                // there is no more value in bitmap
+                return std::unexpected(DiskError::OutOfMemory);
+            }
+            if (BitHelpers::getBit(block_data, i) == value) {
+                return block * _block_device.dataSize() + i;
+            }
+        }
     }
+    return std::unexpected(DiskError::OutOfMemory);
 }

@@ -83,3 +83,5 @@ TEST(Bitmap, SetBitGetBit)
         EXPECT_EQ(bit, expected) << "Index: " << i;
     }
 }
+
+TEST(Bimap, FindFirst) { ASSERT_TRUE(false) << "Unimplemented"; }
