@@ -16,7 +16,7 @@ unsigned int CrcPolynomial::_findDegree(unsigned long int coefficients)
     return counter - 1;
 }
 
-CrcPolynomial::CrcPolynomial(unsigned long int coefficients, unsigned int n)
+CrcPolynomial::CrcPolynomial(const std::vector<bool>& coefficients, unsigned int n)
     : _coefficients(coefficients)
     , _n(n)
 {
@@ -24,27 +24,35 @@ CrcPolynomial::CrcPolynomial(unsigned long int coefficients, unsigned int n)
 
 CrcPolynomial CrcPolynomial::MsgExplicit(unsigned long int polynomial)
 {
-    return { polynomial, _findDegree(polynomial) };
+    auto n = _findDegree(polynomial);
+
+    auto poly_with_zeros = BitHelpers::ulongToBits(polynomial);
+    std::vector<bool> poly(poly_with_zeros.end() - n - 1, poly_with_zeros.end());
+
+    return { poly, n };
 }
 
 CrcPolynomial CrcPolynomial::MsgImplicit(unsigned long int polynomial)
 {
-    unsigned long int explicitPolynomial = (polynomial << 1) + 1;
-    return { explicitPolynomial, _findDegree(explicitPolynomial) };
+    polynomial = (polynomial << 1) + 1;
+    auto n = _findDegree(polynomial);
+
+    auto poly_with_zeros = BitHelpers::ulongToBits(polynomial);
+    std::vector<bool> poly(poly_with_zeros.end() - n - 1, poly_with_zeros.end());
+
+    return { poly, n };
 }
 
 std::vector<bool> CrcPolynomial::divide(const std::vector<bool>& other)
 {
     std::vector<bool> result(other.begin(), other.end());
-    auto poly_with_zeros = BitHelpers::ulongToBits(_coefficients);
-    std::vector<bool> poly(poly_with_zeros.end() - _n - 1, poly_with_zeros.end());
 
-    for (int i = 0; i < other.size() - poly.size(); i++) {
+    for (int i = 0; i < other.size() - _coefficients.size(); i++) {
         if (!result[i]) {
             continue;
         }
-        for (int j = 0; j < poly.size(); j++) {
-            result[i + j] = result[i + j] ^ poly[j];
+        for (int j = 0; j < _coefficients.size(); j++) {
+            result[i + j] = result[i + j] ^ _coefficients[j];
         }
     }
 
@@ -54,8 +62,10 @@ std::vector<bool> CrcPolynomial::divide(const std::vector<bool>& other)
     }
     return remainder;
 }
-
-unsigned long int CrcPolynomial::getCoefficients() const { return _coefficients; }
+std::vector<bool> CrcPolynomial::getCoefficients() const
+{
+    return { _coefficients.begin(), _coefficients.end() };
+}
 
 unsigned int CrcPolynomial::getDegree() const { return _n; }
 

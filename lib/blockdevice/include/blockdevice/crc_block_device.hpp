@@ -10,7 +10,7 @@ class CrcPolynomial {
     /**
      * Coefficients with most significant bit first, with explicit +1
      */
-    unsigned long int _coefficients;
+    std::vector<bool> _coefficients;
     unsigned int _n;
 
     /**
@@ -20,7 +20,7 @@ class CrcPolynomial {
      */
     static unsigned int _findDegree(unsigned long int coefficients);
 
-    CrcPolynomial(unsigned long int _coefficients, unsigned int n);
+    CrcPolynomial(const std::vector<bool>& coefficients, unsigned int n);
 
 public:
     CrcPolynomial() = delete;
@@ -48,7 +48,7 @@ public:
      */
     std::vector<bool> divide(const std::vector<bool>& other);
 
-    unsigned long int getCoefficients() const;
+    std::vector<bool> getCoefficients() const;
     unsigned int getDegree() const;
 };
 
