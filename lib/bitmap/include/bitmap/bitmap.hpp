@@ -22,4 +22,5 @@ public:
     Bitmap(IBlockDevice& block_device, size_t start_block, size_t size);
     std::expected<bool, DiskError> getBit(unsigned int bit_index);
     std::expected<void, DiskError> setBit(unsigned int bit_index, bool value);
+    std::expected<unsigned int, DiskError> getFirstEq(bool value);
 };

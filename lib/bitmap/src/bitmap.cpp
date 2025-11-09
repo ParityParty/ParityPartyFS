@@ -1,4 +1,7 @@
 #include "bitmap/bitmap.hpp"
+#include "blockdevice/"
+
+#include <cmath>
 
 DataLocation Bitmap::_getByteLocation(unsigned int bit_index)
 {
@@ -59,4 +62,20 @@ std::expected<void, DiskError> Bitmap::setBit(unsigned int bit_index, bool value
         return {};
     };
     return std::unexpected(write_ret.error());
+}
+std::expected<unsigned int, DiskError> Bitmap::getFirstEq(bool value)
+{
+    int blocks_spanned = std::ceil(static_cast<float>(std::ceil(static_cast<float>(_size) / 8.0))
+        / static_cast<float>(_block_device.dataSize()));
+
+    for (int block = 0; block < blocks_spanned; block++) {
+        auto block_ret = _block_device.readBlock(DataLocation(_start_block + block, 0), _block_device.dataSize());
+        if (!block_ret.has_value()) {
+            return std::unexpected(block_ret.error());
+        }
+        for (int i = 0; i < _block_device.dataSize(); i++) {
+            BitHelpers::
+        }
+
+    }
 }
