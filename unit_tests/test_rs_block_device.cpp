@@ -1,107 +1,110 @@
 #include "disk/stack_disk.hpp"
 #include "blockdevice/rs_block_device.hpp"
+
 #include <gtest/gtest.h>
 #include <random>
 
-// Helper: flip a random bit in the StackDisk's memory
-void _flipBit(StackDisk& disk, size_t bitIndex) {
-    size_t byteIndex = bitIndex / 8;
-    size_t bitInByte = bitIndex % 8;
-
-    auto readRes = disk.read(byteIndex, 1);
-    ASSERT_TRUE(readRes.has_value());
-
-    auto bytes = readRes.value();
-    bytes[0] ^= static_cast<std::byte>(1 << bitInByte);
-
-    auto writeRes = disk.write(byteIndex, bytes);
-    ASSERT_TRUE(writeRes.has_value());
-}
-
-// Helper: generate random bit index within disk size
-size_t _randomBit(size_t maxBits) {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<size_t> dist(0, maxBits - 1);
-    return dist(gen);
-}
-
-TEST(ReedSolomonBlockDevice, BasicWriteRead)
+TEST(ReedSolomonBlockDevice, BasicReadWrite)
 {
     StackDisk disk;
-ReedSolomonBlockDevice block_device(disk); // 2^4 = 16 bytes per block
+    ReedSolomonBlockDevice rs(disk);
 
-    std::vector<std::byte> data = {std::byte('h'), std::byte('e'), std::byte('l'), std::byte('l'), std::byte('o')};
-    DataLocation loc(0, 0);
+    auto data_size = rs.dataSize();
+    std::vector<std::byte> data(data_size, static_cast<std::byte>(0xAB));
 
-    auto write_res = block_device.writeBlock(data, loc);
-    ASSERT_TRUE(write_res.has_value());
+    ASSERT_TRUE(rs.formatBlock(0).has_value());
+    ASSERT_TRUE(rs.writeBlock(data, DataLocation(0, 0)).has_value());
 
-    auto read_res = block_device.readBlock(loc, data.size());
-    ASSERT_TRUE(read_res.has_value());
-    auto read_data = read_res.value();
+    auto read_ret = rs.readBlock({0, 0}, data_size);
+    ASSERT_TRUE(read_ret.has_value());
+    auto read_data = read_ret.value();
 
-    ASSERT_EQ(read_data.size(), data.size());
-    for (size_t i = 0; i < data.size(); ++i) {
-        EXPECT_EQ(read_data[i], data[i]);
+    for (size_t i = 0; i < data_size; i++) {
+        EXPECT_EQ(data[i], read_data[i]) << "Mismatch at byte " << i;
     }
 }
 
-TEST(ReedSolomonBlockDevice, SingleBitErrorIsCorrected)
+TEST(ReedSolomonBlockDevice, SingleBitFlip)
 {
     StackDisk disk;
-ReedSolomonBlockDevice block_device(disk);
-    DataLocation loc(0, 0);
+    ReedSolomonBlockDevice rs(disk);
 
-    std::vector<std::byte> data = {std::byte('s'), std::byte('l'), std::byte('a'), std::byte('y')};
-    auto write_res = block_device.writeBlock(data, loc);
+    auto data_size = rs.dataSize();
+    ASSERT_TRUE(rs.formatBlock(0).has_value());
+
+    std::vector<std::byte> data(data_size, static_cast<std::byte>(0xAB));
+
+    ASSERT_TRUE(rs.writeBlock(data, DataLocation(0, 0)).has_value());
+
+    auto raw = disk.read(0, rs.rawBlockSize());
+    ASSERT_TRUE(raw.has_value());
+    auto bytes = raw.value();
+    bytes[42] = std::byte(static_cast<uint8_t>(bytes[100]) ^ (1 << 3));
+    auto write_res = disk.write(0, bytes);
     ASSERT_TRUE(write_res.has_value());
 
-    // flip one random bit
-    size_t totalBits = block_device.dataSize() * 8;
-    size_t bitToFlip = _randomBit(totalBits);
-    _flipBit(disk, bitToFlip);
+    auto read_ret = rs.readBlock({0, 0}, data_size);
+    ASSERT_TRUE(read_ret.has_value());
+    auto corrected = read_ret.value();
 
-    auto read_res = block_device.readBlock(loc, data.size());
-    ASSERT_TRUE(read_res.has_value());
-    auto read_data = read_res.value();
-
-    for (size_t i = 0; i < data.size(); ++i) {
-        EXPECT_EQ(read_data[i], data[i]) << "Mismatch after correction at byte " << i;
+    for (size_t i = 0; i < data_size; i++) {
+        EXPECT_EQ(corrected[i], data[i]) << "Data mismatch after single bit flip at " << i;
     }
 }
-TEST(ReedSolomonBlockDevice, MultipleRandomSingleBitCorrections)
+
+TEST(ReedSolomonBlockDevice, SingleByteError)
 {
-    for (int i = 0; i < 10; ++i) {
+    StackDisk disk;
+    ReedSolomonBlockDevice rs(disk);
 
+    auto data_size = rs.dataSize();
+    std::vector<std::byte> data(data_size, std::byte{0x7E});
 
-        StackDisk disk;
-        ReedSolomonBlockDevice block_device(disk);
-        DataLocation loc(0, 0);
+    ASSERT_TRUE(rs.formatBlock(0).has_value());
+    ASSERT_TRUE(rs.writeBlock(data, DataLocation(0, 0)).has_value());
 
-        std::string msg = "Round" + std::to_string(i);
-        std::vector<std::byte> data;
-        data.reserve(msg.size());
-        for (char c : msg)
-            data.push_back(static_cast<std::byte>(c));
+    auto raw = disk.read(0, rs.rawBlockSize());
+    ASSERT_TRUE(raw.has_value());
+    auto bytes = raw.value();
 
-        auto write_res = block_device.writeBlock(data, loc);
-        ASSERT_TRUE(write_res.has_value());
+    // corrupt one byte completely
+    bytes[120] = std::byte{0x00};
+    disk.write(0, bytes);
 
-        size_t totalBits = msg.length() * 8 + 32;
-        size_t bit = _randomBit(totalBits);
+    auto read_ret = rs.readBlock({0, 0}, data_size);
+    ASSERT_TRUE(read_ret.has_value());
+    auto fixed = read_ret.value();
 
-        std::cout << "Round: " << i << " Flipped: " << bit << std::endl;
-
-        _flipBit(disk, bit);
-
-        auto read_res = block_device.readBlock(loc, data.size());
-
-        ASSERT_TRUE(read_res.has_value());
-
-        std::string decoded(reinterpret_cast<const char*>(read_res.value().data()), read_res.value().size());
-
-        ASSERT_EQ(decoded, msg);
+    for (size_t i = 0; i < data_size; i++) {
+        EXPECT_EQ(fixed[i], data[i]) << "Byte mismatch after single byte corruption at " << i;
     }
 }
 
+TEST(ReedSolomonBlockDevice, DoubleByteError)
+{
+    StackDisk disk;
+    ReedSolomonBlockDevice rs(disk);
+
+    auto data_size = rs.dataSize();
+    std::vector<std::byte> data(data_size, static_cast<std::byte>(0xAB));
+
+    ASSERT_TRUE(rs.formatBlock(0).has_value());
+    ASSERT_TRUE(rs.writeBlock(data, DataLocation(0, 0)).has_value());
+
+    auto raw = disk.read(0, rs.rawBlockSize());
+    ASSERT_TRUE(raw.has_value());
+    auto bytes = raw.value();
+
+    // corrupt two bytes
+    bytes[10] = std::byte{0xEE};
+    bytes[200] = std::byte{0x44};
+    disk.write(0, bytes);
+
+    auto read_ret = rs.readBlock({0, 0}, data_size);
+    ASSERT_TRUE(read_ret.has_value());
+    auto fixed = read_ret.value();
+
+    for (size_t i = 0; i < data_size; i++) {
+        EXPECT_EQ(fixed[i], data[i]) << "Data mismatch after two-byte corruption at " << i;
+    }
+}
