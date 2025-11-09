@@ -86,7 +86,7 @@ PolynomialGF256 PolynomialGF256::mod(const PolynomialGF256& divisor) const {
             temp.push_back(c * factor);
 
         PolynomialGF256 sub(temp);
-        remainder += sub; // w GF(256) to XOR, więc += jest okej
+        remainder += sub;
         remainder.trim();
     }
     return remainder;
@@ -95,7 +95,7 @@ PolynomialGF256 PolynomialGF256::mod(const PolynomialGF256& divisor) const {
 
 GF256 PolynomialGF256::evaluate(GF256 x) const {
     GF256 result(0);
-    GF256 power(1); // x^0 = 1 na start
+    GF256 power(1);
     for (const auto& c : coeffs) {
         result = c * power + result;
         power = x * power;
@@ -123,7 +123,7 @@ std::vector<GF256> PolynomialGF256::slice(size_t from) const {
 
 size_t PolynomialGF256::degree(){
     trim();
-    return coeffs.size();
+    return coeffs.size() == 0 ? 0 : coeffs.size() - 1;
 }
 
 void PolynomialGF256::print(std::ostream& os) const {
@@ -138,14 +138,14 @@ void PolynomialGF256::print(std::ostream& os) const {
             first = false;
         }
     }
-    if (first) os << "0";  // jeśli wszystkie współczynniki = 0
+    if (first) os << "0";
     os << "\n";
 }
 
 PolynomialGF256 PolynomialGF256::derivative() {
     std::vector<GF256> deriv;
     deriv.reserve(coeffs.size());
-    for (size_t i = 1; i < coeffs.size(); i ++) {  // tylko nieparzyste potęgi
+    for (size_t i = 1; i < coeffs.size(); i ++) {
         if(i % 2)
             deriv.push_back(coeffs[i]);
         else 

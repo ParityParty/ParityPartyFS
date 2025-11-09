@@ -27,30 +27,30 @@ namespace {
     static constexpr auto LOG = make_log_table(EXP);
 }
 
-GF256::GF256() : value(0) {}
+GF256::GF256() : _value(0) {}
 
-GF256::GF256(uint8_t v) : value(v) {}
+GF256::GF256(uint8_t v) : _value(v) {}
 
-GF256::GF256(std::byte b) : value(static_cast<uint8_t>(b)) {}
+GF256::GF256(std::byte b) : _value(static_cast<uint8_t>(b)) {}
 
 GF256 GF256::operator+(GF256 other) const {
-    return GF256(value ^ other.value);
+    return GF256(_value ^ other._value);
 }
 
 GF256 GF256::operator-(GF256 other) const {
-    return GF256(value ^ other.value);
+    return GF256(_value ^ other._value);
 }
 
 GF256 GF256::operator*(GF256 other) const {
-    if (value == 0 || other.value == 0) return GF256(0);
-    unsigned int log_sum = LOG[value] + LOG[other.value];
+    if (_value == 0 || other._value == 0) return GF256(0);
+    unsigned int log_sum = LOG[_value] + LOG[other._value];
     if (log_sum >= 255) log_sum -= 255;
     return GF256(EXP[log_sum]);
 }
 
 GF256 GF256::operator/(GF256 other) const {
-    if (value == 0 || other.value == 0) return GF256(0);
-    int log_diff = LOG[value] - LOG[other.value];
+    if (_value == 0 || other._value == 0) return GF256(0);
+    int log_diff = LOG[_value] - LOG[other._value];
     if (log_diff < 0) log_diff += 255;
     return GF256(EXP[log_diff]);
 }
@@ -60,28 +60,28 @@ GF256 GF256::operator-() const {
 }
 
 bool GF256::operator==(const GF256 other) const{
-    return value == other.value;
+    return _value == other._value;
 }
 
 bool GF256::operator!=(const GF256 other) const {
-    return value != other.value;
+    return _value != other._value;
 }
 
 uint8_t GF256::log() const{
-    return LOG[value];
+    return LOG[_value];
 }
 
 GF256::operator std::byte() const{
-    return static_cast<std::byte>(value);
+    return static_cast<std::byte>(_value);
 }
 
 GF256::operator uint8_t() const{
-    return value;
+    return _value;
 }
 
 GF256 GF256::inv() const {
-    if (value == 0) return 0;
-    return EXP[255 - LOG[value]];
+    if (_value == 0) return 0;
+    return EXP[255 - LOG[_value]];
 }
 
 GF256 GF256::getPrimitiveElement() {

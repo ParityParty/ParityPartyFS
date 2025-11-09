@@ -38,5 +38,5 @@ public:
     static GF256 getPrimitiveElement();
 
 private:
-    uint8_t value;
+    uint8_t _value;
 };

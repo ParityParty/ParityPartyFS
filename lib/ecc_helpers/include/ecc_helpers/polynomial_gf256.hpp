@@ -3,6 +3,9 @@
 #include <iostream>
 #include "gf256.hpp"
 
+/**
+ * Represents a polynomial over the finite field GF(256), used for Reed-Solomon error correction.
+ */
 class PolynomialGF256 {
 public:
     PolynomialGF256() = default;
