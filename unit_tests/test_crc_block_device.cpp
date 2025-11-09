@@ -89,3 +89,49 @@ TEST(CrcBlockDevice, FindsError)
     auto read_ret = crc.readBlock({ 0, 0 }, data_size);
     EXPECT_EQ(read_ret.error(), DiskError::CorrectionError);
 }
+
+TEST(CrcBlockDevice, FindEnoughErrors)
+{
+    // This polynomial guarantees error detection up to 3 bit flips in messages up to 500 000 bits
+    // according to CrcZoo
+    auto poly = CrcPolynomial::MsgImplicit(0xc1acf);
+    StackDisk disk;
+    CrcBlockDevice crc(poly, disk, 512);
+
+    auto data_size = crc.dataSize();
+    std::vector<std::byte> data(data_size, static_cast<std::byte>(0x00));
+    ASSERT_TRUE(crc.formatBlock(0).has_value());
+    ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
+
+    // change 3 bits
+    ASSERT_TRUE(disk.write(1, { static_cast<std::byte>(0x01) }).has_value());
+    ASSERT_TRUE(disk.write(111, { static_cast<std::byte>(0x08) }).has_value());
+    ASSERT_TRUE(disk.write(200, { static_cast<std::byte>(0x02) }).has_value());
+
+    auto read_ret = crc.readBlock({ 0, 0 }, data_size);
+    EXPECT_EQ(read_ret.error(), DiskError::CorrectionError);
+}
+
+TEST(CrcBlockDevice, FindEvenMoreErrors)
+{
+    // This polynomial guarantees error detection up to 5 bit flips in messages up to 30 000 bits
+    // according to CrcZoo
+    auto poly = CrcPolynomial::MsgImplicit(0x9960034c);
+    StackDisk disk;
+    CrcBlockDevice crc(poly, disk, 512);
+
+    auto data_size = crc.dataSize();
+    std::vector<std::byte> data(data_size, static_cast<std::byte>(0x00));
+    ASSERT_TRUE(crc.formatBlock(0).has_value());
+    ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
+
+    // change 3 bits
+    ASSERT_TRUE(disk.write(1, { static_cast<std::byte>(0x01) }).has_value());
+    ASSERT_TRUE(disk.write(111, { static_cast<std::byte>(0x08) }).has_value());
+    ASSERT_TRUE(disk.write(200, { static_cast<std::byte>(0x02) }).has_value());
+    ASSERT_TRUE(disk.write(11, { static_cast<std::byte>(0x08) }).has_value());
+    ASSERT_TRUE(disk.write(20, { static_cast<std::byte>(0x02) }).has_value());
+
+    auto read_ret = crc.readBlock({ 0, 0 }, data_size);
+    EXPECT_EQ(read_ret.error(), DiskError::CorrectionError);
+}
