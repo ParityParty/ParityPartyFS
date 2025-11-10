@@ -10,7 +10,7 @@ TEST(SuperBlock, Compiles)
     StackDisk disk;
     HammingBlockDevice device(8, disk);
 
-    SuperBlockManager manager(device);
+    SuperBlockManager manager(device, { SuperBlockEntry(0), SuperBlockEntry(3) });
 
     EXPECT_TRUE(true);
 }
@@ -20,7 +20,7 @@ TEST(SuperBlockManager, WriteAndReadConsistency)
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
 
-    SuperBlockManager writer(block_device);
+    SuperBlockManager writer(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
     SuperBlock sb { .total_blocks = 100,
         .free_blocks = 50,
         .total_inodes = 200,
@@ -34,7 +34,7 @@ TEST(SuperBlockManager, WriteAndReadConsistency)
     auto write_res = writer.update(sb);
     ASSERT_TRUE(write_res.has_value()) << "Failed to write superblock";
 
-    SuperBlockManager reader(block_device);
+    SuperBlockManager reader(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
     auto read_res = reader.get();
     ASSERT_TRUE(read_res.has_value()) << "Failed to read superblock";
 
@@ -56,7 +56,7 @@ TEST(SuperBlockManager, WriteAndReadConsistencyWhenSuperBlockTakesMultipleBlocks
     StackDisk disk;
     RawBlockDevice block_device(sizeof(SuperBlock) / 2, disk);
 
-    SuperBlockManager writer(block_device);
+    SuperBlockManager writer(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
     SuperBlock sb { .total_blocks = 100,
         .free_blocks = 50,
         .total_inodes = 200,
@@ -70,7 +70,7 @@ TEST(SuperBlockManager, WriteAndReadConsistencyWhenSuperBlockTakesMultipleBlocks
     auto write_res = writer.update(sb);
     ASSERT_TRUE(write_res.has_value()) << "Failed to write superblock";
 
-    SuperBlockManager reader(block_device);
+    SuperBlockManager reader(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
     auto read_res = reader.get();
     ASSERT_TRUE(read_res.has_value()) << "Failed to read superblock";
 

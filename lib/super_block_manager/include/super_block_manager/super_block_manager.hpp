@@ -26,7 +26,7 @@ public:
      *
      * @param block_device Reference to underlying block device.
      */
-    SuperBlockManager(IBlockDevice& block_device);
+    SuperBlockManager(IBlockDevice& block_device, std::vector<SuperBlockEntry> entries);
 
     /**
      * Returns the current superblock from disk or from cache if available.

@@ -6,9 +6,10 @@ SuperBlockEntry::SuperBlockEntry(block_index_t block_index)
 {
 }
 
-SuperBlockManager::SuperBlockManager(IBlockDevice& block_device)
+SuperBlockManager::SuperBlockManager(
+    IBlockDevice& block_device, std::vector<SuperBlockEntry> entries)
     : _block_device(block_device)
-    , _entries({ SuperBlockEntry(SUPERBLOCK_INDX1), SuperBlockEntry(SUPERBLOCK_INDX2) })
+    , _entries(entries)
     , _superBlock({})
 {
 }
