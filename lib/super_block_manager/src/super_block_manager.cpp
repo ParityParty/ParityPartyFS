@@ -1,4 +1,5 @@
 #include "super_block_manager/super_block_manager.hpp"
+#include <cstring>
 
 SuperBlockEntry::SuperBlockEntry(block_index_t block_index) : block_index(block_index){
 
@@ -18,13 +19,13 @@ std::expected<SuperBlock, DiskError> SuperBlockManager::get() {
 
     for (int i = 0; i < _entries.size(); i++){
         auto read_res = _block_device.readBlock(DataLocation(_entries[i].block_index, 0), sizeof(SuperBlock));
-        if (!read_res.has_value())
-            continue;
-        _superBlock = *reinterpret_cast<SuperBlock*>(&read_res.value());
+        if (read_res.has_value()) 
+            std::memcpy(&_superBlock.emplace(), read_res.value().data(), sizeof(SuperBlock));
 
         for(int j = 0; j < i; j++){
             _writeToDisk(j);
         }
+        return *_superBlock;
     }
     return std::unexpected(DiskError::InternalError);
     // TODO - when we make errors more descriptive, change returned value
@@ -37,7 +38,7 @@ std::expected<void, DiskError> SuperBlockManager::update(SuperBlock new_super_bl
     for (auto &entry : _entries) {
         auto write_res = _writeToDisk(entry.block_index);
         if (write_res.has_value())
-            any_success = false;
+            any_success = true;
     }
 
     return any_success ? std::expected<void, DiskError>() : std::unexpected(DiskError::InternalError);
@@ -47,11 +48,8 @@ std::expected<void, DiskError> SuperBlockManager::_writeToDisk(int block_index) 
     if (!_superBlock.has_value())
         return std::unexpected(DiskError::InvalidRequest);
 
-    const SuperBlock& sb = _superBlock.value();
-    const std::byte* data_ptr = reinterpret_cast<const std::byte*>(&sb);
-    size_t data_size = sizeof(SuperBlock);
-
-    std::vector<std::byte> buffer(data_ptr, data_ptr + data_size);
+    std::vector<std::byte> buffer(sizeof(SuperBlock));
+    std::memcpy(buffer.data(), &_superBlock.value(), sizeof(SuperBlock));
 
     auto write_res = _block_device.writeBlock(buffer, DataLocation(block_index, 0));
     if (!write_res.has_value())
