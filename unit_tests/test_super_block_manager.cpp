@@ -15,13 +15,13 @@ TEST(SuperBlock, Compiles)
     EXPECT_TRUE(true);
 }
 
-TEST(SuperBlockManager, WriteAndReadConsistency) {
+TEST(SuperBlockManager, WriteAndReadConsistency)
+{
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
 
     SuperBlockManager writer(block_device);
-    SuperBlock sb{
-        .total_blocks = 100,
+    SuperBlock sb { .total_blocks = 100,
         .free_blocks = 50,
         .total_inodes = 200,
         .free_inodes = 150,
@@ -29,8 +29,7 @@ TEST(SuperBlockManager, WriteAndReadConsistency) {
         .inode_bitmap_address = 2,
         .inode_table_address = 3,
         .journal_address = 4,
-        .data_blocks_address = 5
-    };
+        .data_blocks_address = 5 };
 
     auto write_res = writer.update(sb);
     ASSERT_TRUE(write_res.has_value()) << "Failed to write superblock";

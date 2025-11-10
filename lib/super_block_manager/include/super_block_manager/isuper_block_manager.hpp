@@ -9,7 +9,7 @@
 
 /**
  * Interface with superblock operations.
- * 
+ *
  * We store two copies of super block in fs, under indexes
  *  defined above.
  */

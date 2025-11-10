@@ -1,24 +1,24 @@
 #pragma once
-#include "isuper_block_manager.hpp"
 #include "blockdevice/iblock_device.hpp"
+#include "isuper_block_manager.hpp"
 #include "super_block_manager/isuper_block_manager.hpp"
 
 #include <optional>
 
 struct SuperBlockEntry {
-    block_index_t block_index;    /**< Index on disk where this copy of the superblock is stored */
-    
+    block_index_t block_index; /**< Index on disk where this copy of the superblock is stored */
+
     SuperBlockEntry(block_index_t block_index);
 };
 
 /**
  * Implements superblock management for the filesystem.
- * 
+ *
  * Stores two copies of the superblock on disk and provides
  * methods to read and update the filesystem metadata safely.
  */
 class SuperBlockManager : public ISuperBlockManager {
-    IBlockDevice& _block_device;  /**< Underlying block device storing superblocks */
+    IBlockDevice& _block_device; /**< Underlying block device storing superblocks */
 
 public:
     /**
@@ -44,12 +44,17 @@ public:
     std::expected<void, DiskError> update(SuperBlock new_super_block);
 
 private:
-    std::optional<SuperBlock> _superBlock;  /**< Cached copy of the superblock */
+    std::optional<SuperBlock> _superBlock; /**< Cached copy of the superblock */
 
     std::vector<SuperBlockEntry> _entries; /**< List of all superblock copies with status */
 
-    /** 
+    /**
      * Writes cached superblock to a specific index.
-    */
+     */
     std::expected<void, DiskError> _writeToDisk(block_index_t block_index);
+
+    /**
+     * Reads superblock from disk and returns it.
+     */
+    std::expected<SuperBlock, DiskError> _readFromDisk(block_index_t block_index);
 };
