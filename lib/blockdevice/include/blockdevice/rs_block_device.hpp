@@ -1,8 +1,7 @@
 #include "blockdevice/iblock_device.hpp"
 #include "ecc_helpers/polynomial_gf256.hpp"
 
-#define BLOCK_LENGTH 255
-#define MESSAGE_LENGTH 251
+#define MAX_BLOCK_SIZE 255
 
 /**
  * Implements a block device with Reed-Solomon error correction.
@@ -15,8 +14,20 @@
  */
 class ReedSolomonBlockDevice : public IBlockDevice {
 public:
-    /** Constructs the RS block device over a given disk. */
-    ReedSolomonBlockDevice(IDisk& disk);
+    /**
+     * Constructs the Reed–Solomon block device over a given disk.
+     *
+     * @param disk Reference to the underlying physical disk device.
+     * @param raw_block_size The total encoded block size (in bytes). 
+     *        Maximum supported value is 255; if a larger value is provided, 
+     *        it will be automatically limited to 255.
+     * @param correctable_bytes Number of data bytes that the code can correct.
+     *        The redundancy (parity) region will be twice this size (2 * correctable_bytes).
+     *        If the requested value exceeds half of the block size, it will be 
+     *        automatically reduced to raw_block_size / 2 (hich effectively 
+     *        makes the block unusable, so we really reccomend providing the right configuration.
+     */
+    ReedSolomonBlockDevice(IDisk& disk, size_t raw_block_size, size_t correctable_bytes);
 
     /** Writes data to a block at the specified location. */
     virtual std::expected<size_t, DiskError> writeBlock(
@@ -41,6 +52,8 @@ public:
 private:
     IDisk& _disk;                    /**< Reference to the underlying disk. */
     PolynomialGF256 _generator;      /**< Reed-Solomon generator polynomial. */
+    size_t _raw_block_size;          /**< Total size of one encoded block in bytes (data + redundancy). */
+    size_t _correctable_bytes;       /**< Number of individual bytes that the code can detect and correct. */
 
     /** Encodes data into a full RS block with parity bytes. */
     std::vector<std::byte> _encodeBlock(std::vector<std::byte>);

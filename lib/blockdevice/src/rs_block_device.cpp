@@ -3,25 +3,28 @@
 
 #include <iostream>
 
-ReedSolomonBlockDevice::ReedSolomonBlockDevice(IDisk& disk) : _disk(disk) { 
+ReedSolomonBlockDevice::ReedSolomonBlockDevice(IDisk& disk, size_t raw_block_size, 
+    size_t correctable_bytes) : _disk(disk) { 
+    _raw_block_size = std::min(raw_block_size, static_cast<size_t>(MAX_BLOCK_SIZE));
+    _correctable_bytes = std::min(correctable_bytes, _raw_block_size / 2);
     _generator = _calculateGenerator();
 }
 
 size_t ReedSolomonBlockDevice::numOfBlocks() const {
-    return _disk.size() / BLOCK_LENGTH;
+    return _disk.size() / _raw_block_size;
 }
 
 size_t ReedSolomonBlockDevice::dataSize() const {
-    return MESSAGE_LENGTH;
+    return _raw_block_size - 2 * _correctable_bytes;
 }
 
 size_t ReedSolomonBlockDevice::rawBlockSize() const {
-    return BLOCK_LENGTH;
+    return _raw_block_size;
 }
 
 std::expected<void, DiskError> ReedSolomonBlockDevice::formatBlock(unsigned int block_index) {
-    std::vector<std::byte> zero_data(BLOCK_LENGTH, std::byte(0));
-    auto write_result = _disk.write(block_index * BLOCK_LENGTH, zero_data);
+    std::vector<std::byte> zero_data(_raw_block_size, std::byte(0));
+    auto write_result = _disk.write(block_index * _raw_block_size, zero_data);
     return write_result.has_value() ? std::expected<void, DiskError>{} : std::unexpected(write_result.error());
 }
 
@@ -29,8 +32,8 @@ std::expected<void, DiskError> ReedSolomonBlockDevice::formatBlock(unsigned int 
 std::expected<std::vector<std::byte>, DiskError> ReedSolomonBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read){
     
-    bytes_to_read = std::min(MESSAGE_LENGTH - data_location.offset, bytes_to_read);
-    auto raw_block = _disk.read(data_location.block_index * BLOCK_LENGTH, BLOCK_LENGTH);
+    bytes_to_read = std::min(dataSize() - data_location.offset, bytes_to_read);
+    auto raw_block = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size);
     if(!raw_block.has_value()){
         return std::unexpected(raw_block.error());
     }
@@ -41,9 +44,9 @@ std::expected<std::vector<std::byte>, DiskError> ReedSolomonBlockDevice::readBlo
 }
 
 std::expected<size_t, DiskError> ReedSolomonBlockDevice::writeBlock(const std::vector<std::byte>& data, DataLocation data_location) {
-    size_t to_write = std::min(data.size(), MESSAGE_LENGTH - data_location.offset);
+    size_t to_write = std::min(data.size(), dataSize() - data_location.offset);
     
-    auto raw_block = _disk.read(BLOCK_LENGTH * data_location.block_index, BLOCK_LENGTH);
+    auto raw_block = _disk.read(_raw_block_size * data_location.block_index, _raw_block_size);
     if (!raw_block.has_value()) {
         return std::unexpected(raw_block.error());
     }
@@ -54,26 +57,25 @@ std::expected<size_t, DiskError> ReedSolomonBlockDevice::writeBlock(const std::v
     
     auto new_encoded_block = _encodeBlock(decoded);
     
-    auto disk_result = _disk.write(data_location.block_index * BLOCK_LENGTH, new_encoded_block);
+    auto disk_result = _disk.write(data_location.block_index * _raw_block_size, new_encoded_block);
     
     return to_write;
 }
 
 std::vector<std::byte> ReedSolomonBlockDevice::_encodeBlock(std::vector<std::byte> data){
-    int t = BLOCK_LENGTH - MESSAGE_LENGTH;
+    int t = 2 * _correctable_bytes;
     
     auto message = PolynomialGF256(gf256_utils::bytes_to_gf(data));
     auto shifted_message = message.multiply_by_xk(t);
 
     auto encoded = shifted_message + shifted_message.mod(_generator);
 
-    return gf256_utils::gf_to_bytes(encoded.slice(0, BLOCK_LENGTH));
+    return gf256_utils::gf_to_bytes(encoded.slice(0, _raw_block_size));
 }
 
 std::vector<std::byte> ReedSolomonBlockDevice::_extractMessage(PolynomialGF256 p){
-    return gf256_utils::gf_to_bytes(p.slice(BLOCK_LENGTH - MESSAGE_LENGTH, BLOCK_LENGTH));
+    return gf256_utils::gf_to_bytes(p.slice(2 * _correctable_bytes, _raw_block_size));
 }
-
 
 std::vector<std::byte> ReedSolomonBlockDevice::_fixBlockAndExtract(std::vector<std::byte> raw_bytes) {
     using namespace gf256_utils;
@@ -82,13 +84,13 @@ std::vector<std::byte> ReedSolomonBlockDevice::_fixBlockAndExtract(std::vector<s
 
     // Calculate syndromes
     std::vector<GF256> syndromes;
-    syndromes.reserve(BLOCK_LENGTH - MESSAGE_LENGTH);
+    syndromes.reserve(2 * _correctable_bytes);
 
     GF256 alpha = GF256::getPrimitiveElement();
     GF256 power = GF256(alpha);
 
     bool is_message_correct = true;
-    for (int i = 0; i < BLOCK_LENGTH - MESSAGE_LENGTH; i++) {
+    for (int i = 0; i < 2 * _correctable_bytes; i++) {
         auto s = code_word.evaluate(power);
         syndromes.push_back(s);
         if (s != 0)
@@ -121,8 +123,8 @@ std::vector<std::byte> ReedSolomonBlockDevice::_fixBlockAndExtract(std::vector<s
     return _extractMessage(code_word);
 }
 
-std::vector<std::byte> _extractMessage(PolynomialGF256 endoced_polynomial) {
-    return gf256_utils::gf_to_bytes(endoced_polynomial.slice(BLOCK_LENGTH - MESSAGE_LENGTH, BLOCK_LENGTH));
+std::vector<std::byte> ReedSolomonBlockDevice::_extractMessage(PolynomialGF256 endoced_polynomial) {
+    return gf256_utils::gf_to_bytes(endoced_polynomial.slice(2 * _correctable_bytes, _raw_block_size));
 }
 
 
@@ -131,7 +133,7 @@ PolynomialGF256 ReedSolomonBlockDevice::_calculateGenerator() {
     GF256 alpha = GF256::getPrimitiveElement();
 
     GF256 power(alpha);
-    for (int i = 0; i < BLOCK_LENGTH - MESSAGE_LENGTH; i++) {
+    for (int i = 0; i < 2 * _correctable_bytes; i++) {
         // (x - α^(i+1))
         PolynomialGF256 term({ power, GF256(1) });
         g = g * term;
@@ -140,7 +142,6 @@ PolynomialGF256 ReedSolomonBlockDevice::_calculateGenerator() {
 
     return g;
 }
-
 
 std::vector<GF256> ReedSolomonBlockDevice::_forney(const PolynomialGF256& omega,
                           PolynomialGF256& sigma,
@@ -163,7 +164,6 @@ PolynomialGF256 ReedSolomonBlockDevice::_calculateOmega(const std::vector<GF256>
     auto omega = (S * sigma).slice(0, syndromes.size());
     return PolynomialGF256(omega);
 }
-
 
 PolynomialGF256 ReedSolomonBlockDevice::_berlekamp_massey(const std::vector<GF256>& syndromes) {
     PolynomialGF256 sigma({ GF256(1) });
@@ -211,6 +211,3 @@ std::vector<GF256> ReedSolomonBlockDevice::_errorLocations(PolynomialGF256 error
 
     return error_locations;
 }
-
-
-
