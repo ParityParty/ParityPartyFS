@@ -21,9 +21,6 @@ TEST(Bitmap, GetBit_GetsBit)
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
 
-    ASSERT_TRUE(device.formatBlock(0).has_value());
-    ASSERT_TRUE(device.formatBlock(1).has_value());
-
     ASSERT_FALSE(bm.getBit(22).value());
 }
 
@@ -32,9 +29,6 @@ TEST(Bitmap, GetBit_GetsCorrectBit)
     StackDisk disk;
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
-
-    ASSERT_TRUE(device.formatBlock(0).has_value());
-    ASSERT_TRUE(device.formatBlock(1).has_value());
 
     ASSERT_TRUE(disk.write(0, { static_cast<std::byte>(0x01) }).has_value());
 
@@ -49,9 +43,6 @@ TEST(Bitmap, SetBit)
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
 
-    ASSERT_TRUE(device.formatBlock(0).has_value());
-    ASSERT_TRUE(device.formatBlock(1).has_value());
-
     ASSERT_TRUE(bm.setBit(15, true).has_value());
 
     auto read_ret = disk.read(1, 1);
@@ -64,9 +55,6 @@ TEST(Bitmap, SetBitGetBit)
     StackDisk disk;
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
-
-    ASSERT_TRUE(device.formatBlock(0).has_value());
-    ASSERT_TRUE(device.formatBlock(1).has_value());
 
     ASSERT_TRUE(disk.write(0, { 512, static_cast<std::byte>(0) }));
 
@@ -84,4 +72,40 @@ TEST(Bitmap, SetBitGetBit)
     }
 }
 
-TEST(Bimap, FindFirst) { ASSERT_TRUE(false) << "Unimplemented"; }
+TEST(Bitmap, FindFirst_NoSpace)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(0, { 512, std::byte { 0xff } }));
+    auto ret = bm.getFirstEq(false);
+    ASSERT_FALSE(ret.has_value());
+    ASSERT_EQ(ret.error(), DiskError::OutOfMemory);
+}
+
+TEST(Bitmap, FindFirst)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(0, { 512, std::byte { 0xff } }));
+    ASSERT_TRUE(bm.setBit(166, false).has_value());
+    auto ret = bm.getFirstEq(false);
+    ASSERT_TRUE(ret.has_value());
+    EXPECT_EQ(ret.value(), 166);
+}
+
+TEST(Bitamp, FindFirst_true)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(0, { 512, std::byte { 0x00 } }));
+    ASSERT_TRUE(bm.setBit(250, true).has_value());
+    auto ret = bm.getFirstEq(true);
+    ASSERT_TRUE(ret.has_value());
+    EXPECT_EQ(ret.value(), 250);
+}
