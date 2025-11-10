@@ -1,5 +1,5 @@
-#include "disk/stack_disk.hpp"
 #include "blockdevice/rs_block_device.hpp"
+#include "disk/stack_disk.hpp"
 
 #include <gtest/gtest.h>
 #include <random>
@@ -15,7 +15,7 @@ TEST(ReedSolomonBlockDevice, BasicReadWrite)
     ASSERT_TRUE(rs.formatBlock(0).has_value());
     ASSERT_TRUE(rs.writeBlock(data, DataLocation(0, 0)).has_value());
 
-    auto read_ret = rs.readBlock({0, 0}, data_size);
+    auto read_ret = rs.readBlock({ 0, 0 }, data_size);
     ASSERT_TRUE(read_ret.has_value());
     auto read_data = read_ret.value();
 
@@ -30,7 +30,7 @@ TEST(ReedSolomonBlockDevice, SingleByteError)
     ReedSolomonBlockDevice rs(disk, 255, 1);
 
     auto data_size = rs.dataSize();
-    std::vector<std::byte> data(data_size, std::byte{0x7E});
+    std::vector<std::byte> data(data_size, std::byte { 0x7E });
 
     ASSERT_TRUE(rs.formatBlock(0).has_value());
     ASSERT_TRUE(rs.writeBlock(data, DataLocation(0, 0)).has_value());
@@ -40,10 +40,10 @@ TEST(ReedSolomonBlockDevice, SingleByteError)
     auto bytes = raw.value();
 
     // corrupt one byte completely
-    bytes[120] = std::byte{0x00};
+    bytes[120] = std::byte { 0x00 };
     disk.write(0, bytes);
 
-    auto read_ret = rs.readBlock({0, 0}, data_size);
+    auto read_ret = rs.readBlock({ 0, 0 }, data_size);
     ASSERT_TRUE(read_ret.has_value());
     auto fixed = read_ret.value();
 
@@ -68,11 +68,11 @@ TEST(ReedSolomonBlockDevice, DoubleByteError)
     auto bytes = raw.value();
 
     // corrupt two bytes
-    bytes[10] = std::byte{0xEE};
-    bytes[200] = std::byte{0x44};
+    bytes[10] = std::byte { 0xEE };
+    bytes[200] = std::byte { 0x44 };
     disk.write(0, bytes);
 
-    auto read_ret = rs.readBlock({0, 0}, data_size);
+    auto read_ret = rs.readBlock({ 0, 0 }, data_size);
     ASSERT_TRUE(read_ret.has_value());
     auto fixed = read_ret.value();
 
@@ -97,12 +97,12 @@ TEST(ReedSolomonBlockDevice, TripleByteError)
     auto bytes = raw.value();
 
     // corrupt two bytes
-    bytes[10] = std::byte{0xEE};
-    bytes[100] = std::byte{0x61};
-    bytes[200] = std::byte{0x44};
+    bytes[10] = std::byte { 0xEE };
+    bytes[100] = std::byte { 0x61 };
+    bytes[200] = std::byte { 0x44 };
     disk.write(0, bytes);
 
-    auto read_ret = rs.readBlock({0, 0}, data_size);
+    auto read_ret = rs.readBlock({ 0, 0 }, data_size);
     ASSERT_TRUE(read_ret.has_value());
     auto fixed = read_ret.value();
 
@@ -110,4 +110,3 @@ TEST(ReedSolomonBlockDevice, TripleByteError)
         EXPECT_EQ(fixed[i], data[i]) << "Data mismatch after two-byte corruption at " << i;
     }
 }
-

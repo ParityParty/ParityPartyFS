@@ -5,10 +5,10 @@
 
 /**
  * Implements a block device with Reed-Solomon error correction.
- * 
+ *
  * Wraps a lower-level disk (IDisk) and provides block-level read/write operations
  * with automatic encoding, decoding, and error correction using Reed-Solomon codes.
- * 
+ *
  * It treats bytes as symbols.
  * With current setup, it can correct up to two byte errors.
  */
@@ -18,13 +18,13 @@ public:
      * Constructs the Reed–Solomon block device over a given disk.
      *
      * @param disk Reference to the underlying physical disk device.
-     * @param raw_block_size The total encoded block size (in bytes). 
-     *        Maximum supported value is 255; if a larger value is provided, 
+     * @param raw_block_size The total encoded block size (in bytes).
+     *        Maximum supported value is 255; if a larger value is provided,
      *        it will be automatically limited to 255.
      * @param correctable_bytes Number of data bytes that the code can correct.
      *        The redundancy (parity) region will be twice this size (2 * correctable_bytes).
-     *        If the requested value exceeds half of the block size, it will be 
-     *        automatically reduced to raw_block_size / 2 (hich effectively 
+     *        If the requested value exceeds half of the block size, it will be
+     *        automatically reduced to raw_block_size / 2 (hich effectively
      *        makes the block unusable, so we really reccomend providing the right configuration.
      */
     ReedSolomonBlockDevice(IDisk& disk, size_t raw_block_size, size_t correctable_bytes);
@@ -32,7 +32,7 @@ public:
     /** Writes data to a block at the specified location. */
     virtual std::expected<size_t, DiskError> writeBlock(
         const std::vector<std::byte>& data, DataLocation data_location);
-    
+
     /** Reads a block from the specified location, returning only the requested bytes. */
     virtual std::expected<std::vector<std::byte>, DiskError> readBlock(
         DataLocation data_location, size_t bytes_to_read);
@@ -50,10 +50,11 @@ public:
     virtual std::expected<void, DiskError> formatBlock(unsigned int block_index);
 
 private:
-    IDisk& _disk;                    /**< Reference to the underlying disk. */
-    PolynomialGF256 _generator;      /**< Reed-Solomon generator polynomial. */
-    size_t _raw_block_size;          /**< Total size of one encoded block in bytes (data + redundancy). */
-    size_t _correctable_bytes;       /**< Number of individual bytes that the code can detect and correct. */
+    IDisk& _disk; /**< Reference to the underlying disk. */
+    PolynomialGF256 _generator; /**< Reed-Solomon generator polynomial. */
+    size_t _raw_block_size; /**< Total size of one encoded block in bytes (data + redundancy). */
+    size_t
+        _correctable_bytes; /**< Number of individual bytes that the code can detect and correct. */
 
     /** Encodes data into a full RS block with parity bytes. */
     std::vector<std::byte> _encodeBlock(std::vector<std::byte>);
@@ -68,14 +69,14 @@ private:
     std::vector<std::byte> _extractMessage(PolynomialGF256 p);
 
     /** Computes error values using Forney’s algorithm. */
-    std::vector<GF256> _forney(const PolynomialGF256& omega,
-        PolynomialGF256& sigma, const std::vector<GF256>& error_locations);
+    std::vector<GF256> _forney(const PolynomialGF256& omega, PolynomialGF256& sigma,
+        const std::vector<GF256>& error_locations);
 
     /** Computes the error evaluator polynomial omega(x). */
     PolynomialGF256 _calculateOmega(const std::vector<GF256>& syndromes, PolynomialGF256& sigma);
 
     /** Computes the error locator polynomial sigma(x) using Berlekamp-Massey. */
-    PolynomialGF256 _berlekamp_massey(const std::vector<GF256>& syndromes);
+    PolynomialGF256 _berlekampMassey(const std::vector<GF256>& syndromes);
 
     /** Finds error locations (inverse of roots of sigma(x)). */
     std::vector<GF256> _errorLocations(PolynomialGF256 error_location_polynomial);
