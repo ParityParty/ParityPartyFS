@@ -65,7 +65,7 @@ private:
     PolynomialGF256 _calculateGenerator();
 
     /** Extracts the original message bytes from a full RS-encoded polynomial. */
-    std::vector<std::byte> _extractMessage(PolynomialGF256);
+    std::vector<std::byte> _extractMessage(PolynomialGF256 p);
 
     /** Computes error values using Forney’s algorithm. */
     std::vector<GF256> _forney(const PolynomialGF256& omega,

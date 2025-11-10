@@ -73,10 +73,6 @@ std::vector<std::byte> ReedSolomonBlockDevice::_encodeBlock(std::vector<std::byt
     return gf256_utils::gf_to_bytes(encoded.slice(0, _raw_block_size));
 }
 
-std::vector<std::byte> ReedSolomonBlockDevice::_extractMessage(PolynomialGF256 p){
-    return gf256_utils::gf_to_bytes(p.slice(2 * _correctable_bytes, _raw_block_size));
-}
-
 std::vector<std::byte> ReedSolomonBlockDevice::_fixBlockAndExtract(std::vector<std::byte> raw_bytes) {
     using namespace gf256_utils;
 
