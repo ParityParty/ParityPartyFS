@@ -1,7 +1,6 @@
 #pragma once
 #include "common/types.hpp"
 struct SuperBlock {
-    unsigned int block_size;
     block_index_t total_blocks;
     block_index_t free_blocks;
     block_index_t total_inodes;
