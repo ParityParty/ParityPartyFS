@@ -61,7 +61,7 @@ std::expected<void, DiskError> SuperBlockManager::_writeToDisk(int block_index)
     size_t written = 0;
     while (written != sizeof(SuperBlock)) {
         auto write_res = _block_device.writeBlock(
-            { buffer.begin() + written, buffer.end() }, DataLocation(block_index, 0));
+            { buffer.begin() + written, buffer.end() }, DataLocation(block_index++, 0));
         if (!write_res.has_value())
             return std::unexpected(write_res.error());
         written += write_res.value();
