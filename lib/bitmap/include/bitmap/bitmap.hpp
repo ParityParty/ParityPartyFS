@@ -14,6 +14,7 @@ class Bitmap {
 
     DataLocation _getByteLocation(unsigned int bit_index);
     std::expected<unsigned char, DiskError> _getByte(unsigned int bit_index);
+    int _blockSpanned() const;
 
 public:
     /**
@@ -26,4 +27,5 @@ public:
     std::expected<bool, BitmapError> getBit(unsigned int bit_index);
     std::expected<void, BitmapError> setBit(unsigned int bit_index, bool value);
     std::expected<unsigned int, BitmapError> getFirstEq(bool value);
+    std::expected<void, BitmapError> setAll(bool value);
 };

@@ -73,6 +73,28 @@ TEST(Bitmap, SetBitGetBit)
     }
 }
 
+TEST(Bitmap, SetBitGetBitOffset)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 3, 512 * 8); // Two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(3 * 256, { 512, std::byte { 0 } }));
+
+    std::vector<unsigned int> true_indexes = { 1, 70, 420, 999, 1000, 1024, 1300 };
+    for (auto index : true_indexes) {
+        ASSERT_TRUE(bm.setBit(index, true).has_value());
+    }
+
+    for (int i = 0; i < 512 * 8; i++) {
+        auto bit_ret = bm.getBit(i);
+        ASSERT_TRUE(bit_ret.has_value());
+        auto bit = bit_ret.value();
+        auto expected = std::ranges::contains(true_indexes.begin(), true_indexes.end(), i);
+        EXPECT_EQ(bit, expected) << "Index: " << i;
+    }
+}
+
 TEST(Bitmap, FindFirst_NoSpace)
 {
     StackDisk disk;
@@ -82,7 +104,7 @@ TEST(Bitmap, FindFirst_NoSpace)
     ASSERT_TRUE(disk.write(0, { 512, std::byte { 0xff } }));
     auto ret = bm.getFirstEq(false);
     ASSERT_FALSE(ret.has_value());
-    ASSERT_EQ(ret.error(), DiskError::OutOfMemory);
+    ASSERT_EQ(ret.error(), BitmapError::NotFound);
 }
 
 TEST(Bitmap, FindFirst)
@@ -102,11 +124,27 @@ TEST(Bitamp, FindFirst_true)
 {
     StackDisk disk;
     RawBlockDevice device(256, disk);
-    Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
+    Bitmap bm(device, 4, 512 * 8); // Two blocks of bitmap
 
-    ASSERT_TRUE(disk.write(0, { 512, std::byte { 0x00 } }));
+    ASSERT_TRUE(disk.write(4 * 256, { 512, std::byte { 0x00 } }));
     ASSERT_TRUE(bm.setBit(250, true).has_value());
     auto ret = bm.getFirstEq(true);
     ASSERT_TRUE(ret.has_value());
     EXPECT_EQ(ret.value(), 250);
+}
+
+TEST(Bitmap, SetAll)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 4, 500 * 8); // A bit less than two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(4 * 256, { 512, std::byte { 0x00 } }));
+    ASSERT_TRUE(bm.setAll(true).has_value());
+
+    for (int i = 0; i < 500 * 8; i++) {
+        auto ret = bm.getBit(i);
+        ASSERT_TRUE(ret.has_value());
+        EXPECT_EQ(ret.value(), true) << "Mismatch at index: " << i;
+    }
 }
