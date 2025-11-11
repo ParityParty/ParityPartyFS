@@ -31,7 +31,7 @@ TEST(SuperBlockManager, WriteAndReadConsistency)
         .journal_address = 4,
         .data_blocks_address = 5 };
 
-    auto write_res = writer.update(sb);
+    auto write_res = writer.put(sb);
     ASSERT_TRUE(write_res.has_value()) << "Failed to write superblock";
 
     SuperBlockManager reader(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
@@ -67,7 +67,7 @@ TEST(SuperBlockManager, WriteAndReadConsistencyWhenSuperBlockTakesMultipleBlocks
         .journal_address = 4,
         .data_blocks_address = 5 };
 
-    auto write_res = writer.update(sb);
+    auto write_res = writer.put(sb);
     ASSERT_TRUE(write_res.has_value()) << "Failed to write superblock";
 
     SuperBlockManager reader(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
@@ -85,4 +85,54 @@ TEST(SuperBlockManager, WriteAndReadConsistencyWhenSuperBlockTakesMultipleBlocks
     EXPECT_EQ(sb.inode_table_address, sb_read.inode_table_address);
     EXPECT_EQ(sb.journal_address, sb_read.journal_address);
     EXPECT_EQ(sb.data_blocks_address, sb_read.data_blocks_address);
+}
+
+TEST(SuperBlockManager, NewestBlockVersionIsReturned)
+{
+    StackDisk disk;
+    RawBlockDevice block_device(sizeof(SuperBlock) / 2, disk);
+
+    SuperBlockManager writer1(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    SuperBlock sb1 { .total_blocks = 101,
+        .free_blocks = 51,
+        .total_inodes = 201,
+        .free_inodes = 151,
+        .block_bitmap_address = 2,
+        .inode_bitmap_address = 3,
+        .inode_table_address = 4,
+        .journal_address = 5,
+        .data_blocks_address = 6 };
+
+    auto write_res1 = writer1.put(sb1);
+    ASSERT_TRUE(write_res1.has_value()) << "Failed to write superblock";
+
+    SuperBlockManager writer2(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    SuperBlock sb2 { .total_blocks = 100,
+        .free_blocks = 50,
+        .total_inodes = 200,
+        .free_inodes = 150,
+        .block_bitmap_address = 1,
+        .inode_bitmap_address = 2,
+        .inode_table_address = 3,
+        .journal_address = 4,
+        .data_blocks_address = 5 };
+
+    auto write_res2 = writer2.update(sb2);
+    ASSERT_TRUE(write_res2.has_value()) << "Failed to write superblock";
+
+    SuperBlockManager reader(block_device, { SuperBlockEntry(3) });
+    auto read_res = reader.get();
+    ASSERT_TRUE(read_res.has_value()) << "Failed to read superblock";
+
+    SuperBlock sb_read = read_res.value();
+
+    EXPECT_EQ(sb2.total_blocks, sb_read.total_blocks);
+    EXPECT_EQ(sb2.free_blocks, sb_read.free_blocks);
+    EXPECT_EQ(sb2.total_inodes, sb_read.total_inodes);
+    EXPECT_EQ(sb2.free_inodes, sb_read.free_inodes);
+    EXPECT_EQ(sb2.block_bitmap_address, sb_read.block_bitmap_address);
+    EXPECT_EQ(sb2.inode_bitmap_address, sb_read.inode_bitmap_address);
+    EXPECT_EQ(sb2.inode_table_address, sb_read.inode_table_address);
+    EXPECT_EQ(sb2.journal_address, sb_read.journal_address);
+    EXPECT_EQ(sb2.data_blocks_address, sb_read.data_blocks_address);
 }
