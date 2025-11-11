@@ -20,8 +20,9 @@ TEST(Bitmap, GetBit_GetsBit)
     StackDisk disk;
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
-
-    ASSERT_FALSE(bm.getBit(22).value());
+    auto get_bit_ret = bm.getBit(22);
+    ASSERT_TRUE(get_bit_ret.has_value());
+    ASSERT_FALSE(get_bit_ret.value());
 }
 
 TEST(Bitmap, GetBit_GetsCorrectBit)
