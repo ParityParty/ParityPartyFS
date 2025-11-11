@@ -22,4 +22,13 @@ struct ISuperBlockManager {
      * @return void on success, error otherwise
      */
     std::expected<void, DiskError> update(SuperBlock new_super_block);
+
+    /**
+     * Writes a new superblock to disk, creating a zero version.
+     * Only to be used during disk formatting
+     *
+     * @param new_super_block SuperBlock to be written.
+     * @return void on success; DiskError on failure.
+     */
+    std::expected<void, DiskError> put(SuperBlock new_super_block);
 };

@@ -10,35 +10,77 @@ SuperBlockManager::SuperBlockManager(
     IBlockDevice& block_device, std::vector<SuperBlockEntry> entries)
     : _block_device(block_device)
     , _entries(entries)
-    , _superBlock({})
+    , _rawSuperBlock({})
 {
 }
 
 std::expected<SuperBlock, DiskError> SuperBlockManager::get()
 {
-    if (_superBlock.has_value()) {
-        return *_superBlock;
+    if (_rawSuperBlock.has_value()) {
+        return _rawSuperBlock->super_block;
     }
+
+    // Vector of bools to mark block indexes that need updates, so that we do not run multiple
+    // updates
+    auto needs_update = std::vector<bool>(_entries.size(), false);
 
     for (int i = 0; i < _entries.size(); i++) {
         auto read_res = _readFromDisk(_entries[i].block_index);
         if (!read_res.has_value())
-            continue;
+            needs_update[i] = true;
 
-        *_superBlock = read_res.value();
-
-        for (int j = 0; j < i; j++) {
-            _writeToDisk(j);
+        // if read from previous blocks was unsuccesful or the version was older, try to update them
+        if (!_rawSuperBlock.has_value() || _rawSuperBlock->version < read_res.value().version) {
+            _rawSuperBlock = read_res.value();
+            for (int j = 0; j < i; j++) {
+                needs_update[j] = true;
+            }
         }
-        return *_superBlock;
     }
-    return std::unexpected(DiskError::InternalError);
+
+    if (!_rawSuperBlock.has_value())
+        return std::unexpected(DiskError::InternalError);
     // TODO - when we make errors more descriptive, change returned value
+
+    for (int i = 0; i < _entries.size(); i++) {
+        if (needs_update[i])
+            _writeToDisk(_entries[i].block_index);
+    }
+
+    return _rawSuperBlock->super_block;
+}
+
+std::expected<void, DiskError> SuperBlockManager::put(SuperBlock new_super_block)
+{
+    _rawSuperBlock = RawSuperBlock {
+        .super_block = new_super_block,
+        .version = 0,
+    };
+    _rawSuperBlock->super_block = new_super_block;
+    _rawSuperBlock->version++;
+
+    bool any_success = false;
+    for (auto& entry : _entries) {
+        auto write_res = _writeToDisk(entry.block_index);
+        if (write_res.has_value())
+            any_success = true;
+    }
+
+    return any_success ? std::expected<void, DiskError>()
+                       : std::unexpected(DiskError::InternalError);
 }
 
 std::expected<void, DiskError> SuperBlockManager::update(SuperBlock new_super_block)
 {
-    _superBlock = new_super_block;
+    if (!_rawSuperBlock.has_value()) {
+        get();
+        if (!_rawSuperBlock.has_value())
+            return std::unexpected(DiskError::InternalError); // We can't update supeblock, if we
+                                                              // don't know what the value is
+    }
+
+    _rawSuperBlock->super_block = new_super_block;
+    _rawSuperBlock->version++;
 
     bool any_success = false;
     for (auto& entry : _entries) {
@@ -53,39 +95,46 @@ std::expected<void, DiskError> SuperBlockManager::update(SuperBlock new_super_bl
 
 std::expected<void, DiskError> SuperBlockManager::_writeToDisk(int block_index)
 {
-    if (!_superBlock.has_value())
+    if (!_rawSuperBlock.has_value())
         return std::unexpected(DiskError::InvalidRequest);
 
-    std::vector<std::byte> buffer(sizeof(SuperBlock));
-    std::memcpy(buffer.data(), &_superBlock.value(), sizeof(SuperBlock));
+    std::vector<std::byte> buffer(sizeof(RawSuperBlock));
+    std::memcpy(buffer.data(), &_rawSuperBlock.value(), sizeof(RawSuperBlock));
 
     size_t written = 0;
-    while (written != sizeof(SuperBlock)) {
+    while (written != sizeof(RawSuperBlock)) {
+        auto format_res = _block_device.formatBlock(block_index);
+        if (!format_res.has_value())
+            return std::unexpected(format_res.error());
+
         auto write_res = _block_device.writeBlock(
             { buffer.begin() + written, buffer.end() }, DataLocation(block_index++, 0));
         if (!write_res.has_value())
             return std::unexpected(write_res.error());
+
         written += write_res.value();
     }
 
     return {};
 }
 
-std::expected<SuperBlock, DiskError> SuperBlockManager::_readFromDisk(block_index_t block_index)
+std::expected<RawSuperBlock, DiskError> SuperBlockManager::_readFromDisk(block_index_t block_index)
 {
     size_t read = 0;
     std::vector<std::byte> buffer;
-    buffer.reserve(sizeof(SuperBlock));
+    buffer.reserve(sizeof(RawSuperBlock));
 
-    while (read != sizeof(SuperBlock)) {
-        auto read_res = _block_device.readBlock(DataLocation(block_index++, 0), sizeof(SuperBlock));
+    while (read != sizeof(RawSuperBlock)) {
+        auto read_res
+            = _block_device.readBlock(DataLocation(block_index++, 0), sizeof(RawSuperBlock) - read);
         if (!read_res.has_value())
             return std::unexpected(read_res.error());
+
         read += read_res.value().size();
         buffer.insert(buffer.end(), read_res.value().begin(), read_res.value().end());
     }
 
-    SuperBlock sb;
-    std::memcpy(&sb, buffer.data(), sizeof(SuperBlock));
-    return sb;
+    RawSuperBlock rsb;
+    std::memcpy(&rsb, buffer.data(), sizeof(RawSuperBlock));
+    return rsb;
 }

@@ -16,6 +16,9 @@ struct SuperBlockEntry {
  *
  * Stores two copies of the superblock on disk and provides
  * methods to read and update the filesystem metadata safely.
+ *
+ * We assume there is only one class instance, so cached superblock
+ * is the most recent one.
  */
 class SuperBlockManager : public ISuperBlockManager {
     IBlockDevice& _block_device; /**< Underlying block device storing superblocks */
@@ -36,6 +39,15 @@ public:
     std::expected<SuperBlock, DiskError> get();
 
     /**
+     * Writes a new superblock to disk, creating a zero version.
+     * Only to be used during disk formatting
+     *
+     * @param new_super_block SuperBlock to be written.
+     * @return void on success; DiskError on failure.
+     */
+    std::expected<void, DiskError> put(SuperBlock new_super_block);
+
+    /**
      * Updates the superblocks on disk with new data.
      *
      * @param new_super_block SuperBlock to persist.
@@ -44,7 +56,7 @@ public:
     std::expected<void, DiskError> update(SuperBlock new_super_block);
 
 private:
-    std::optional<SuperBlock> _superBlock; /**< Cached copy of the superblock */
+    std::optional<RawSuperBlock> _rawSuperBlock; /**< Cached copy of the superblock */
 
     std::vector<SuperBlockEntry> _entries; /**< List of all superblock copies with status */
 
@@ -56,5 +68,5 @@ private:
     /**
      * Reads superblock from disk and returns it.
      */
-    std::expected<SuperBlock, DiskError> _readFromDisk(block_index_t block_index);
+    std::expected<RawSuperBlock, DiskError> _readFromDisk(block_index_t block_index);
 };
