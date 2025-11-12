@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 unsigned int CrcPolynomial::_findDegree(unsigned long int coefficients)
 {
@@ -74,6 +75,7 @@ std::expected<void, DiskError> CrcBlockDevice::_calculateAndWrite(
 {
     // Get data bits
     auto block_bits = BitHelpers::blockToBits({ block.begin(), block.begin() + dataSize() });
+    block_bits.reserve(block_bits.size() + _polynomial.getDegree());
 
     // Add padding
     for (int i = 0; i < _polynomial.getDegree(); i++) {
@@ -116,7 +118,7 @@ std::expected<std::vector<std::byte>, DiskError> CrcBlockDevice::_readAndCheckRa
 }
 
 CrcBlockDevice::CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t block_size)
-    : _polynomial(polynomial)
+    : _polynomial(std::move(polynomial))
     , _disk(disk)
     , _block_size(block_size)
 {

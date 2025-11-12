@@ -28,7 +28,7 @@ inline void setBit(std::vector<std::byte>& data, unsigned int index, bool value)
     data[byteIndex] = std::byte(byteValue);
 }
 
-inline std::vector<bool> blockToBits(const std::vector<std::byte> block)
+inline std::vector<bool> blockToBits(const std::vector<std::byte>& block)
 {
     std::vector<bool> bits(block.size() * 8);
 

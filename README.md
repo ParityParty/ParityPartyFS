@@ -59,3 +59,9 @@ umount mnt
 ```bash
 ctest --preset debug
 ```
+
+## Run benchmark
+
+```bash
+./build/release/performance_tests/performance_tests --benchmark_counters_tabular=true
+```
