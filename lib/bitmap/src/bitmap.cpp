@@ -20,7 +20,7 @@ std::expected<unsigned char, DiskError> Bitmap::_getByte(unsigned int bit_index)
     }
     return static_cast<unsigned char>(read_ret.value().front());
 }
-int Bitmap::_blockSpanned() const
+int Bitmap::blocksSpanned() const
 {
     return std::ceil(
         std::ceil(static_cast<float>(_size) / 8.0) / static_cast<float>(_block_device.dataSize()));
@@ -76,7 +76,7 @@ std::expected<void, BitmapError> Bitmap::setBit(unsigned int bit_index, bool val
 }
 std::expected<unsigned int, BitmapError> Bitmap::getFirstEq(bool value)
 {
-    int blocks_spanned = _blockSpanned();
+    int blocks_spanned = blocksSpanned();
 
     for (int block = 0; block < blocks_spanned; block++) {
         auto block_ret = _block_device.readBlock(
@@ -100,7 +100,7 @@ std::expected<unsigned int, BitmapError> Bitmap::getFirstEq(bool value)
 }
 std::expected<void, BitmapError> Bitmap::setAll(bool value)
 {
-    auto blocks_spanned = _blockSpanned();
+    auto blocks_spanned = blocksSpanned();
     auto value_byte = value ? std::byte { 0xff } : std::byte { 0x00 };
     std::vector<std::byte> block_data { _block_device.dataSize(), value_byte };
     for (int block = 0; block < blocks_spanned - 1; block++) {
