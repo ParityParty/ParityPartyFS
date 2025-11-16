@@ -6,6 +6,7 @@
 #include "disk/stack_disk.hpp"
 
 #include <benchmark/benchmark.h>
+#include <cmath>
 template <class... Args> static void BM_BlockDevice_Read(benchmark::State& state, Args&&... args)
 {
     size_t block_size = 256;
@@ -13,7 +14,7 @@ template <class... Args> static void BM_BlockDevice_Read(benchmark::State& state
     StackDisk disk;
     auto raw = RawBlockDevice(block_size, disk);
     auto rs = ReedSolomonBlockDevice(disk, block_size, 16);
-    auto hamming = HammingBlockDevice(8, disk);
+    auto hamming = HammingBlockDevice(static_cast<int>(std::log2(block_size)), disk);
     auto crc = CrcBlockDevice(CrcPolynomial::MsgImplicit(0xea), disk, block_size);
 
     std::map<std::string, IBlockDevice&> block_devices;
