@@ -1,4 +1,5 @@
 #include "super_block_manager/super_block_manager.hpp"
+#include <cmath>
 #include <cstring>
 
 SuperBlockEntry::SuperBlockEntry(block_index_t block_index)
@@ -12,6 +13,28 @@ SuperBlockManager::SuperBlockManager(
     , _entries(entries)
     , _rawSuperBlock({})
 {
+}
+
+std::optional<SuperBlockManager> SuperBlockManager::CreateInstance(
+    IBlockDevice& block_device, std::vector<SuperBlockEntry> entries)
+{
+    int span = std::ceil(sizeof(RawSuperBlock) / float(block_device.dataSize()));
+
+    for (int i = 0; i < entries.size(); ++i) {
+        int a_start = entries[i].block_index;
+        int a_end = a_start + span - 1;
+
+        for (int j = i + 1; j < entries.size(); ++j) {
+            int b_start = entries[j].block_index;
+            int b_end = b_start + span - 1;
+
+            bool overlap = !(a_end < b_start || b_end < a_start);
+            if (overlap)
+                return {};
+        }
+    }
+
+    return SuperBlockManager(block_device, entries);
 }
 
 std::expected<SuperBlock, DiskError> SuperBlockManager::get()

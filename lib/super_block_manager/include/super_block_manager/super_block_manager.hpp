@@ -25,11 +25,13 @@ class SuperBlockManager : public ISuperBlockManager {
 
 public:
     /**
-     * Constructs manager.
+     * Checks if provided entries are valid and superblocks won't overlap.
+     * If validation passes, returns superblock instance.
      *
      * @param block_device Reference to underlying block device.
      */
-    SuperBlockManager(IBlockDevice& block_device, std::vector<SuperBlockEntry> entries);
+    static std::optional<SuperBlockManager> CreateInstance(
+        IBlockDevice& block_device, std::vector<SuperBlockEntry> entries);
 
     /**
      * Returns the current superblock from disk or from cache if available.
@@ -69,4 +71,11 @@ private:
      * Reads superblock from disk and returns it.
      */
     std::expected<RawSuperBlock, DiskError> _readFromDisk(block_index_t block_index);
+
+    /**
+     * Constructs manager.
+     *
+     * @param block_device Reference to underlying block device.
+     */
+    SuperBlockManager(IBlockDevice& block_device, std::vector<SuperBlockEntry> entries);
 };

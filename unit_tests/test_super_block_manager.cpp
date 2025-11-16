@@ -10,7 +10,8 @@ TEST(SuperBlock, Compiles)
     StackDisk disk;
     HammingBlockDevice device(8, disk);
 
-    SuperBlockManager manager(device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    auto manager
+        = SuperBlockManager::CreateInstance(device, { SuperBlockEntry(0), SuperBlockEntry(3) });
 
     EXPECT_TRUE(true);
 }
@@ -20,7 +21,11 @@ TEST(SuperBlockManager, WriteAndReadConsistency)
     StackDisk disk;
     RawBlockDevice block_device(512, disk);
 
-    SuperBlockManager writer(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    auto writer_opt = SuperBlockManager::CreateInstance(
+        block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    ASSERT_TRUE(writer_opt.has_value());
+    auto writer = *writer_opt;
+
     SuperBlock sb { .total_blocks = 100,
         .free_blocks = 50,
         .total_inodes = 200,
@@ -34,7 +39,11 @@ TEST(SuperBlockManager, WriteAndReadConsistency)
     auto write_res = writer.put(sb);
     ASSERT_TRUE(write_res.has_value()) << "Failed to write superblock";
 
-    SuperBlockManager reader(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    auto reader_opt = SuperBlockManager::CreateInstance(
+        block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    ASSERT_TRUE(reader_opt.has_value());
+    auto reader = *reader_opt;
+
     auto read_res = reader.get();
     ASSERT_TRUE(read_res.has_value()) << "Failed to read superblock";
 
@@ -56,7 +65,11 @@ TEST(SuperBlockManager, WriteAndReadConsistencyWhenSuperBlockTakesMultipleBlocks
     StackDisk disk;
     RawBlockDevice block_device(sizeof(SuperBlock) / 2, disk);
 
-    SuperBlockManager writer(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    auto writer_opt = SuperBlockManager::CreateInstance(
+        block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    ASSERT_TRUE(writer_opt.has_value());
+    auto writer = *writer_opt;
+
     SuperBlock sb { .total_blocks = 100,
         .free_blocks = 50,
         .total_inodes = 200,
@@ -70,7 +83,11 @@ TEST(SuperBlockManager, WriteAndReadConsistencyWhenSuperBlockTakesMultipleBlocks
     auto write_res = writer.put(sb);
     ASSERT_TRUE(write_res.has_value()) << "Failed to write superblock";
 
-    SuperBlockManager reader(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    auto reader_opt = SuperBlockManager::CreateInstance(
+        block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    ASSERT_TRUE(reader_opt.has_value());
+    auto reader = *reader_opt;
+
     auto read_res = reader.get();
     ASSERT_TRUE(read_res.has_value()) << "Failed to read superblock";
 
@@ -92,7 +109,11 @@ TEST(SuperBlockManager, NewestBlockVersionIsReturned)
     StackDisk disk;
     RawBlockDevice block_device(sizeof(SuperBlock) / 2, disk);
 
-    SuperBlockManager writer1(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    auto writer1_opt = SuperBlockManager::CreateInstance(
+        block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    ASSERT_TRUE(writer1_opt.has_value());
+    auto writer1 = *writer1_opt;
+
     SuperBlock sb1 { .total_blocks = 101,
         .free_blocks = 51,
         .total_inodes = 201,
@@ -106,7 +127,10 @@ TEST(SuperBlockManager, NewestBlockVersionIsReturned)
     auto write_res1 = writer1.put(sb1);
     ASSERT_TRUE(write_res1.has_value()) << "Failed to write superblock";
 
-    SuperBlockManager writer2(block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    auto writer2_opt = SuperBlockManager::CreateInstance(block_device, { SuperBlockEntry(3) });
+    ASSERT_TRUE(writer2_opt.has_value());
+    auto writer2 = *writer2_opt;
+
     SuperBlock sb2 { .total_blocks = 100,
         .free_blocks = 50,
         .total_inodes = 200,
@@ -120,7 +144,11 @@ TEST(SuperBlockManager, NewestBlockVersionIsReturned)
     auto write_res2 = writer2.update(sb2);
     ASSERT_TRUE(write_res2.has_value()) << "Failed to write superblock";
 
-    SuperBlockManager reader(block_device, { SuperBlockEntry(3) });
+    auto reader_opt = SuperBlockManager::CreateInstance(
+        block_device, { SuperBlockEntry(0), SuperBlockEntry(3) });
+    ASSERT_TRUE(reader_opt.has_value());
+    auto reader = *reader_opt;
+
     auto read_res = reader.get();
     ASSERT_TRUE(read_res.has_value()) << "Failed to read superblock";
 
