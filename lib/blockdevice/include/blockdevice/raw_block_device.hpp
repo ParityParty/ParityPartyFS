@@ -1,4 +1,5 @@
 #include "blockdevice/iblock_device.hpp"
+#include "disk/stack_disk.hpp"
 
 /**
  * A basic implementation of the IBlockDevice interface that directly accesses the disk.
@@ -15,6 +16,7 @@ class RawBlockDevice : public IBlockDevice {
 private:
     size_t _block_size;
     IDisk& _disk;
+
 public:
     /**
      * Constructs a RawBlockDevice instance.
@@ -32,7 +34,7 @@ public:
      */
     std::expected<size_t, DiskError> writeBlock(
         const std::vector<std::byte>& data, DataLocation data_location) override;
-    
+
     /**
      * Reads a portion of data from a block on the disk.
      * If the requested bytes exceed the block size, they will be truncated.
@@ -47,7 +49,7 @@ public:
      * This function does nothing - every state is valid.
      */
     std::expected<void, DiskError> formatBlock(unsigned int block_index) override;
-    
+
     /**
      * Returns the raw block size, all metadata included.
      * @return The size of one block in bytes.
@@ -64,5 +66,5 @@ public:
      * Returns the number of available blocks.
      * @return Number of blocks.
      */
-     size_t numOfBlocks() const override;
+    size_t numOfBlocks() const override;
 };
