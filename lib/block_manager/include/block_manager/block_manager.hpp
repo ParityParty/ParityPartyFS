@@ -16,6 +16,6 @@ public:
     std::expected<void, BitmapError> reserve(block_index_t block) override;
     std::expected<void, BitmapError> free(block_index_t block) override;
     std::expected<block_index_t, BitmapError> getFree() override;
-    std::expected<unsigned int, BitmapError> numFree() override;
+    std::expected<unsigned int, BitmapError> countFree() override;
     std::expected<unsigned int, BitmapError> numTotal() override;
 };

@@ -16,19 +16,16 @@ std::expected<void, BitmapError> BlockManager::format()
         return std::unexpected(ret.error());
     }
     return {};
-    // TODO: Update superblock
 }
 
 std::expected<void, BitmapError> BlockManager::reserve(block_index_t block)
 {
     return _bitmap.setBit(block, true);
-    // TODO: Update superblock
 }
 
 std::expected<void, BitmapError> BlockManager::free(block_index_t block)
 {
     return _bitmap.setBit(block, false);
-    // TODO: Update superblock
 }
 
 std::expected<block_index_t, BitmapError> BlockManager::getFree()
@@ -36,9 +33,6 @@ std::expected<block_index_t, BitmapError> BlockManager::getFree()
     return _bitmap.getFirstEq(false);
 }
 
-std::expected<unsigned int, BitmapError> BlockManager::numFree()
-{
-    // TODO: Implement using superblock manager
-}
+std::expected<unsigned int, BitmapError> BlockManager::countFree() { }
 
 std::expected<unsigned int, BitmapError> BlockManager::numTotal() { return _num_data_blocks; }

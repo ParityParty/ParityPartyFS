@@ -47,7 +47,7 @@ struct IBlockManager {
      *
      * @return number of free data blocks on disk
      */
-    virtual std::expected<unsigned int, BitmapError> numFree();
+    virtual std::expected<unsigned int, BitmapError> countFree();
 
     /**
      * Get total number of data blocks

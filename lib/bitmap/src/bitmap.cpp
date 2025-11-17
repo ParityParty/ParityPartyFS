@@ -25,6 +25,34 @@ int Bitmap::blocksSpanned() const
     return std::ceil(
         std::ceil(static_cast<float>(_size) / 8.0) / static_cast<float>(_block_device.dataSize()));
 }
+unsigned int Bitmap::count(bool value) const
+{
+    auto blocks_spanned = blocksSpanned();
+    auto value_byte = value ? std::byte { 0xff } : std::byte { 0x00 };
+    std::vector<std::byte> block_data { _block_device.dataSize(), value_byte };
+    for (int block = 0; block < blocks_spanned - 1; block++) {
+        auto ret = _block_device.readBlock({ block, 0 }, _block_device.dataSize());
+        if (!ret.has_value()) {
+            return std::unexpected(BitmapError::Disk);
+        }
+    }
+
+    auto last_block_ret = _block_device.readBlock(
+        { _start_block + blocks_spanned - 1, 0 }, _block_device.dataSize());
+    auto last_block = last_block_ret.value();
+    if (!last_block_ret.has_value()) {
+        return std::unexpected(BitmapError::Disk);
+    }
+    for (int bit_index = 0; bit_index < _size % (_block_device.dataSize() * 8); bit_index++) {
+        BitHelpers::setBit(last_block, bit_index, value);
+    }
+
+    auto write_ret = _block_device.writeBlock(last_block, { _start_block + blocks_spanned - 1, 0 });
+    if (!write_ret.has_value()) {
+        return std::unexpected(BitmapError::Disk);
+    }
+    return {};
+}
 
 Bitmap::Bitmap(IBlockDevice& block_device, block_index_t start_block, size_t size)
     : _block_device(block_device)

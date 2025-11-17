@@ -28,4 +28,5 @@ public:
     std::expected<unsigned int, BitmapError> getFirstEq(bool value);
     std::expected<void, BitmapError> setAll(bool value);
     int blocksSpanned() const;
+    unsigned int count(bool value) const;
 };
