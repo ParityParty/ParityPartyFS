@@ -1,6 +1,7 @@
 #pragma once
 #include "blockdevice/iblock_device.hpp"
 #include "common/types.hpp"
+#include <cstdint>
 
 enum BitmapError { IndexOutOfRange, Disk, NotFound };
 
@@ -28,5 +29,5 @@ public:
     std::expected<unsigned int, FsError> getFirstEq(bool value);
     std::expected<void, FsError> setAll(bool value);
     int blocksSpanned() const;
-    unsigned int count(bool value) const;
+    std::expected<std::uint32_t, FsError> count(bool value) const;
 };
