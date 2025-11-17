@@ -31,10 +31,10 @@ public:
 
     /** Writes data to a block at the specified location. */
     virtual std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::byte>& data, DataLocation data_location);
+        const std::vector<std::uint8_t>& data, DataLocation data_location);
 
     /** Reads a block from the specified location, returning only the requested bytes. */
-    virtual std::expected<std::vector<std::byte>, FsError> readBlock(
+    virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read);
 
     /** Returns the size of a raw encoded block in bytes. */
@@ -57,16 +57,16 @@ private:
         _correctable_bytes; /**< Number of individual bytes that the code can detect and correct. */
 
     /** Encodes data into a full RS block with parity bytes. */
-    std::vector<std::byte> _encodeBlock(std::vector<std::byte>);
+    std::vector<std::uint8_t> _encodeBlock(std::vector<std::uint8_t>);
 
     /** Fixes a block using Reed-Solomon decoding. After fixing, data is returned. */
-    std::vector<std::byte> _fixBlockAndExtract(std::vector<std::byte>);
+    std::vector<std::uint8_t> _fixBlockAndExtract(std::vector<std::uint8_t>);
 
     /** Computes the RS generator polynomial. */
     PolynomialGF256 _calculateGenerator();
 
     /** Extracts the original message bytes from a full RS-encoded polynomial. */
-    std::vector<std::byte> _extractMessage(PolynomialGF256 p);
+    std::vector<std::uint8_t> _extractMessage(PolynomialGF256 p);
 
     /** Computes error values using Forney’s algorithm. */
     std::vector<GF256> _forney(const PolynomialGF256& omega, PolynomialGF256& sigma,

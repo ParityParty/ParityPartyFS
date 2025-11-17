@@ -2,6 +2,7 @@
 #include "data_structures.hpp"
 #include "fusepp/Fuse.hpp"
 #include <blockdevice/iblock_device.hpp>
+#include <cstdint>
 #include <stdexcept>
 
 class PpFS : public Fusepp::Fuse<PpFS> {
@@ -66,10 +67,10 @@ private:
 
     std::expected<void, FsError> _createFile(const std::string& name);
     std::expected<void, FsError> _removeFile(const DirectoryEntry& entry);
-    std::expected<std::vector<std::byte>, FsError> _readFile(
+    std::expected<std::vector<std::uint8_t>, FsError> _readFile(
         const DirectoryEntry& entry, size_t size, size_t offset);
     std::expected<void, FsError> _writeFile(
-        DirectoryEntry& entry, const std::vector<std::byte>& data, size_t offset);
+        DirectoryEntry& entry, const std::vector<std::uint8_t>& data, size_t offset);
 
     /**
      * Writes bytes starting from offset, then follows fat allocating new blocks if needed
@@ -79,7 +80,7 @@ private:
      * @return returns FsError on error, void otherwise
      */
     std::expected<void, FsError> _writeBytes(
-        const std::vector<std::byte>& data, DataLocation address);
+        const std::vector<std::uint8_t>& data, DataLocation address);
 
     /**
      * Method finds address in memory of offset of given file

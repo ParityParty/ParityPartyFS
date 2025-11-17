@@ -16,13 +16,12 @@ size_t ParityBlockDevice::rawBlockSize() const { return _raw_block_size; }
 size_t ParityBlockDevice::numOfBlocks() const { return _disk.size() / _raw_block_size; }
 std::expected<void, FsError> ParityBlockDevice::formatBlock(unsigned int block_index)
 {
-    auto res = _disk.write(
-        block_index, std::vector<std::byte>(_raw_block_size, static_cast<std::byte>(0)));
+    auto res = _disk.write(block_index, std::vector<std::uint8_t>(_raw_block_size, 0));
     return res.has_value() ? std::expected<void, FsError>() : std::unexpected(res.error());
 }
 
 std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
-    const std::vector<std::byte>& data, DataLocation data_location)
+    const std::vector<std::uint8_t>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), _data_size - data_location.offset);
 
@@ -40,12 +39,12 @@ std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
     parity = _checkParity(raw_block.value());
 
     if (!parity)
-        raw_block.value()[_raw_block_size - 1] ^= static_cast<std::byte>(1);
+        raw_block.value()[_raw_block_size - 1] ^= static_cast<std::uint8_t>(1);
 
     return _disk.write(_raw_block_size * data_location.block_index, raw_block.value());
 }
 
-std::expected<std::vector<std::byte>, FsError> ParityBlockDevice::readBlock(
+std::expected<std::vector<std::uint8_t>, FsError> ParityBlockDevice::readBlock(
     DataLocation data_location, size_t to_read)
 {
     to_read = std::min(to_read, _data_size - data_location.offset);
@@ -59,16 +58,15 @@ std::expected<std::vector<std::byte>, FsError> ParityBlockDevice::readBlock(
         return std::unexpected(FsError::CorrectionError);
 
     auto data = raw_block.value();
-    return std::vector<std::byte>(
+    return std::vector<std::uint8_t>(
         data.begin() + data_location.offset, data.begin() + data_location.offset + to_read);
 }
 
-bool ParityBlockDevice::_checkParity(std::vector<std::byte> data)
+bool ParityBlockDevice::_checkParity(std::vector<std::uint8_t> data)
 {
     size_t ones = 0;
     for (auto b : data) {
-        uint8_t v = std::to_integer<uint8_t>(b);
-        ones += std::popcount(v);
+        ones += std::popcount(b);
     }
     return !(ones & 1);
 }

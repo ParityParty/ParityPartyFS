@@ -31,7 +31,7 @@ public:
      * If size of data exceeds the data size per block, it will be truncated.
      */
     std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::byte>& data, DataLocation data_location) override;
+        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * @brief Reads a block of data from the device and performs Hamming error correction.
@@ -42,7 +42,7 @@ public:
      * If size of requested bytes exceeds the data size available on the block, it will be
      * truncated.
      */
-    std::expected<std::vector<std::byte>, FsError> readBlock(
+    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     /**
@@ -69,10 +69,10 @@ private:
     size_t _data_size;
     IDisk& _disk;
 
-    std::vector<std::byte> _encodeData(const std::vector<std::byte>& data);
-    std::vector<std::byte> _extractData(const std::vector<std::byte>& encoded_data);
+    std::vector<std::uint8_t> _encodeData(const std::vector<std::uint8_t>& data);
+    std::vector<std::uint8_t> _extractData(const std::vector<std::uint8_t>& encoded_data);
 
-    std::expected<std::vector<std::byte>, FsError> _readAndFixBlock(int block_index);
+    std::expected<std::vector<std::uint8_t>, FsError> _readAndFixBlock(int block_index);
 };
 
 /**

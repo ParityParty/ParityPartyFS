@@ -13,7 +13,7 @@ void flipBit(StackDisk& disk, size_t bitIndex)
     ASSERT_TRUE(readRes.has_value());
 
     auto bytes = readRes.value();
-    bytes[0] ^= static_cast<std::byte>(1 << bitInByte);
+    bytes[0] ^= static_cast<std::uint8_t>(1 << bitInByte);
 
     auto writeRes = disk.write(byteIndex, bytes);
     ASSERT_TRUE(writeRes.has_value());
@@ -33,8 +33,8 @@ TEST(HammingBlockDevice, BasicWriteRead)
     StackDisk disk;
     HammingBlockDevice hbd(4, disk); // 2^4 = 16 bytes per block
 
-    std::vector<std::byte> data
-        = { std::byte('h'), std::byte('e'), std::byte('l'), std::byte('l'), std::byte('o') };
+    std::vector<std::uint8_t> data = { std::uint8_t('h'), std::uint8_t('e'), std::uint8_t('l'),
+        std::uint8_t('l'), std::uint8_t('o') };
     DataLocation loc(0, 0);
 
     auto write_res = hbd.writeBlock(data, loc);
@@ -56,8 +56,8 @@ TEST(HammingBlockDevice, SingleBitErrorIsCorrected)
     HammingBlockDevice hbd(4, disk);
     DataLocation loc(0, 0);
 
-    std::vector<std::byte> data
-        = { std::byte('s'), std::byte('l'), std::byte('a'), std::byte('y') };
+    std::vector<std::uint8_t> data
+        = { std::uint8_t('s'), std::uint8_t('l'), std::uint8_t('a'), std::uint8_t('y') };
     auto write_res = hbd.writeBlock(data, loc);
     ASSERT_TRUE(write_res.has_value());
 
@@ -81,8 +81,8 @@ TEST(HammingBlockDevice, DoubleBitErrorTriggersFailure)
     HammingBlockDevice hbd(4, disk);
     DataLocation loc(0, 0);
 
-    std::vector<std::byte> data
-        = { std::byte('s'), std::byte('l'), std::byte('a'), std::byte('y') };
+    std::vector<std::uint8_t> data
+        = { std::uint8_t('s'), std::uint8_t('l'), std::uint8_t('a'), std::uint8_t('y') };
     auto write_res = hbd.writeBlock(data, loc);
     ASSERT_TRUE(write_res.has_value());
 
@@ -109,10 +109,10 @@ TEST(HammingBlockDevice, MultipleRandomSingleBitCorrections)
         DataLocation loc(0, 0);
 
         std::string msg = "Round" + std::to_string(i);
-        std::vector<std::byte> data;
+        std::vector<std::uint8_t> data;
         data.reserve(msg.size());
         for (char c : msg)
-            data.push_back(static_cast<std::byte>(c));
+            data.push_back(static_cast<std::uint8_t>(c));
 
         auto write_res = hbd.writeBlock(data, loc);
         ASSERT_TRUE(write_res.has_value());

@@ -3,9 +3,9 @@
 
 TEST(Bits, BlockToBits)
 {
-    std::vector<std::byte> block(2);
-    block[0] = std::byte(0xff);
-    block[1] = std::byte(0x00);
+    std::vector<std::uint8_t> block(2);
+    block[0] = std::uint8_t(0xff);
+    block[1] = std::uint8_t(0x00);
 
     auto bits = BitHelpers::blockToBits(block);
 

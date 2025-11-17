@@ -70,7 +70,7 @@ class CrcBlockDevice : public IBlockDevice {
      * @return void if successful, error otherwise
      */
     std::expected<void, FsError> _calculateAndWrite(
-        std::vector<std::byte>& block, block_index_t block_index);
+        std::vector<std::uint8_t>& block, block_index_t block_index);
 
     /**
      * reads whole block with redundancy bits and checks integrity
@@ -78,7 +78,7 @@ class CrcBlockDevice : public IBlockDevice {
      * @param block index of a block to read
      * @return block with redundancy bits on success, error othewise
      */
-    std::expected<std::vector<std::byte>, FsError> _readAndCheckRaw(block_index_t block);
+    std::expected<std::vector<std::uint8_t>, FsError> _readAndCheckRaw(block_index_t block);
 
 public:
     /**
@@ -102,7 +102,7 @@ public:
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
     std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::byte>& data, DataLocation data_location) override;
+        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * Reads a sequence of bytes from the device at a specified data location.
@@ -113,7 +113,7 @@ public:
      * @param bytes_to_read Number of bytes to read starting from the specified location.
      * @return On success, returns the bytes read; otherwise returns a FsError.
      */
-    std::expected<std::vector<std::byte>, FsError> readBlock(
+    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     /**

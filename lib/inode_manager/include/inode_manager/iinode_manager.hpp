@@ -16,7 +16,7 @@ struct IInodeManager {
      * @param inode data of the new inode
      * @return inode index on success, error otherwise
      */
-    std::expected<inode_index_t, FsError> create(Inode inode);
+    virtual std::expected<inode_index_t, FsError> create(Inode inode) = 0;
 
     /**
      * Remove inode.
@@ -27,7 +27,7 @@ struct IInodeManager {
      * @param inode index of inode to be deleted
      * @return void on success, error otherwise
      */
-    std::expected<void, FsError> remove(inode_index_t inode);
+    virtual std::expected<void, FsError> remove(inode_index_t inode) = 0;
 
     /**
      * Read inode data from disc.
@@ -35,19 +35,12 @@ struct IInodeManager {
      * @param inode index of inode to read
      * @return inode data on success, error otherwise
      */
-    std::expected<Inode, FsError> get(inode_index_t inode);
+    virtual std::expected<Inode, FsError> get(inode_index_t inode) = 0;
 
     /**
      * Calculate number of free inodes
      *
      * @return number of free inodes on success, error otherwise
      */
-    std::expected<unsigned int, FsError> numFree();
-
-    /**
-     * Get total number of inodes
-     *
-     * @return total number of inodes on success, error otherwise
-     */
-    std::expected<unsigned int, FsError> numTotal();
+    virtual std::expected<unsigned int, FsError> numFree() = 0;
 };
