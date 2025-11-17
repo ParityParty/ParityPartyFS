@@ -23,7 +23,7 @@ TEST(BlockManager, Formats)
     auto free_ret = block_manager.numFree();
     ASSERT_TRUE(free_ret.has_value());
     EXPECT_EQ(free_ret.value(), 7); // one byte for bitmap, 7 data blocks
-    auto read_ret = (disk.read(1, 1));
+    auto read_ret = (disk.read(512, 1));
     ASSERT_TRUE(read_ret.has_value());
     // 7 bits free 8th unknown
     EXPECT_TRUE(
@@ -39,8 +39,8 @@ TEST(BlockManager, FormatsMore)
 
     auto free_ret = block_manager.numFree();
     ASSERT_TRUE(free_ret.has_value());
-    EXPECT_EQ(free_ret.value(), 8); // one byte for bitmap, 7 data blocks
-    auto read_ret = (disk.read(1, 1));
+    EXPECT_EQ(free_ret.value(), 8); // one byte for bitmap, 8 data blocks
+    auto read_ret = (disk.read(512, 1));
     ASSERT_TRUE(read_ret.has_value());
     EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0);
 }
@@ -70,3 +70,37 @@ TEST(BlockManager, FindsFreeHarder)
     ASSERT_TRUE(next_free_ret.has_value());
     EXPECT_EQ(next_free_ret.value(), 3);
 }
+
+TEST(BlockManager, Reserves)
+{
+    StackDisk disk;
+    RawBlockDevice device(512, disk);
+    BlockManager block_manager(1, 9, device);
+    ASSERT_TRUE(block_manager.format().has_value());
+    ASSERT_TRUE(block_manager.reserve(2).has_value());
+    ASSERT_TRUE(block_manager.reserve(4).has_value());
+    auto read_ret = disk.read(512, 1);
+    ASSERT_TRUE(read_ret.has_value());
+    EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0b10100000);
+}
+
+TEST(BlockManager, Frees)
+{
+    StackDisk disk;
+    RawBlockDevice device(512, disk);
+    BlockManager block_manager(1, 9, device);
+    ASSERT_TRUE(block_manager.format().has_value());
+    ASSERT_TRUE(block_manager.reserve(2).has_value());
+    ASSERT_TRUE(block_manager.reserve(4).has_value());
+    auto read_ret = disk.read(512, 1);
+    ASSERT_TRUE(read_ret.has_value());
+    EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0b10100000);
+
+    ASSERT_TRUE(block_manager.free(4).has_value());
+
+    read_ret = disk.read(512, 1);
+    ASSERT_TRUE(read_ret.has_value());
+    EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0b10000000);
+}
+
+// TODO: Write tests without format

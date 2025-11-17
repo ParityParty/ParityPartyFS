@@ -42,7 +42,7 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
         return _bit_count - _ones_count.value();
     }
     std::uint32_t count = 0;
-    for (int block = 0; block < blockSpanned() - 1; block++) {
+    for (int block = 0; block < blocksSpanned() - 1; block++) {
         auto block_data = _block_device.readBlock(
             DataLocation { _start_block + block, 0 }, _block_device.dataSize());
         if (!block_data.has_value()) {
@@ -120,7 +120,7 @@ std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
 
 std::expected<void, FsError> Bitmap::setAll(bool value)
 {
-    auto blocks_spanned = blockSpanned();
+    auto blocks_spanned = blocksSpanned();
     std::uint8_t value_byte = value ? 0xff : 0x00;
     auto block_data = std::vector<std::uint8_t>(_block_device.dataSize(), value_byte);
     for (int block = 0; block < blocks_spanned - 1; block++) {
