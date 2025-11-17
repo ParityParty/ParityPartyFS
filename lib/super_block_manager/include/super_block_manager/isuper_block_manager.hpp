@@ -16,14 +16,6 @@ struct ISuperBlockManager {
     std::expected<SuperBlock, DiskError> get();
 
     /**
-     * Update superblock on disk
-     *
-     * @param new_super_block new superblock data
-     * @return void on success, error otherwise
-     */
-    std::expected<void, DiskError> update(SuperBlock new_super_block);
-
-    /**
      * Writes a new superblock to disk, creating a zero version.
      * Only to be used during disk formatting
      *

@@ -14,8 +14,8 @@ struct SuperBlockEntry {
 /**
  * Implements superblock management for the filesystem.
  *
- * Stores two copies of the superblock on disk and provides
- * methods to read and update the filesystem metadata safely.
+ * Stores two copies of the superblock at the beginning of a disk and one at
+ * the end; and provides methods to read and update the filesystem metadata safely.
  *
  * We assume there is only one class instance, so cached superblock
  * is the most recent one.
@@ -24,14 +24,7 @@ class SuperBlockManager : public ISuperBlockManager {
     IBlockDevice& _block_device; /**< Underlying block device storing superblocks */
 
 public:
-    /**
-     * Checks if provided entries are valid and superblocks won't overlap.
-     * If validation passes, returns superblock instance.
-     *
-     * @param block_device Reference to underlying block device.
-     */
-    static std::optional<SuperBlockManager> CreateInstance(
-        IBlockDevice& block_device, std::vector<SuperBlockEntry> entries);
+    SuperBlockManager(IBlockDevice& block_device);
 
     /**
      * Returns the current superblock from disk or from cache if available.
@@ -50,32 +43,28 @@ public:
     std::expected<void, DiskError> put(SuperBlock new_super_block);
 
     /**
-     * Updates the superblocks on disk with new data.
-     *
-     * @param new_super_block SuperBlock to persist.
-     * @return void on success; DiskError on failure.
+     * Returns block indexes which are occupied by super blocks
      */
-    std::expected<void, DiskError> update(SuperBlock new_super_block);
+    std::vector<block_index_t> getOccupiedIndexes();
 
 private:
-    std::optional<RawSuperBlock> _rawSuperBlock; /**< Cached copy of the superblock */
-
-    std::vector<SuperBlockEntry> _entries; /**< List of all superblock copies with status */
+    std::optional<SuperBlock> _superBlock; /**< Cached copy of the superblock */
+    block_index_t _endBlock; /**< Index where super blocks written at the beginning end */
+    block_index_t _startBlock; /**< Index where super blocks written at the end start */
 
     /**
      * Writes cached superblock to a specific index.
      */
-    std::expected<void, DiskError> _writeToDisk(block_index_t block_index);
+    std::expected<void, DiskError> _writeToDisk();
 
     /**
      * Reads superblock from disk and returns it.
      */
-    std::expected<RawSuperBlock, DiskError> _readFromDisk(block_index_t block_index);
+    std::expected<SuperBlock, DiskError> _readFromDisk();
 
     /**
      * Constructs manager.
      *
      * @param block_device Reference to underlying block device.
      */
-    SuperBlockManager(IBlockDevice& block_device, std::vector<SuperBlockEntry> entries);
 };

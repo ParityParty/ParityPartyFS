@@ -14,8 +14,3 @@ struct SuperBlock {
     block_index_t journal_address;
     block_index_t data_blocks_address;
 };
-
-struct RawSuperBlock {
-    SuperBlock super_block;
-    uint64_t version;
-};
