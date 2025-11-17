@@ -70,7 +70,7 @@ std::vector<bool> CrcPolynomial::getCoefficients() const
 
 unsigned int CrcPolynomial::getDegree() const { return _n; }
 
-std::expected<void, DiskError> CrcBlockDevice::_calculateAndWrite(
+std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
     std::vector<std::byte>& block, block_index_t block_index)
 {
     // Get data bits
@@ -94,7 +94,7 @@ std::expected<void, DiskError> CrcBlockDevice::_calculateAndWrite(
     }
     return {};
 }
-std::expected<std::vector<std::byte>, DiskError> CrcBlockDevice::_readAndCheckRaw(
+std::expected<std::vector<std::byte>, FsError> CrcBlockDevice::_readAndCheckRaw(
     block_index_t block_index)
 {
     auto bytes_res = _disk.read(block_index * _block_size, _block_size);
@@ -112,7 +112,7 @@ std::expected<std::vector<std::byte>, DiskError> CrcBlockDevice::_readAndCheckRa
 
     // reminder should be 0
     if (std::ranges::contains(remainder.begin(), remainder.end(), true)) {
-        return std::unexpected(DiskError::CorrectionError);
+        return std::unexpected(FsError::CorrectionError);
     }
     return block;
 }
@@ -124,7 +124,7 @@ CrcBlockDevice::CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t blo
 {
 }
 
-std::expected<size_t, DiskError> CrcBlockDevice::writeBlock(
+std::expected<size_t, FsError> CrcBlockDevice::writeBlock(
     const std::vector<std::byte>& data, DataLocation data_location)
 {
     auto read_res = _readAndCheckRaw(data_location.block_index);
@@ -141,7 +141,7 @@ std::expected<size_t, DiskError> CrcBlockDevice::writeBlock(
     return to_write;
 }
 
-std::expected<std::vector<std::byte>, DiskError> CrcBlockDevice::readBlock(
+std::expected<std::vector<std::byte>, FsError> CrcBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read)
 {
     auto read_ret = _readAndCheckRaw(data_location.block_index);
@@ -163,7 +163,7 @@ size_t CrcBlockDevice::dataSize() const
 
 size_t CrcBlockDevice::numOfBlocks() const { return _disk.size() / _block_size; }
 
-std::expected<void, DiskError> CrcBlockDevice::formatBlock(unsigned int block_index)
+std::expected<void, FsError> CrcBlockDevice::formatBlock(unsigned int block_index)
 {
     std::vector<std::byte> data(_block_size, static_cast<std::byte>(0x00));
     auto ret = _calculateAndWrite(data, block_index);
