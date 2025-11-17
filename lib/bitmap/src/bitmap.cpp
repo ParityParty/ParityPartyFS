@@ -42,13 +42,35 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
         return _bit_count - _ones_count.value();
     }
     std::uint32_t count = 0;
-    for (int block = 0; block < blocksSpanned() - 1; block++) {
+    auto blocks_spanned = blocksSpanned();
+    for (int block = 0; block < blocks_spanned - 1; block++) {
         auto block_data = _block_device.readBlock(
             DataLocation { _start_block + block, 0 }, _block_device.dataSize());
         if (!block_data.has_value()) {
             return std::unexpected(block_data.error());
         }
+        for (auto byte : block_data.value()) {
+            for (std::uint8_t bit = 0; bit < 8; bit+=1) {
+                count += (byte & (1 << bit)) != 0;
+            }
+        }
     }
+
+    auto last_block_ret = _block_device.readBlock(
+        { _start_block + blocks_spanned - 1, 0 }, _block_device.dataSize());
+    auto last_block = last_block_ret.value();
+    if (!last_block_ret.has_value()) {
+        return std::unexpected(last_block_ret.error());
+    }
+
+    for (int bit_index = 0; bit_index < _bit_count % (_block_device.dataSize() * 8); bit_index++) {
+        count += BitHelpers::getBit(last_block, bit_index);
+    }
+    _ones_count = count;
+    if (value) {
+        return count;
+    }
+    return _bit_count - count;
 }
 
 std::expected<bool, FsError> Bitmap::getBit(unsigned int bit_index)
