@@ -14,5 +14,7 @@ struct __attribute__((packed)) SuperBlock {
     block_index_t first_data_blocks_address;
     block_index_t last_data_block_address;
     unsigned int block_size;
-    unsigned long int crc_polynomial ECCType ecc_type;
+    unsigned long int crc_polynomial;
+    size_t rs_correctable_bytes;
+    ECCType ecc_type;
 };
