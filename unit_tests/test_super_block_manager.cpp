@@ -19,13 +19,14 @@ TEST(SuperBlockManager, WriteAndReadConsistency)
 
     SuperBlockManager writer(disk);
 
-    SuperBlock sb { .total_blocks = 100,
+    SuperBlock sb {
+        .total_blocks = 100,
         .total_inodes = 200,
         .block_bitmap_address = 1,
         .inode_bitmap_address = 2,
         .inode_table_address = 3,
         .journal_address = 4,
-        .data_blocks_address = 5 };
+    };
 
     auto write_res = writer.put(sb);
     ASSERT_TRUE(write_res.has_value())
@@ -45,5 +46,4 @@ TEST(SuperBlockManager, WriteAndReadConsistency)
     EXPECT_EQ(sb.inode_bitmap_address, sb_read.inode_bitmap_address);
     EXPECT_EQ(sb.inode_table_address, sb_read.inode_table_address);
     EXPECT_EQ(sb.journal_address, sb_read.journal_address);
-    EXPECT_EQ(sb.data_blocks_address, sb_read.data_blocks_address);
 }
