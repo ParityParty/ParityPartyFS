@@ -30,9 +30,9 @@ public:
      * If the data exceeds the block size, it will be truncated.
      * @param data The buffer containing data to be written.
      * @param data_location The block index and offset specifying where to write the data.
-     * @return On success, returns the number of bytes written; otherwise returns a DiskError.
+     * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
-    std::expected<size_t, DiskError> writeBlock(
+    std::expected<size_t, FsError> writeBlock(
         const std::vector<std::byte>& data, DataLocation data_location) override;
 
     /**
@@ -40,15 +40,15 @@ public:
      * If the requested bytes exceed the block size, they will be truncated.
      * @param data_location The block index and offset specifying where to start reading.
      * @param bytes_to_read The number of bytes requested to be read.
-     * @return On success, returns a vector of bytes read; otherwise returns a DiskError.
+     * @return On success, returns a vector of bytes read; otherwise returns a FsError.
      */
-    std::expected<std::vector<std::byte>, DiskError> readBlock(
+    std::expected<std::vector<std::byte>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     /**
      * This function does nothing - every state is valid.
      */
-    std::expected<void, DiskError> formatBlock(unsigned int block_index) override;
+    std::expected<void, FsError> formatBlock(unsigned int block_index) override;
 
     /**
      * Returns the raw block size, all metadata included.

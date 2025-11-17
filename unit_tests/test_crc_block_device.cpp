@@ -87,7 +87,7 @@ TEST(CrcBlockDevice, FindsError)
     ASSERT_TRUE(disk.write(1, { static_cast<std::byte>(0x01) }).has_value());
 
     auto read_ret = crc.readBlock({ 0, 0 }, data_size);
-    EXPECT_EQ(read_ret.error(), DiskError::CorrectionError);
+    EXPECT_EQ(read_ret.error(), FsError::CorrectionError);
 }
 
 TEST(CrcBlockDevice, FindEnoughErrors)
@@ -109,7 +109,7 @@ TEST(CrcBlockDevice, FindEnoughErrors)
     ASSERT_TRUE(disk.write(200, { static_cast<std::byte>(0x02) }).has_value());
 
     auto read_ret = crc.readBlock({ 0, 0 }, data_size);
-    EXPECT_EQ(read_ret.error(), DiskError::CorrectionError);
+    EXPECT_EQ(read_ret.error(), FsError::CorrectionError);
 }
 
 TEST(CrcBlockDevice, FindEvenMoreErrors)
@@ -133,5 +133,5 @@ TEST(CrcBlockDevice, FindEvenMoreErrors)
     ASSERT_TRUE(disk.write(20, { static_cast<std::byte>(0x02) }).has_value());
 
     auto read_ret = crc.readBlock({ 0, 0 }, data_size);
-    EXPECT_EQ(read_ret.error(), DiskError::CorrectionError);
+    EXPECT_EQ(read_ret.error(), FsError::CorrectionError);
 }

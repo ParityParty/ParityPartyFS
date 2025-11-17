@@ -13,7 +13,7 @@ struct ISuperBlockManager {
      *
      * @return Superblock on success, error otherwise
      */
-    std::expected<SuperBlock, DiskError> get();
+    std::expected<SuperBlock, FsError> get();
 
     /**
      * Update superblock on disk
@@ -21,5 +21,5 @@ struct ISuperBlockManager {
      * @param new_super_block new superblock data
      * @return void on success, error otherwise
      */
-    std::expected<void, DiskError> update(SuperBlock new_super_block);
+    std::expected<void, FsError> update(SuperBlock new_super_block);
 };

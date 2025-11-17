@@ -17,7 +17,7 @@ struct IDirectoryManager {
      * @param inode inode of a directory
      * @return list of directory entries on success, error otherwise
      */
-    std::expected<std::vector<DirectoryEntry>, DiskError> getEntries(inode_index_t inode);
+    std::expected<std::vector<DirectoryEntry>, FsError> getEntries(inode_index_t inode);
 
     /**
      * Add entry to existing directory.
@@ -26,7 +26,7 @@ struct IDirectoryManager {
      * @param entry new entry
      * @return void on success, error otherwise
      */
-    std::expected<void, DiskError> addEntry(inode_index_t directory, DirectoryEntry entry);
+    std::expected<void, FsError> addEntry(inode_index_t directory, DirectoryEntry entry);
 
     /**
      * Remove entry from a directory
@@ -35,5 +35,5 @@ struct IDirectoryManager {
      * @param entry inode of entry to be removed
      * @return void on success, error otherwise
      */
-    std::expected<void, DiskError> removeEntry(inode_index_t directory, inode_index_t entry);
+    std::expected<void, FsError> removeEntry(inode_index_t directory, inode_index_t entry);
 };
