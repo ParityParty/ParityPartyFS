@@ -1,16 +1,18 @@
 #pragma once
+#include "blockdevice/ecc_type.hpp"
 #include "common/types.hpp"
 
 #include <cstdint>
 
-struct SuperBlock {
+struct __attribute__((packed)) SuperBlock {
     block_index_t total_blocks;
-    block_index_t free_blocks;
     block_index_t total_inodes;
-    block_index_t free_inodes;
     block_index_t block_bitmap_address;
     block_index_t inode_bitmap_address;
     block_index_t inode_table_address;
     block_index_t journal_address;
-    block_index_t data_blocks_address;
+    block_index_t first_data_blocks_address;
+    block_index_t last_data_block_address;
+    unsigned int block_size;
+    unsigned long int crc_polynomial ECCType ecc_type;
 };
