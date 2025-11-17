@@ -41,12 +41,18 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
         }
         return _bit_count - _ones_count.value();
     }
+
     std::uint32_t count = 0;
     for (int block = 0; block < _blockSpanned() - 1; block++) {
         auto block_data = _block_device.readBlock(
             DataLocation { _start_block + block, 0 }, _block_device.dataSize());
         if (!block_data.has_value()) {
             return std::unexpected(block_data.error());
+        }
+        for (auto byte : block_data.value()) {
+            for (std::uint8_t bit { 1 }; bit < std::uint8_t { 8 }; bit << 1) {
+                count += static_cast<std::uint32_t>(byte & bit);
+            }
         }
     }
 }
