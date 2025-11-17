@@ -33,9 +33,9 @@ public:
      *
      * This function writes important metadata into a disk
      *
-     * @return returns void on success or DiskError in case of an error
+     * @return returns void on success or FsError in case of an error
      */
-    std::expected<void, DiskError> formatDisk();
+    std::expected<void, FsError> formatDisk();
 
     /**
      * Retrieves the root directory path of the filesystem.
@@ -57,18 +57,18 @@ private:
     std::string _root_path = "/";
 
     IBlockDevice& _block_device;
-    
+
     unsigned int _root_dir_block;
 
     SuperBlock _super_block;
     FileAllocationTable _fat;
     Directory _root_dir;
 
-    std::expected<void, DiskError> _createFile(const std::string& name);
-    std::expected<void, DiskError> _removeFile(const DirectoryEntry& entry);
-    std::expected<std::vector<std::byte>, DiskError> _readFile(
+    std::expected<void, FsError> _createFile(const std::string& name);
+    std::expected<void, FsError> _removeFile(const DirectoryEntry& entry);
+    std::expected<std::vector<std::byte>, FsError> _readFile(
         const DirectoryEntry& entry, size_t size, size_t offset);
-    std::expected<void, DiskError> _writeFile(
+    std::expected<void, FsError> _writeFile(
         DirectoryEntry& entry, const std::vector<std::byte>& data, size_t offset);
 
     /**
@@ -76,9 +76,10 @@ private:
      *
      * @param data data to be written to disk
      * @param address start address
-     * @return returns DiskError on error, void otherwise
+     * @return returns FsError on error, void otherwise
      */
-    std::expected<void, DiskError> _writeBytes(const std::vector<std::byte>& data, DataLocation address);
+    std::expected<void, FsError> _writeBytes(
+        const std::vector<std::byte>& data, DataLocation address);
 
     /**
      * Method finds address in memory of offset of given file
@@ -87,8 +88,9 @@ private:
      * @param offset offset
      * @return returns memory address on success, error otherwise
      */
-    std::expected<DataLocation, DiskError> _findFileOffset(const DirectoryEntry& entry, size_t offset);
-    std::expected<void, DiskError> _truncateFile(DirectoryEntry& entry, size_t size);
+    std::expected<DataLocation, FsError> _findFileOffset(
+        const DirectoryEntry& entry, size_t offset);
+    std::expected<void, FsError> _truncateFile(DirectoryEntry& entry, size_t size);
 
-    std::expected<void, DiskError> _flushChanges();
+    std::expected<void, FsError> _flushChanges();
 };

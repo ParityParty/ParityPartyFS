@@ -1,35 +1,30 @@
 #include "blockdevice/raw_block_device.hpp"
 
 RawBlockDevice::RawBlockDevice(size_t block_size, IDisk& disk)
-    : _block_size(block_size), _disk(disk)
+    : _block_size(block_size)
+    , _disk(disk)
 {
 }
 
-size_t RawBlockDevice::rawBlockSize() const
-{
-    return _block_size;
-}
+size_t RawBlockDevice::rawBlockSize() const { return _block_size; }
 
-size_t RawBlockDevice::dataSize() const
-{
-    return _block_size;
-}
+size_t RawBlockDevice::dataSize() const { return _block_size; }
 
-std::expected<size_t, DiskError> RawBlockDevice::writeBlock(
+std::expected<size_t, FsError> RawBlockDevice::writeBlock(
     const std::vector<std::byte>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), _block_size - data_location.offset);
 
     size_t address = data_location.block_index * _block_size + data_location.offset;
-    auto disk_result = _disk.write(address, {data.begin(), data.begin() + to_write});
+    auto disk_result = _disk.write(address, { data.begin(), data.begin() + to_write });
     if (!disk_result.has_value()) {
         return std::unexpected(disk_result.error());
     }
-    
+
     return to_write;
 }
 
-std::expected<std::vector<std::byte>, DiskError> RawBlockDevice::readBlock(
+std::expected<std::vector<std::byte>, FsError> RawBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read)
 {
     size_t to_read = std::min(bytes_to_read, _block_size - data_location.offset);
@@ -38,13 +33,9 @@ std::expected<std::vector<std::byte>, DiskError> RawBlockDevice::readBlock(
     return _disk.read(address, to_read);
 }
 
-std::expected<void, DiskError> RawBlockDevice::formatBlock(unsigned int block_index) {
-    return {};
-}
+std::expected<void, FsError> RawBlockDevice::formatBlock(unsigned int block_index) { return {}; }
 
-size_t RawBlockDevice::numOfBlocks() const {
-    return _disk.size() / _block_size;
-}
+size_t RawBlockDevice::numOfBlocks() const { return _disk.size() / _block_size; }
 
 DataLocation::DataLocation(int block_index, size_t offset)
     : block_index(block_index)

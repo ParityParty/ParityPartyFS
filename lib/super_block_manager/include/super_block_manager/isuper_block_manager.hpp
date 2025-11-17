@@ -13,7 +13,7 @@ struct ISuperBlockManager {
      *
      * @return Superblock on success, error otherwise
      */
-    std::expected<SuperBlock, DiskError> get();
+    std::expected<SuperBlock, FsError> get();
 
     /**
      * Writes a new superblock to disk, creating a zero version.

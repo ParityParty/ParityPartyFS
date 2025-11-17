@@ -14,7 +14,7 @@ struct IBlockManager {
      * @param block block index to be reserved, indexed from the first data block
      * @return void on success, error otherwise
      */
-    std::expected<void, DiskError> reserve(block_index_t block);
+    std::expected<void, FsError> reserve(block_index_t block);
 
     /**
      * Mark block as free
@@ -22,26 +22,26 @@ struct IBlockManager {
      * @param block block that wants to break free
      * @return void on success, error otherwise
      */
-    std::expected<void, DiskError> free(block_index_t block);
+    std::expected<void, FsError> free(block_index_t block);
 
     /**
      * Get one free block
      *
      * @return index of a free block on success, error otherwise
      */
-    std::expected<block_index_t, DiskError> getFree();
+    std::expected<block_index_t, FsError> getFree();
 
     /**
      * Calculate number of free blocks
      *
      * @return number of free data blocks on disk
      */
-    std::expected<unsigned int, DiskError> numFree();
+    std::expected<unsigned int, FsError> numFree();
 
     /**
      * Get total number of data blocks
      *
      * @return total number of data blocks
      */
-    std::expected<unsigned int, DiskError> numTotal();
+    std::expected<unsigned int, FsError> numTotal();
 };

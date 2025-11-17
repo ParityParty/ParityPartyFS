@@ -12,8 +12,7 @@ HammingBlockDevice::HammingBlockDevice(int block_size_power, IDisk& disk)
     _data_size = _block_size - parity_bytes;
 }
 
-std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::_readAndFixBlock(
-    int block_index)
+std::expected<std::vector<std::byte>, FsError> HammingBlockDevice::_readAndFixBlock(int block_index)
 {
     auto read_result = _disk.read(block_index * _block_size, _block_size);
     if (!read_result.has_value()) {
@@ -45,7 +44,7 @@ std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::_readAndFix
         }
     } else {
         if (error_position != 0) {
-            return std::unexpected(DiskError::CorrectionError);
+            return std::unexpected(FsError::CorrectionError);
         }
     }
 
@@ -97,7 +96,7 @@ std::vector<std::byte> HammingBlockDevice::_encodeData(const std::vector<std::by
     return encoded_data;
 }
 
-std::expected<size_t, DiskError> HammingBlockDevice::writeBlock(
+std::expected<size_t, FsError> HammingBlockDevice::writeBlock(
     const std::vector<std::byte>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), _data_size - data_location.offset);
@@ -120,7 +119,7 @@ std::expected<size_t, DiskError> HammingBlockDevice::writeBlock(
     return to_write;
 }
 
-std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::readBlock(
+std::expected<std::vector<std::byte>, FsError> HammingBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read)
 {
     bytes_to_read = std::min(_data_size - data_location.offset, bytes_to_read);
@@ -136,11 +135,11 @@ std::expected<std::vector<std::byte>, DiskError> HammingBlockDevice::readBlock(
         decoded_data.begin() + data_location.offset + bytes_to_read);
 }
 
-std::expected<void, DiskError> HammingBlockDevice::formatBlock(unsigned int block_index)
+std::expected<void, FsError> HammingBlockDevice::formatBlock(unsigned int block_index)
 {
     std::vector<std::byte> zero_data(_block_size, std::byte(0));
     auto write_result = _disk.write(block_index * _block_size, zero_data);
-    return write_result.has_value() ? std::expected<void, DiskError> {}
+    return write_result.has_value() ? std::expected<void, FsError> {}
                                     : std::unexpected(write_result.error());
 }
 
