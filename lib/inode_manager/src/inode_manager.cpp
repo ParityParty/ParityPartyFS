@@ -7,8 +7,8 @@ InodeManager::InodeManager(IBlockDevice& block_device, SuperBlock& superblock)
 {
 }
 
-std::expected<inode_index_t, DiskError> InodeManager::create(Inode inode) { }
+std::expected<inode_index_t, FsError> InodeManager::create(Inode inode) { return 0; }
 
-std::expected<void, DiskError> InodeManager::remove(inode_index_t inode) { }
-std::expected<Inode, DiskError> InodeManager::get(inode_index_t inode) { }
-std::expected<unsigned int, DiskError> InodeManager::numFree() { }
+std::expected<void, FsError> InodeManager::remove(inode_index_t inode) { return {}; }
+std::expected<Inode, FsError> InodeManager::get(inode_index_t inode) { return Inode {}; }
+std::expected<unsigned int, FsError> InodeManager::numFree() { return 0; }

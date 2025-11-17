@@ -71,7 +71,7 @@ std::vector<bool> CrcPolynomial::getCoefficients() const
 unsigned int CrcPolynomial::getDegree() const { return _n; }
 
 std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
-    std::vector<std::byte>& block, block_index_t block_index)
+    std::vector<std::uint8_t>& block, block_index_t block_index)
 {
     // Get data bits
     auto block_bits = BitHelpers::blockToBits({ block.begin(), block.begin() + dataSize() });
@@ -94,7 +94,7 @@ std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
     }
     return {};
 }
-std::expected<std::vector<std::byte>, FsError> CrcBlockDevice::_readAndCheckRaw(
+std::expected<std::vector<std::uint8_t>, FsError> CrcBlockDevice::_readAndCheckRaw(
     block_index_t block_index)
 {
     auto bytes_res = _disk.read(block_index * _block_size, _block_size);
@@ -125,7 +125,7 @@ CrcBlockDevice::CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t blo
 }
 
 std::expected<size_t, FsError> CrcBlockDevice::writeBlock(
-    const std::vector<std::byte>& data, DataLocation data_location)
+    const std::vector<std::uint8_t>& data, DataLocation data_location)
 {
     auto read_res = _readAndCheckRaw(data_location.block_index);
     if (!read_res.has_value()) {
@@ -141,7 +141,7 @@ std::expected<size_t, FsError> CrcBlockDevice::writeBlock(
     return to_write;
 }
 
-std::expected<std::vector<std::byte>, FsError> CrcBlockDevice::readBlock(
+std::expected<std::vector<std::uint8_t>, FsError> CrcBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read)
 {
     auto read_ret = _readAndCheckRaw(data_location.block_index);
@@ -165,7 +165,7 @@ size_t CrcBlockDevice::numOfBlocks() const { return _disk.size() / _block_size; 
 
 std::expected<void, FsError> CrcBlockDevice::formatBlock(unsigned int block_index)
 {
-    std::vector<std::byte> data(_block_size, static_cast<std::byte>(0x00));
+    std::vector<std::uint8_t> data(_block_size, static_cast<std::uint8_t>(0x00));
     auto ret = _calculateAndWrite(data, block_index);
     if (!ret.has_value()) {
         return std::unexpected(ret.error());

@@ -12,9 +12,8 @@ class InodeManager : public IInodeManager {
 public:
     InodeManager(IBlockDevice& block_device, SuperBlock& superblock);
 
-    virtual std::expected<inode_index_t, DiskError> create(Inode inode) override;
-    virtual std::expected<void, DiskError> remove(inode_index_t inode) override;
-    virtual std::expected<Inode, DiskError> get(inode_index_t inode) override;
-    virtual std::expected<unsigned int, DiskError> numFree() override;
-    virtual std::expected<unsigned int, DiskError> numTotal() override;
+    virtual std::expected<inode_index_t, FsError> create(Inode inode) override;
+    virtual std::expected<void, FsError> remove(inode_index_t inode) override;
+    virtual std::expected<Inode, FsError> get(inode_index_t inode) override;
+    virtual std::expected<unsigned int, FsError> numFree() override;
 };

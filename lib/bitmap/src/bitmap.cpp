@@ -33,7 +33,7 @@ Bitmap::Bitmap(IBlockDevice& block_device, block_index_t start_block, size_t bit
 {
 }
 
-std::expected<std::uint32_t, BitmapError> Bitmap::count(bool value)
+std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
 {
     if (_ones_count.has_value()) {
         if (value) {
@@ -86,7 +86,7 @@ std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
 
     auto location = _getByteLocation(bit_index);
 
-    auto write_ret = _block_device.writeBlock({ static_cast<std::byte>(byte) }, location);
+    auto write_ret = _block_device.writeBlock({ static_cast<std::uint8_t>(byte) }, location);
     if (write_ret.has_value()) {
         return {};
     };
@@ -119,8 +119,8 @@ std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
 std::expected<void, FsError> Bitmap::setAll(bool value)
 {
     auto blocks_spanned = _blockSpanned();
-    auto value_byte = value ? std::byte { 0xff } : std::byte { 0x00 };
-    std::vector<std::byte> block_data { _block_device.dataSize(), value_byte };
+    std::uint8_t value_byte = value ? 0xff : 0x00;
+    auto block_data = std::vector<std::uint8_t>(_block_device.dataSize(), value_byte);
     for (int block = 0; block < blocks_spanned - 1; block++) {
         auto ret = _block_device.writeBlock(block_data, { _start_block + block, 0 });
         if (!ret.has_value()) {

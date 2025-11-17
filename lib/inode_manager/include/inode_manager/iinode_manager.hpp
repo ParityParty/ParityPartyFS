@@ -43,11 +43,4 @@ struct IInodeManager {
      * @return number of free inodes on success, error otherwise
      */
     virtual std::expected<unsigned int, FsError> numFree() = 0;
-
-    /**
-     * Get total number of inodes
-     *
-     * @return total number of inodes on success, error otherwise
-     */
-    virtual std::expected<unsigned int, FsError> numTotal() = 0;
 };

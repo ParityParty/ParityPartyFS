@@ -14,15 +14,15 @@ SuperBlock::SuperBlock(unsigned int num_blocks, unsigned int block_size,
 {
 }
 
-void appendBytes(std::vector<std::byte>& out, const void* src, size_t size)
+void appendBytes(std::vector<std::uint8_t>& out, const void* src, size_t size)
 {
-    auto p = reinterpret_cast<const std::byte*>(src);
+    auto p = reinterpret_cast<const std::uint8_t*>(src);
     out.insert(out.end(), p, p + size);
 }
 
-std::vector<std::byte> SuperBlock::toBytes() const
+std::vector<std::uint8_t> SuperBlock::toBytes() const
 {
-    std::vector<std::byte> out;
+    std::vector<std::uint8_t> out;
     appendBytes(out, &num_blocks, sizeof(num_blocks));
     appendBytes(out, &block_size, sizeof(block_size));
     appendBytes(out, &fat_block_start, sizeof(fat_block_start));
@@ -31,7 +31,7 @@ std::vector<std::byte> SuperBlock::toBytes() const
     return out;
 }
 
-SuperBlock SuperBlock::fromBytes(const std::vector<std::byte>& bytes)
+SuperBlock SuperBlock::fromBytes(const std::vector<std::uint8_t>& bytes)
 {
     size_t offset = 0;
 
@@ -64,7 +64,7 @@ FileAllocationTable::FileAllocationTable(std::vector<int> fat)
 {
 }
 
-FileAllocationTable FileAllocationTable::fromBytes(const std::vector<std::byte>& bytes)
+FileAllocationTable FileAllocationTable::fromBytes(const std::vector<std::uint8_t>& bytes)
 {
     const int entries = bytes.size() / sizeof(int);
 
@@ -77,10 +77,10 @@ FileAllocationTable FileAllocationTable::fromBytes(const std::vector<std::byte>&
     return { std::move(fat), std::move(dirty_entries) };
 }
 
-std::vector<std::byte> FileAllocationTable::toBytes() const
+std::vector<std::uint8_t> FileAllocationTable::toBytes() const
 {
     const size_t bytes_count = _fat.size() * sizeof(int);
-    std::vector<std::byte> out(bytes_count);
+    std::vector<std::uint8_t> out(bytes_count);
 
     std::memcpy(out.data(), _fat.data(), bytes_count);
     return out;
@@ -89,7 +89,7 @@ std::vector<std::byte> FileAllocationTable::toBytes() const
 std::expected<void, FsError> FileAllocationTable::updateFat(
     IBlockDevice& block_device, const size_t fat_start_block)
 {
-    auto bytes = std::vector<std::byte>(sizeof(int));
+    auto bytes = std::vector<std::uint8_t>(sizeof(int));
     for (int i = 0; i < _dirty_entries.size(); i++) {
         if (!_dirty_entries[i])
             continue;
@@ -150,7 +150,8 @@ std::expected<void, FatError> FileAllocationTable::freeBlocksFrom(block_index_t 
     return {};
 }
 
-DirectoryEntry DirectoryEntry::fromBytes(const std::array<std::byte, Layout::DIR_ENTRY_SIZE>& bytes)
+DirectoryEntry DirectoryEntry::fromBytes(
+    const std::array<std::uint8_t, Layout::DIR_ENTRY_SIZE>& bytes)
 {
     file_name_t file_name;
     size_t offset = 0;
@@ -167,9 +168,9 @@ DirectoryEntry DirectoryEntry::fromBytes(const std::array<std::byte, Layout::DIR
     return { file_name, start_block, file_size };
 }
 
-std::array<std::byte, Layout::DIR_ENTRY_SIZE> DirectoryEntry::toBytes() const
+std::array<std::uint8_t, Layout::DIR_ENTRY_SIZE> DirectoryEntry::toBytes() const
 {
-    std::array<std::byte, Layout::DIR_ENTRY_SIZE> out {};
+    std::array<std::uint8_t, Layout::DIR_ENTRY_SIZE> out {};
 
     // Write name including /0
     size_t offset = 0;
@@ -230,7 +231,7 @@ Directory::Directory(const std::string& name, const std::vector<DirectoryEntry>&
     this->name[name_end] = '\0';
 }
 
-Directory Directory::fromBytes(const std::vector<std::byte>& bytes)
+Directory Directory::fromBytes(const std::vector<std::uint8_t>& bytes)
 {
     std::array<char, Layout::DIR_NAME_SIZE> name;
     std::memcpy(name.data(), bytes.data(), Layout::DIR_NAME_SIZE);
@@ -240,7 +241,7 @@ Directory Directory::fromBytes(const std::vector<std::byte>& bytes)
 
     std::vector<DirectoryEntry> entries(num_entries);
 
-    std::array<std::byte, Layout::DIR_ENTRY_SIZE> entry_bytes;
+    std::array<std::uint8_t, Layout::DIR_ENTRY_SIZE> entry_bytes;
     for (int i = 0; i < num_entries; i++) {
         auto entry_begin = bytes.data() + Layout::DIR_HEADER_SIZE + i * Layout::DIR_ENTRY_SIZE;
         std::memcpy(entry_bytes.data(), entry_begin, Layout::DIR_ENTRY_SIZE);
@@ -251,9 +252,10 @@ Directory Directory::fromBytes(const std::vector<std::byte>& bytes)
     return { name, entries };
 }
 
-std::vector<std::byte> Directory::toBytes() const
+std::vector<std::uint8_t> Directory::toBytes() const
 {
-    std::vector<std::byte> bytes(Layout::DIR_HEADER_SIZE + entries.size() * Layout::DIR_ENTRY_SIZE);
+    std::vector<std::uint8_t> bytes(
+        Layout::DIR_HEADER_SIZE + entries.size() * Layout::DIR_ENTRY_SIZE);
 
     num_entries_t num_entries = entries.size();
     // copy header

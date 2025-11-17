@@ -20,13 +20,13 @@ size_t ReedSolomonBlockDevice::rawBlockSize() const { return _raw_block_size; }
 
 std::expected<void, FsError> ReedSolomonBlockDevice::formatBlock(unsigned int block_index)
 {
-    std::vector<std::byte> zero_data(_raw_block_size, std::byte(0));
+    std::vector<std::uint8_t> zero_data(_raw_block_size, std::uint8_t(0));
     auto write_result = _disk.write(block_index * _raw_block_size, zero_data);
     return write_result.has_value() ? std::expected<void, FsError> {}
                                     : std::unexpected(write_result.error());
 }
 
-std::expected<std::vector<std::byte>, FsError> ReedSolomonBlockDevice::readBlock(
+std::expected<std::vector<std::uint8_t>, FsError> ReedSolomonBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read)
 {
     bytes_to_read = std::min(dataSize() - data_location.offset, bytes_to_read);
@@ -37,12 +37,12 @@ std::expected<std::vector<std::byte>, FsError> ReedSolomonBlockDevice::readBlock
 
     auto decoded_data = _fixBlockAndExtract(raw_block.value());
 
-    return std::vector<std::byte>(decoded_data.begin() + data_location.offset,
+    return std::vector<std::uint8_t>(decoded_data.begin() + data_location.offset,
         decoded_data.begin() + data_location.offset + bytes_to_read);
 }
 
 std::expected<size_t, FsError> ReedSolomonBlockDevice::writeBlock(
-    const std::vector<std::byte>& data, DataLocation data_location)
+    const std::vector<std::uint8_t>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), dataSize() - data_location.offset);
 
@@ -65,7 +65,7 @@ std::expected<size_t, FsError> ReedSolomonBlockDevice::writeBlock(
     return to_write;
 }
 
-std::vector<std::byte> ReedSolomonBlockDevice::_encodeBlock(std::vector<std::byte> data)
+std::vector<std::uint8_t> ReedSolomonBlockDevice::_encodeBlock(std::vector<std::uint8_t> data)
 {
     int t = 2 * _correctable_bytes;
 
@@ -77,7 +77,8 @@ std::vector<std::byte> ReedSolomonBlockDevice::_encodeBlock(std::vector<std::byt
     return gf256_utils::gf_to_bytes(encoded.slice(0, _raw_block_size));
 }
 
-std::vector<std::byte> ReedSolomonBlockDevice::_fixBlockAndExtract(std::vector<std::byte> raw_bytes)
+std::vector<std::uint8_t> ReedSolomonBlockDevice::_fixBlockAndExtract(
+    std::vector<std::uint8_t> raw_bytes)
 {
     using namespace gf256_utils;
 
@@ -123,7 +124,8 @@ std::vector<std::byte> ReedSolomonBlockDevice::_fixBlockAndExtract(std::vector<s
     return _extractMessage(code_word);
 }
 
-std::vector<std::byte> ReedSolomonBlockDevice::_extractMessage(PolynomialGF256 endoced_polynomial)
+std::vector<std::uint8_t> ReedSolomonBlockDevice::_extractMessage(
+    PolynomialGF256 endoced_polynomial)
 {
     return gf256_utils::gf_to_bytes(
         endoced_polynomial.slice(2 * _correctable_bytes, _raw_block_size));

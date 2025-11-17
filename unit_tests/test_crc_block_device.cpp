@@ -62,7 +62,7 @@ TEST(CrcBlockDevice, ReadsAndWrites)
     CrcBlockDevice crc(poly, disk, 256);
 
     auto data_size = crc.dataSize();
-    std::vector<std::byte> data(data_size, static_cast<std::byte>(0x55));
+    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0x55));
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
     auto read_ret = crc.readBlock({ 0, 0 }, data_size);
@@ -79,12 +79,12 @@ TEST(CrcBlockDevice, FindsError)
     CrcBlockDevice crc(poly, disk, 256);
 
     auto data_size = crc.dataSize();
-    std::vector<std::byte> data(data_size, static_cast<std::byte>(0x00));
+    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0x00));
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
 
     // change one bit
-    ASSERT_TRUE(disk.write(1, { static_cast<std::byte>(0x01) }).has_value());
+    ASSERT_TRUE(disk.write(1, { static_cast<std::uint8_t>(0x01) }).has_value());
 
     auto read_ret = crc.readBlock({ 0, 0 }, data_size);
     EXPECT_EQ(read_ret.error(), FsError::CorrectionError);
@@ -99,14 +99,14 @@ TEST(CrcBlockDevice, FindEnoughErrors)
     CrcBlockDevice crc(poly, disk, 512);
 
     auto data_size = crc.dataSize();
-    std::vector<std::byte> data(data_size, static_cast<std::byte>(0x00));
+    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0x00));
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
 
     // change 3 bits
-    ASSERT_TRUE(disk.write(1, { static_cast<std::byte>(0x01) }).has_value());
-    ASSERT_TRUE(disk.write(111, { static_cast<std::byte>(0x08) }).has_value());
-    ASSERT_TRUE(disk.write(200, { static_cast<std::byte>(0x02) }).has_value());
+    ASSERT_TRUE(disk.write(1, { static_cast<std::uint8_t>(0x01) }).has_value());
+    ASSERT_TRUE(disk.write(111, { static_cast<std::uint8_t>(0x08) }).has_value());
+    ASSERT_TRUE(disk.write(200, { static_cast<std::uint8_t>(0x02) }).has_value());
 
     auto read_ret = crc.readBlock({ 0, 0 }, data_size);
     EXPECT_EQ(read_ret.error(), FsError::CorrectionError);
@@ -121,16 +121,16 @@ TEST(CrcBlockDevice, FindEvenMoreErrors)
     CrcBlockDevice crc(poly, disk, 512);
 
     auto data_size = crc.dataSize();
-    std::vector<std::byte> data(data_size, static_cast<std::byte>(0x00));
+    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0x00));
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
 
     // change 3 bits
-    ASSERT_TRUE(disk.write(1, { static_cast<std::byte>(0x01) }).has_value());
-    ASSERT_TRUE(disk.write(111, { static_cast<std::byte>(0x08) }).has_value());
-    ASSERT_TRUE(disk.write(200, { static_cast<std::byte>(0x02) }).has_value());
-    ASSERT_TRUE(disk.write(11, { static_cast<std::byte>(0x08) }).has_value());
-    ASSERT_TRUE(disk.write(20, { static_cast<std::byte>(0x02) }).has_value());
+    ASSERT_TRUE(disk.write(1, { static_cast<std::uint8_t>(0x01) }).has_value());
+    ASSERT_TRUE(disk.write(111, { static_cast<std::uint8_t>(0x08) }).has_value());
+    ASSERT_TRUE(disk.write(200, { static_cast<std::uint8_t>(0x02) }).has_value());
+    ASSERT_TRUE(disk.write(11, { static_cast<std::uint8_t>(0x08) }).has_value());
+    ASSERT_TRUE(disk.write(20, { static_cast<std::uint8_t>(0x02) }).has_value());
 
     auto read_ret = crc.readBlock({ 0, 0 }, data_size);
     EXPECT_EQ(read_ret.error(), FsError::CorrectionError);
