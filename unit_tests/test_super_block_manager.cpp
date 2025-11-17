@@ -1,5 +1,4 @@
 #include "blockdevice/hamming_block_device.hpp"
-#include "blockdevice/raw_block_device.hpp"
 #include "disk/stack_disk.hpp"
 #include "super_block_manager/super_block_manager.hpp"
 
@@ -8,9 +7,8 @@
 TEST(SuperBlock, Compiles)
 {
     StackDisk disk;
-    HammingBlockDevice device(8, disk);
 
-    SuperBlockManager superBlockManager(device);
+    SuperBlockManager superBlockManager(disk);
 
     EXPECT_TRUE(true);
 }
@@ -18,14 +16,11 @@ TEST(SuperBlock, Compiles)
 TEST(SuperBlockManager, WriteAndReadConsistency)
 {
     StackDisk disk;
-    RawBlockDevice block_device(512, disk);
 
-    SuperBlockManager writer(block_device);
+    SuperBlockManager writer(disk);
 
     SuperBlock sb { .total_blocks = 100,
-        .free_blocks = 50,
         .total_inodes = 200,
-        .free_inodes = 150,
         .block_bitmap_address = 1,
         .inode_bitmap_address = 2,
         .inode_table_address = 3,
@@ -36,7 +31,7 @@ TEST(SuperBlockManager, WriteAndReadConsistency)
     ASSERT_TRUE(write_res.has_value())
         << "Failed to write superblock:" << toString(write_res.error());
 
-    SuperBlockManager reader(block_device);
+    SuperBlockManager reader(disk);
 
     auto read_res = reader.get();
     ASSERT_TRUE(read_res.has_value())
@@ -45,9 +40,7 @@ TEST(SuperBlockManager, WriteAndReadConsistency)
     SuperBlock sb_read = read_res.value();
 
     EXPECT_EQ(sb.total_blocks, sb_read.total_blocks);
-    EXPECT_EQ(sb.free_blocks, sb_read.free_blocks);
     EXPECT_EQ(sb.total_inodes, sb_read.total_inodes);
-    EXPECT_EQ(sb.free_inodes, sb_read.free_inodes);
     EXPECT_EQ(sb.block_bitmap_address, sb_read.block_bitmap_address);
     EXPECT_EQ(sb.inode_bitmap_address, sb_read.inode_bitmap_address);
     EXPECT_EQ(sb.inode_table_address, sb_read.inode_table_address);

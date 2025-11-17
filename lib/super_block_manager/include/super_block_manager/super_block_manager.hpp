@@ -1,5 +1,5 @@
 #pragma once
-#include "blockdevice/iblock_device.hpp"
+#include "disk/idisk.hpp"
 #include "isuper_block_manager.hpp"
 #include "super_block_manager/isuper_block_manager.hpp"
 
@@ -21,10 +21,10 @@ struct SuperBlockEntry {
  * is the most recent one.
  */
 class SuperBlockManager : public ISuperBlockManager {
-    IBlockDevice& _block_device; /**< Underlying block device storing superblocks */
+    IDisk& _disk; /**< Underlying disk */
 
 public:
-    SuperBlockManager(IBlockDevice& block_device);
+    SuperBlockManager(IDisk& block_device);
 
     /**
      * Returns the current superblock from disk or from cache if available.
@@ -49,8 +49,8 @@ public:
 
 private:
     std::optional<SuperBlock> _superBlock; /**< Cached copy of the superblock */
-    block_index_t _endBlock; /**< Index where super blocks written at the beginning end */
-    block_index_t _startBlock; /**< Index where super blocks written at the end start */
+    block_index_t _endByte; /**< Index where super blocks written at the beginning end */
+    block_index_t _startByte; /**< Index where super blocks written at the end start */
 
     /**
      * Writes cached superblock to a specific index.

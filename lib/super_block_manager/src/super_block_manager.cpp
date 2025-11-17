@@ -7,13 +7,12 @@ SuperBlockEntry::SuperBlockEntry(block_index_t block_index)
 {
 }
 
-SuperBlockManager::SuperBlockManager(IBlockDevice& block_device)
-    : _block_device(block_device)
+SuperBlockManager::SuperBlockManager(IDisk& disk)
+    : _disk(disk)
     , _superBlock({})
 {
-    _endBlock = (2 * sizeof(SuperBlock) + _block_device.dataSize() - 1) / _block_device.dataSize();
-    _startBlock = _block_device.numOfBlocks()
-        - (sizeof(SuperBlock) + _block_device.dataSize() - 1) / _block_device.dataSize();
+    _endByte = 2 * sizeof(SuperBlock);
+    _startByte = _disk.size() - sizeof(SuperBlock);
 }
 
 std::expected<SuperBlock, DiskError> SuperBlockManager::get()
@@ -55,38 +54,15 @@ std::expected<void, DiskError> SuperBlockManager::_writeToDisk()
     std::memcpy(buffer.data(), &_superBlock.value(), sizeof(SuperBlock));
     std::memcpy(buffer.data() + sizeof(SuperBlock), &_superBlock.value(), sizeof(SuperBlock));
 
-    size_t written = 0;
-    block_index_t index = 0;
-    while (written != 2 * sizeof(SuperBlock)) {
-        auto format_res = _block_device.formatBlock(index);
-        if (!format_res.has_value())
-            return std::unexpected(format_res.error());
-
-        auto write_res = _block_device.writeBlock(
-            { buffer.begin() + written, buffer.end() }, DataLocation(index++, 0));
-        if (!write_res.has_value())
-            return std::unexpected(write_res.error());
-
-        written += write_res.value();
-    }
+    auto write_res = _disk.write(0, buffer);
+    if (!write_res.has_value())
+        return std::unexpected(write_res.error());
 
     // write at the end
 
-    written = 0;
-    index = _startBlock; // todo
-    while (written != sizeof(SuperBlock)) {
-        auto format_res = _block_device.formatBlock(index);
-        if (!format_res.has_value())
-            return std::unexpected(format_res.error());
-
-        auto write_res = _block_device.writeBlock(
-            { buffer.begin() + written, buffer.begin() + sizeof(SuperBlock) },
-            DataLocation(index++, 0));
-        if (!write_res.has_value())
-            return std::unexpected(write_res.error());
-
-        written += write_res.value();
-    }
+    write_res = _disk.write(_startByte, { buffer.begin(), buffer.begin() + sizeof(SuperBlock) });
+    if (!write_res.has_value())
+        return std::unexpected(write_res.error());
 
     return {};
 }
@@ -98,30 +74,17 @@ std::expected<SuperBlock, DiskError> SuperBlockManager::_readFromDisk()
     buffer.reserve(sizeof(SuperBlock) * 3);
 
     // read from the beginninng
-    block_index_t block_index = 0;
-    while (read != sizeof(SuperBlock) * 2) {
-        auto read_res = _block_device.readBlock(
-            DataLocation(block_index++, 0), sizeof(SuperBlock) * 2 - read);
-        if (!read_res.has_value())
-            return std::unexpected(read_res.error());
-
-        read += read_res.value().size();
-        buffer.insert(buffer.end(), read_res.value().begin(), read_res.value().end());
-    }
+    auto read_res = _disk.read(0, 2 * sizeof(SuperBlock));
+    if (!read_res.has_value())
+        return std::unexpected(read_res.error());
+    buffer.insert(buffer.end(), read_res.value().begin(), read_res.value().end());
 
     // read from the end
 
-    read = 0;
-    block_index = _startBlock;
-    while (read != sizeof(SuperBlock)) {
-        auto read_res
-            = _block_device.readBlock(DataLocation(block_index++, 0), sizeof(SuperBlock) - read);
-        if (!read_res.has_value())
-            return std::unexpected(read_res.error());
-
-        read += read_res.value().size();
-        buffer.insert(buffer.end(), read_res.value().begin(), read_res.value().end());
-    }
+    read_res = _disk.read(_startByte, sizeof(SuperBlock));
+    if (!read_res.has_value())
+        return std::unexpected(read_res.error());
+    buffer.insert(buffer.end(), read_res.value().begin(), read_res.value().end());
 
     SuperBlock sb1;
     SuperBlock sb2;
