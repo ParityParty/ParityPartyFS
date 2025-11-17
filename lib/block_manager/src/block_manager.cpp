@@ -2,6 +2,16 @@
 
 #include "bitmap/bitmap.hpp"
 
+block_index_t BlockManager::_toRelative(block_index_t absolute_block) const
+{
+    return absolute_block - _data_blocks_start;
+}
+
+block_index_t BlockManager::_toAbsolute(block_index_t relative_block) const
+{
+    return relative_block + _data_blocks_start;
+}
+
 BlockManager::BlockManager(
     block_index_t blocks_start, block_index_t space_for_data_blocks, IBlockDevice& block_device)
     : _bitmap(block_device, blocks_start, space_for_data_blocks)
@@ -22,6 +32,7 @@ std::expected<void, FsError> BlockManager::format()
 
 std::expected<void, FsError> BlockManager::reserve(block_index_t block)
 {
+    block = _toRelative(block);
     auto read_ret = _bitmap.getBit(block);
     if (!read_ret.has_value()) {
         return std::unexpected(read_ret.error());
@@ -48,6 +59,7 @@ std::expected<void, FsError> BlockManager::reserve(block_index_t block)
 
 std::expected<void, FsError> BlockManager::free(block_index_t block)
 {
+    block = _toRelative(block);
     auto read_ret = _bitmap.getBit(block);
     if (!read_ret.has_value()) {
         return std::unexpected(read_ret.error());
@@ -73,7 +85,14 @@ std::expected<void, FsError> BlockManager::free(block_index_t block)
     return {};
 }
 
-std::expected<block_index_t, FsError> BlockManager::getFree() { return _bitmap.getFirstEq(false); }
+std::expected<block_index_t, FsError> BlockManager::getFree()
+{
+    auto get_ret = _bitmap.getFirstEq(false);
+    if (!get_ret.has_value()) {
+        return std::unexpected(get_ret.error());
+    }
+    return _toAbsolute(get_ret.value());
+}
 
 std::expected<unsigned int, FsError> BlockManager::numFree()
 {

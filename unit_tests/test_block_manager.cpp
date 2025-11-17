@@ -44,3 +44,29 @@ TEST(BlockManager, FormatsMore)
     ASSERT_TRUE(read_ret.has_value());
     EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0);
 }
+
+TEST(BlockManager, FindsFreeEasy)
+{
+    StackDisk disk;
+    RawBlockDevice device(512, disk);
+    BlockManager block_manager(1, 9, device);
+    ASSERT_TRUE(block_manager.format().has_value());
+    auto free_ret = block_manager.getFree();
+    ASSERT_TRUE(free_ret.has_value());
+    EXPECT_EQ(free_ret.value(), 2); // Start at 1 block and one block for bitmap
+}
+
+TEST(BlockManager, FindsFreeHarder)
+{
+    StackDisk disk;
+    RawBlockDevice device(512, disk);
+    BlockManager block_manager(1, 9, device);
+    ASSERT_TRUE(block_manager.format().has_value());
+    auto free_ret = block_manager.getFree();
+    ASSERT_TRUE(free_ret.has_value());
+    EXPECT_EQ(free_ret.value(), 2); // Start at 1 block and one block for bitmap
+    ASSERT_TRUE(block_manager.reserve(free_ret.value()));
+    auto next_free_ret = block_manager.getFree();
+    ASSERT_TRUE(next_free_ret.has_value());
+    EXPECT_EQ(next_free_ret.value(), 3);
+}

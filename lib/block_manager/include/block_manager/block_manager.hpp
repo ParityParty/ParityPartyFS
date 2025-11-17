@@ -12,6 +12,9 @@ class BlockManager : public IBlockManager {
     block_index_t _num_data_blocks;
     std::optional<unsigned int> _num_free_blocks;
 
+    block_index_t _toRelative(block_index_t absolute_block) const;
+    block_index_t _toAbsolute(block_index_t relative_block) const;
+
 public:
     /**
      * @param blocks_start Start of bitmap + data blocks region
