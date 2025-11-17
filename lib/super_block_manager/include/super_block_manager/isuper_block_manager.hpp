@@ -22,5 +22,5 @@ struct ISuperBlockManager {
      * @param new_super_block SuperBlock to be written.
      * @return void on success; DiskError on failure.
      */
-    std::expected<void, DiskError> put(SuperBlock new_super_block);
+    std::expected<void, FsError> put(SuperBlock new_super_block);
 };

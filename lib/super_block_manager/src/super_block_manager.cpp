@@ -15,7 +15,7 @@ SuperBlockManager::SuperBlockManager(IDisk& disk)
     _startByte = _disk.size() - sizeof(SuperBlock);
 }
 
-std::expected<SuperBlock, DiskError> SuperBlockManager::get()
+std::expected<SuperBlock, FsError> SuperBlockManager::get()
 {
     if (_superBlock.has_value()) {
         return _superBlock.value();
@@ -31,7 +31,7 @@ std::expected<SuperBlock, DiskError> SuperBlockManager::get()
     return _superBlock.value();
 }
 
-std::expected<void, DiskError> SuperBlockManager::put(SuperBlock new_super_block)
+std::expected<void, FsError> SuperBlockManager::put(SuperBlock new_super_block)
 {
     _superBlock = new_super_block;
 
@@ -43,10 +43,10 @@ std::expected<void, DiskError> SuperBlockManager::put(SuperBlock new_super_block
     return {};
 }
 
-std::expected<void, DiskError> SuperBlockManager::_writeToDisk()
+std::expected<void, FsError> SuperBlockManager::_writeToDisk()
 {
     if (!_superBlock.has_value())
-        return std::unexpected(DiskError::InvalidRequest);
+        return std::unexpected(FsError::InvalidRequest);
 
     // write at the beggining
 
@@ -67,7 +67,7 @@ std::expected<void, DiskError> SuperBlockManager::_writeToDisk()
     return {};
 }
 
-std::expected<SuperBlock, DiskError> SuperBlockManager::_readFromDisk()
+std::expected<SuperBlock, FsError> SuperBlockManager::_readFromDisk()
 {
     size_t read = 0;
     std::vector<std::byte> buffer;

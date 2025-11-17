@@ -29,18 +29,18 @@ public:
     /**
      * Returns the current superblock from disk or from cache if available.
      *
-     * @return On success, the SuperBlock; on failure, DiskError.
+     * @return On success, the SuperBlock; on failure, FsError.
      */
-    std::expected<SuperBlock, DiskError> get();
+    std::expected<SuperBlock, FsError> get();
 
     /**
      * Writes a new superblock to disk, creating a zero version.
      * Only to be used during disk formatting
      *
      * @param new_super_block SuperBlock to be written.
-     * @return void on success; DiskError on failure.
+     * @return void on success; FsError on failure.
      */
-    std::expected<void, DiskError> put(SuperBlock new_super_block);
+    std::expected<void, FsError> put(SuperBlock new_super_block);
 
     /**
      * Returns block indexes which are occupied by super blocks
@@ -55,12 +55,12 @@ private:
     /**
      * Writes cached superblock to a specific index.
      */
-    std::expected<void, DiskError> _writeToDisk();
+    std::expected<void, FsError> _writeToDisk();
 
     /**
      * Reads superblock from disk and returns it.
      */
-    std::expected<SuperBlock, DiskError> _readFromDisk();
+    std::expected<SuperBlock, FsError> _readFromDisk();
 
     /**
      * Constructs manager.
