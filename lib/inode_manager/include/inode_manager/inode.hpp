@@ -2,6 +2,7 @@
 #include "common/types.hpp"
 
 #include <array>
+#include <cstdint>
 
 enum FileType {
     File,
@@ -14,11 +15,9 @@ enum FileType {
  * Inode is assumed to have allocated enough data blocks to contain all data. All unoccupied block
  * pointers have undefied values. Time values are unix time in milliseconds.
  */
-struct Inode {
-    FileType type;
-    unsigned int file_size;
-    unsigned long int time_creation;
-    unsigned long int time_modified;
+struct __attribute__((packed)) Inode {
+    std::uint64_t time_creation;
+    std::uint64_t time_modified;
     /**
      * First 12 block pointers are stored directly in the inode.
      */
@@ -35,4 +34,7 @@ struct Inode {
      * Points to block with pointers to doubly indirect blocks
      */
     block_index_t trebly_indirect_block;
+
+    std::uint32_t file_size;
+    FileType type;
 };

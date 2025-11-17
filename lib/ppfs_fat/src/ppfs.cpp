@@ -158,7 +158,7 @@ int PpFS::write(
         return -ENOENT;
     }
 
-    std::vector<std::byte> data(size);
+    std::vector<std::uint8_t> data(size);
     std::memcpy(data.data(), buf, size);
     auto ret_write = ptr->_writeFile(ret.value(), data, offset);
     if (!ret_write.has_value()) {
@@ -312,11 +312,11 @@ std::expected<void, FsError> PpFS::_removeFile(const DirectoryEntry& entry)
     _root_dir.removeEntry(entry);
     return {};
 }
-std::expected<std::vector<std::byte>, FsError> PpFS::_readFile(
+std::expected<std::vector<std::uint8_t>, FsError> PpFS::_readFile(
     const DirectoryEntry& entry, size_t size, size_t offset)
 {
     // reserve data upfront to avoid multiple allocations
-    std::vector<std::byte> data;
+    std::vector<std::uint8_t> data;
     data.reserve(size);
 
     auto ret_find = _findFileOffset(entry, offset);
@@ -351,7 +351,7 @@ std::expected<std::vector<std::byte>, FsError> PpFS::_readFile(
 }
 
 std::expected<void, FsError> PpFS::_writeFile(
-    DirectoryEntry& entry, const std::vector<std::byte>& data, size_t offset)
+    DirectoryEntry& entry, const std::vector<std::uint8_t>& data, size_t offset)
 {
     auto ret = _findFileOffset(entry, offset);
     if (!ret.has_value()) {
@@ -370,7 +370,7 @@ std::expected<void, FsError> PpFS::_writeFile(
     return {};
 }
 std::expected<void, FsError> PpFS::_writeBytes(
-    const std::vector<std::byte>& data, DataLocation address)
+    const std::vector<std::uint8_t>& data, DataLocation address)
 {
     // TODO: I think we can simplify this logic even more in the future
     size_t written = 0;

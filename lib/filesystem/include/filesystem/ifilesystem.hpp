@@ -68,7 +68,7 @@ struct IFilesystem {
      * @param size amount of bytes to read
      * @return vector of bytes on success, error otherwise
      */
-    std::expected<std::vector<std::byte>, FsError> read(
+    std::expected<std::vector<std::uint8_t>, FsError> read(
         inode_index_t inode, size_t offset, size_t size);
 
     /**
@@ -83,7 +83,7 @@ struct IFilesystem {
      * @return void on success, error otherwise
      */
     std::expected<void, FsError> write(
-        inode_index_t inode, std::vector<std::byte> buffer, size_t offset);
+        inode_index_t inode, std::vector<std::uint8_t> buffer, size_t offset);
 
     /**
      * Create new directory
