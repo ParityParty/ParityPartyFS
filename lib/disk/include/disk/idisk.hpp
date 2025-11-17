@@ -1,30 +1,23 @@
 #pragma once
+#include "common/types.hpp"
+
 #include <cstddef>
 #include <expected>
 #include <string_view>
 #include <vector>
 
-enum class DiskError {
-    IOError,
-    OutOfBounds,
-    InvalidRequest,
-    InternalError,
-    OutOfMemory,
-    CorrectionError,
-};
-
-inline std::string_view toString(DiskError err)
+inline std::string_view toString(FsError err)
 {
     switch (err) {
-    case DiskError::IOError:
+    case FsError::IOError:
         return "IOError";
-    case DiskError::OutOfBounds:
+    case FsError::OutOfBounds:
         return "OutOfBounds";
-    case DiskError::InvalidRequest:
+    case FsError::InvalidRequest:
         return "InvalidRequest";
-    case DiskError::InternalError:
+    case FsError::InternalError:
         return "InternalError";
-    case DiskError::OutOfMemory:
+    case FsError::OutOfMemory:
         return "OutOfMemory";
     default:
         return "UnknownError";
@@ -34,9 +27,8 @@ inline std::string_view toString(DiskError err)
 struct IDisk {
     virtual ~IDisk() = default;
 
-    virtual std::expected<std::vector<std::byte>, DiskError> read(size_t address, size_t size) = 0;
-    virtual std::expected<size_t, DiskError> write(
-        size_t address, const std::vector<std::byte>& data)
+    virtual std::expected<std::vector<std::byte>, FsError> read(size_t address, size_t size) = 0;
+    virtual std::expected<size_t, FsError> write(size_t address, const std::vector<std::byte>& data)
         = 0;
     virtual size_t size() = 0;
 };

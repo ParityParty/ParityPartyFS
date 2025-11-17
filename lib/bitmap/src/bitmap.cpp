@@ -11,7 +11,7 @@ DataLocation Bitmap::_getByteLocation(unsigned int bit_index)
     return { _start_block + block, offset };
 }
 
-std::expected<unsigned char, DiskError> Bitmap::_getByte(unsigned int bit_index)
+std::expected<unsigned char, FsError> Bitmap::_getByte(unsigned int bit_index)
 {
     auto location = _getByteLocation(bit_index);
     auto read_ret = _block_device.readBlock(location, 1);
@@ -51,14 +51,14 @@ std::expected<std::uint32_t, BitmapError> Bitmap::count(bool value)
     }
 }
 
-std::expected<bool, BitmapError> Bitmap::getBit(unsigned int bit_index)
+std::expected<bool, FsError> Bitmap::getBit(unsigned int bit_index)
 {
     if (bit_index >= _bit_count) {
-        return std::unexpected(BitmapError::IndexOutOfRange);
+        return std::unexpected(FsError::IndexOutOfRange);
     }
     auto byte_ret = _getByte(bit_index);
     if (!byte_ret.has_value()) {
-        return std::unexpected(BitmapError::Disk);
+        return std::unexpected(byte_ret.error());
     }
     auto byte = byte_ret.value();
 
@@ -66,14 +66,14 @@ std::expected<bool, BitmapError> Bitmap::getBit(unsigned int bit_index)
 
     return ((byte >> (7 - bit)) & 1) > 0;
 }
-std::expected<void, BitmapError> Bitmap::setBit(unsigned int bit_index, bool value)
+std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
 {
     if (bit_index >= _bit_count) {
-        return std::unexpected(BitmapError::IndexOutOfRange);
+        return std::unexpected(FsError::IndexOutOfRange);
     }
     auto byte_ret = _getByte(bit_index);
     if (!byte_ret.has_value()) {
-        return std::unexpected(BitmapError::Disk);
+        return std::unexpected(byte_ret.error());
     }
     auto byte = byte_ret.value();
     auto bit = bit_index % 8;
@@ -90,9 +90,9 @@ std::expected<void, BitmapError> Bitmap::setBit(unsigned int bit_index, bool val
     if (write_ret.has_value()) {
         return {};
     };
-    return std::unexpected(BitmapError::Disk);
+    return std::unexpected(write_ret.error());
 }
-std::expected<unsigned int, BitmapError> Bitmap::getFirstEq(bool value)
+std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
 {
     int blocks_spanned = _blockSpanned();
 
@@ -100,23 +100,23 @@ std::expected<unsigned int, BitmapError> Bitmap::getFirstEq(bool value)
         auto block_ret = _block_device.readBlock(
             DataLocation(_start_block + block, 0), _block_device.dataSize());
         if (!block_ret.has_value()) {
-            return std::unexpected(BitmapError::Disk);
+            return std::unexpected(block_ret.error());
         }
         const auto& block_data = block_ret.value();
 
         for (int i = 0; i < _block_device.dataSize() * 8; i++) {
             if (block * _block_device.dataSize() + i >= _bit_count) {
                 // there is no more value in bitmap
-                return std::unexpected(BitmapError::NotFound);
+                return std::unexpected(FsError::NotFound);
             }
             if (BitHelpers::getBit(block_data, i) == value) {
                 return block * _block_device.dataSize() + i;
             }
         }
     }
-    return std::unexpected(BitmapError::NotFound);
+    return std::unexpected(FsError::NotFound);
 }
-std::expected<void, BitmapError> Bitmap::setAll(bool value)
+std::expected<void, FsError> Bitmap::setAll(bool value)
 {
     auto blocks_spanned = _blockSpanned();
     auto value_byte = value ? std::byte { 0xff } : std::byte { 0x00 };
@@ -124,7 +124,7 @@ std::expected<void, BitmapError> Bitmap::setAll(bool value)
     for (int block = 0; block < blocks_spanned - 1; block++) {
         auto ret = _block_device.writeBlock(block_data, { _start_block + block, 0 });
         if (!ret.has_value()) {
-            return std::unexpected(BitmapError::Disk);
+            return std::unexpected(ret.error());
         }
     }
 
@@ -132,7 +132,7 @@ std::expected<void, BitmapError> Bitmap::setAll(bool value)
         { _start_block + blocks_spanned - 1, 0 }, _block_device.dataSize());
     auto last_block = last_block_ret.value();
     if (!last_block_ret.has_value()) {
-        return std::unexpected(BitmapError::Disk);
+        return std::unexpected(last_block_ret.error());
     }
     for (int bit_index = 0; bit_index < _bit_count % (_block_device.dataSize() * 8); bit_index++) {
         BitHelpers::setBit(last_block, bit_index, value);
@@ -140,7 +140,7 @@ std::expected<void, BitmapError> Bitmap::setAll(bool value)
 
     auto write_ret = _block_device.writeBlock(last_block, { _start_block + blocks_spanned - 1, 0 });
     if (!write_ret.has_value()) {
-        return std::unexpected(BitmapError::Disk);
+        return std::unexpected(write_ret.error());
     }
     return {};
 }
