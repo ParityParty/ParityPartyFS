@@ -4,10 +4,10 @@
 
 #include "disk/idisk.hpp"
 
-/** 
+/**
  * Represents a specific position on the disk defined by a block index and an offset.
  * It represents location as seen from the upper ppfs layer, not the raw disk layer.
-*/
+ */
 struct DataLocation {
     int block_index;
     size_t offset;
@@ -18,11 +18,11 @@ struct DataLocation {
 
 /**
  * Abstract interface for block-level storage operations.
- * 
+ *
  * This interface serves as a bridge between higher-level file systems (such as PPFS)
- * and the lower-level disk layer represented by @ref IDisk.  
+ * and the lower-level disk layer represented by @ref IDisk.
  * Implementations of IBlockDevice may perform additional data processing,
- * such as error correction codes (ECC), checksums and encryption,  
+ * such as error correction codes (ECC), checksums and encryption,
  * before persisting data onto the underlying disk.
  *
  * The interface provides generic read and write operations that work with
@@ -40,10 +40,11 @@ public:
      *
      * @param data The buffer of bytes to be written.
      * @param data_location The target location (block index and offset) on the device.
-     * @return On success, returns the number of bytes written; otherwise returns a DiskError.
+     * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
-    virtual std::expected<size_t, DiskError> writeBlock(
-        const std::vector<std::byte>& data, DataLocation data_location) = 0;
+    virtual std::expected<size_t, FsError> writeBlock(
+        const std::vector<std::byte>& data, DataLocation data_location)
+        = 0;
 
     /**
      * Reads a sequence of bytes from the device at a specified data location.
@@ -53,10 +54,11 @@ public:
      *
      * @param data_location The source location (block index and offset) on the device.
      * @param bytes_to_read Number of bytes to read starting from the specified location.
-     * @return On success, returns the bytes read; otherwise returns a DiskError.
+     * @return On success, returns the bytes read; otherwise returns a FsError.
      */
-    virtual std::expected<std::vector<std::byte>, DiskError> readBlock(
-        DataLocation data_location, size_t bytes_to_read) = 0;
+    virtual std::expected<std::vector<std::byte>, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read)
+        = 0;
 
     /**
      * Returns the physical (raw) block size of the underlying device.
@@ -83,9 +85,9 @@ public:
     /**
      * Formats a specific block on the device.
      * @param block_index The index of the block to format.
-     * @return On success, returns void; otherwise returns a DiskError.
-     * 
+     * @return On success, returns void; otherwise returns a FsError.
+     *
      * After formatting, the block is set to a correct state (e.g., all zeros with valid ECC).
      */
-    virtual std::expected<void, DiskError> formatBlock(unsigned int block_index) = 0;
+    virtual std::expected<void, FsError> formatBlock(unsigned int block_index) = 0;
 };

@@ -24,31 +24,31 @@ public:
      * @brief Writes a block of data to the device using Hamming encoding.
      * @param data Raw data bytes to be written.
      * @param data_location Target data location on the device (block index and offset).
-     * @return Expected number of bytes written, or a DiskError on failure.
+     * @return Expected number of bytes written, or a FsError on failure.
      *
      * Before writing, data on the target block is read and corrected if necessary.
      *
      * If size of data exceeds the data size per block, it will be truncated.
      */
-    std::expected<size_t, DiskError> writeBlock(
+    std::expected<size_t, FsError> writeBlock(
         const std::vector<std::byte>& data, DataLocation data_location) override;
 
     /**
      * @brief Reads a block of data from the device and performs Hamming error correction.
      * @param data_location Data location specifying block index and offset.
      * @param bytes_to_read Number of bytes to read.
-     * @return Expected vector of decoded data bytes, or a DiskError on failure.
+     * @return Expected vector of decoded data bytes, or a FsError on failure.
      *
      * If size of requested bytes exceeds the data size available on the block, it will be
      * truncated.
      */
-    std::expected<std::vector<std::byte>, DiskError> readBlock(
+    std::expected<std::vector<std::byte>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     /**
      * @brief Fills a specific block with zeros.
      */
-    std::expected<void, DiskError> formatBlock(unsigned int block_index) override;
+    std::expected<void, FsError> formatBlock(unsigned int block_index) override;
 
     /**
      * @brief Returns the total raw block size in bytes (including ECC bits).
@@ -72,7 +72,7 @@ private:
     std::vector<std::byte> _encodeData(const std::vector<std::byte>& data);
     std::vector<std::byte> _extractData(const std::vector<std::byte>& encoded_data);
 
-    std::expected<std::vector<std::byte>, DiskError> _readAndFixBlock(int block_index);
+    std::expected<std::vector<std::byte>, FsError> _readAndFixBlock(int block_index);
 };
 
 /**

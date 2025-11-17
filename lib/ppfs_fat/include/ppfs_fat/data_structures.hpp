@@ -32,7 +32,7 @@ public:
 
     static FileAllocationTable fromBytes(const std::vector<std::byte>& bytes);
     std::vector<std::byte> toBytes() const;
-    std::expected<void, DiskError> updateFat(IBlockDevice& block_device, size_t fat_start_address);
+    std::expected<void, FsError> updateFat(IBlockDevice& block_device, size_t fat_start_address);
 
     bool operator==(const FileAllocationTable& other) const;
     void setValue(int index, int value);

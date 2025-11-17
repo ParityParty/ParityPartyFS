@@ -69,7 +69,7 @@ class CrcBlockDevice : public IBlockDevice {
      * will be changed
      * @return void if successful, error otherwise
      */
-    std::expected<void, DiskError> _calculateAndWrite(
+    std::expected<void, FsError> _calculateAndWrite(
         std::vector<std::byte>& block, block_index_t block_index);
 
     /**
@@ -78,7 +78,7 @@ class CrcBlockDevice : public IBlockDevice {
      * @param block index of a block to read
      * @return block with redundancy bits on success, error othewise
      */
-    std::expected<std::vector<std::byte>, DiskError> _readAndCheckRaw(block_index_t block);
+    std::expected<std::vector<std::byte>, FsError> _readAndCheckRaw(block_index_t block);
 
 public:
     /**
@@ -99,9 +99,9 @@ public:
      *
      * @param data The buffer of bytes to be written.
      * @param data_location The target location (block index and offset) on the device.
-     * @return On success, returns the number of bytes written; otherwise returns a DiskError.
+     * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
-    std::expected<size_t, DiskError> writeBlock(
+    std::expected<size_t, FsError> writeBlock(
         const std::vector<std::byte>& data, DataLocation data_location) override;
 
     /**
@@ -111,9 +111,9 @@ public:
      *
      * @param data_location The source location (block index and offset) on the device.
      * @param bytes_to_read Number of bytes to read starting from the specified location.
-     * @return On success, returns the bytes read; otherwise returns a DiskError.
+     * @return On success, returns the bytes read; otherwise returns a FsError.
      */
-    std::expected<std::vector<std::byte>, DiskError> readBlock(
+    std::expected<std::vector<std::byte>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     /**
@@ -140,10 +140,10 @@ public:
     /**
      * Formats a specific block on the device.
      * @param block_index The index of the block to format.
-     * @return On success, returns void; otherwise returns a DiskError.
+     * @return On success, returns void; otherwise returns a FsError.
      *
      * After formatting, the block is set to a correct state (e.g., all zeros with valid redundancy
      * bits).
      */
-    std::expected<void, DiskError> formatBlock(unsigned int block_index) override;
+    std::expected<void, FsError> formatBlock(unsigned int block_index) override;
 };

@@ -1,10 +1,11 @@
-#include "disk/stack_disk.hpp"
 #include "blockdevice/hamming_block_device.hpp"
+#include "disk/stack_disk.hpp"
 #include <gtest/gtest.h>
 #include <random>
 
 // Helper: flip a random bit in the StackDisk's memory
-void flipBit(StackDisk& disk, size_t bitIndex) {
+void flipBit(StackDisk& disk, size_t bitIndex)
+{
     size_t byteIndex = bitIndex / 8;
     size_t bitInByte = bitIndex % 8;
 
@@ -19,7 +20,8 @@ void flipBit(StackDisk& disk, size_t bitIndex) {
 }
 
 // Helper: generate random bit index within disk size
-size_t randomBit(size_t maxBits) {
+size_t randomBit(size_t maxBits)
+{
     static std::random_device rd;
     static std::mt19937 gen(rd());
     std::uniform_int_distribution<size_t> dist(0, maxBits - 1);
@@ -31,7 +33,8 @@ TEST(HammingBlockDevice, BasicWriteRead)
     StackDisk disk;
     HammingBlockDevice hbd(4, disk); // 2^4 = 16 bytes per block
 
-    std::vector<std::byte> data = {std::byte('h'), std::byte('e'), std::byte('l'), std::byte('l'), std::byte('o')};
+    std::vector<std::byte> data
+        = { std::byte('h'), std::byte('e'), std::byte('l'), std::byte('l'), std::byte('o') };
     DataLocation loc(0, 0);
 
     auto write_res = hbd.writeBlock(data, loc);
@@ -53,7 +56,8 @@ TEST(HammingBlockDevice, SingleBitErrorIsCorrected)
     HammingBlockDevice hbd(4, disk);
     DataLocation loc(0, 0);
 
-    std::vector<std::byte> data = {std::byte('s'), std::byte('l'), std::byte('a'), std::byte('y')};
+    std::vector<std::byte> data
+        = { std::byte('s'), std::byte('l'), std::byte('a'), std::byte('y') };
     auto write_res = hbd.writeBlock(data, loc);
     ASSERT_TRUE(write_res.has_value());
 
@@ -77,7 +81,8 @@ TEST(HammingBlockDevice, DoubleBitErrorTriggersFailure)
     HammingBlockDevice hbd(4, disk);
     DataLocation loc(0, 0);
 
-    std::vector<std::byte> data = {std::byte('s'), std::byte('l'), std::byte('a'), std::byte('y')};
+    std::vector<std::byte> data
+        = { std::byte('s'), std::byte('l'), std::byte('a'), std::byte('y') };
     auto write_res = hbd.writeBlock(data, loc);
     ASSERT_TRUE(write_res.has_value());
 
@@ -85,14 +90,15 @@ TEST(HammingBlockDevice, DoubleBitErrorTriggersFailure)
     size_t totalBits = hbd.dataSize() * 8;
     size_t bit1 = randomBit(totalBits);
     size_t bit2 = randomBit(totalBits);
-    while (bit2 == bit1) bit2 = randomBit(totalBits);
+    while (bit2 == bit1)
+        bit2 = randomBit(totalBits);
 
     flipBit(disk, bit1);
     flipBit(disk, bit2);
 
     auto read_res = hbd.readBlock(loc, data.size());
     ASSERT_FALSE(read_res.has_value());
-    EXPECT_EQ(read_res.error(), DiskError::CorrectionError);
+    EXPECT_EQ(read_res.error(), FsError::CorrectionError);
 }
 
 TEST(HammingBlockDevice, MultipleRandomSingleBitCorrections)
@@ -119,7 +125,8 @@ TEST(HammingBlockDevice, MultipleRandomSingleBitCorrections)
         auto read_res = hbd.readBlock(loc, data.size());
         ASSERT_TRUE(read_res.has_value());
 
-        std::string decoded(reinterpret_cast<const char*>(read_res.value().data()), read_res.value().size());
+        std::string decoded(
+            reinterpret_cast<const char*>(read_res.value().data()), read_res.value().size());
         ASSERT_EQ(decoded, msg);
     }
 }
