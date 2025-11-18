@@ -13,4 +13,7 @@ enum class FsError {
     CorrectionError,
     IndexOutOfRange,
     NotFound,
+    AlreadyTaken,
+    AlreadyFree,
+    NotImplemented,
 };

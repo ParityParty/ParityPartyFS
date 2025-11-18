@@ -1,11 +1,8 @@
 #pragma once
 #include "blockdevice/iblock_device.hpp"
 #include "common/types.hpp"
-
 #include <cstdint>
 #include <optional>
-
-enum BitmapError { IndexOutOfRange, Disk, NotFound };
 
 /**
  * Class for working with bitmaps in disk
@@ -18,7 +15,6 @@ class Bitmap {
 
     DataLocation _getByteLocation(unsigned int bit_index);
     std::expected<unsigned char, FsError> _getByte(unsigned int bit_index);
-    int _blockSpanned() const;
 
 public:
     /**
@@ -33,4 +29,6 @@ public:
     std::expected<void, FsError> setBit(unsigned int bit_index, bool value);
     std::expected<unsigned int, FsError> getFirstEq(bool value);
     std::expected<void, FsError> setAll(bool value);
+    int blocksSpanned() const;
+    std::expected<std::uint32_t, FsError> count(bool value) const;
 };

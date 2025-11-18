@@ -148,3 +148,51 @@ TEST(Bitmap, SetAll)
         EXPECT_EQ(ret.value(), true) << "Mismatch at index: " << i;
     }
 }
+
+TEST(Bitmap, Count_allOnes)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 4, 500 * 8); // A bit less than two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(4 * 256, std::vector(512, std::uint8_t { 0xFF })));
+    auto count1 = bm.count(1);
+    auto count0 = bm.count(0);
+    ASSERT_TRUE(count1.has_value());
+    ASSERT_TRUE(count0.has_value());
+
+    EXPECT_EQ(count1.value(), 500 * 8);
+    EXPECT_EQ(count0.value(), 0);
+}
+
+TEST(Bitmap, Count_allZeros)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 4, 500 * 8); // A bit less than two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(4 * 256, std::vector(512, std::uint8_t { 0x00 })));
+    auto count1 = bm.count(1);
+    auto count0 = bm.count(0);
+    ASSERT_TRUE(count1.has_value());
+    ASSERT_TRUE(count0.has_value());
+
+    EXPECT_EQ(count0.value(), 500 * 8);
+    EXPECT_EQ(count1.value(), 0);
+}
+
+TEST(Bitmap, Count_checkerboard)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 4, 500 * 8); // A bit less than two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(4 * 256, std::vector(512, std::uint8_t { 0xAA })));
+    auto count1 = bm.count(1);
+    auto count0 = bm.count(0);
+    ASSERT_TRUE(count1.has_value());
+    ASSERT_TRUE(count0.has_value());
+
+    EXPECT_EQ(count1.value(), 500 * 8 / 2);
+    EXPECT_EQ(count1.value(), count0.value());
+}

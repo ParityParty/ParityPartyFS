@@ -63,7 +63,7 @@ class CrcBlockDevice : public IBlockDevice {
     size_t _block_size;
 
     /**
-     *  Calculate block crc and write to disk
+     * Calculate block crc and write to disk
      *
      * @param block block to be written, block has rawBlockSize bytes, redundancy bits at the end
      * will be changed
