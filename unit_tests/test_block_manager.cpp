@@ -22,7 +22,7 @@ TEST(BlockManager, Formats)
 
     auto free_ret = block_manager.numFree();
     ASSERT_TRUE(free_ret.has_value());
-    EXPECT_EQ(free_ret.value(), 7); // one byte for bitmap, 7 data blocks
+    EXPECT_EQ(free_ret.value(), 7); // one block for bitmap, 7 data blocks
     auto read_ret = (disk.read(512, 1));
     ASSERT_TRUE(read_ret.has_value());
     // 7 bits free 8th unknown
@@ -103,4 +103,23 @@ TEST(BlockManager, Frees)
     EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0b10000000);
 }
 
-// TODO: Write tests without format
+TEST(BlockManager, Counts)
+{
+    // Setup bitmap
+    StackDisk disk;
+    RawBlockDevice device(512, disk);
+    BlockManager block_manager(1, 9, device);
+    ASSERT_TRUE(block_manager.format().has_value());
+    ASSERT_TRUE(block_manager.reserve(2).has_value());
+    ASSERT_TRUE(block_manager.reserve(4).has_value());
+    auto read_ret = disk.read(512, 1);
+    ASSERT_TRUE(read_ret.has_value());
+    EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0b10100000);
+
+    // Make new manager to count
+
+    BlockManager bm2(1, 9, device);
+    auto free_ret = bm2.numFree();
+    ASSERT_TRUE(free_ret.has_value());
+    EXPECT_EQ(free_ret.value(), 6);
+}

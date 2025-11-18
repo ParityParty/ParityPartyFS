@@ -47,12 +47,12 @@ struct IBlockManager {
      *
      * @return number of free data blocks on disk
      */
-    virtual std::expected<unsigned int, FsError> numFree() = 0;
+    virtual std::expected<std::uint32_t, FsError> numFree() = 0;
 
     /**
      * Get total number of data blocks
      *
      * @return total number of data blocks
      */
-    virtual std::expected<unsigned int, FsError> numTotal() = 0;
+    virtual std::expected<std::uint32_t, FsError> numTotal() = 0;
 };
