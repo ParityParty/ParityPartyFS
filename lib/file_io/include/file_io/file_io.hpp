@@ -1,5 +1,6 @@
+#include "block_manager/iblock_manager.hpp"
 #include "blockdevice/iblock_device.hpp"
-#include "inode_manager/inode.hpp"
+#include "inode_manager/iinode_manager.hpp"
 #include <optional>
 
 class FileIO {
@@ -16,7 +17,7 @@ public:
         Inode inode, size_t offset, size_t bytes_to_read);
 
     /**
-     * Writes file with given inode. Does not resize file.
+     * Writes file with given inode. Resizes file if necessary and updates inode table.
      */
     std::expected<void, FsError> writeFile(
         Inode inode, size_t offset, std::vector<std::byte> bytes_to_write);
@@ -24,18 +25,31 @@ public:
 
 class BlockIndexIterator {
 public:
-    BlockIndexIterator(block_index_t index, Inode inode, IBlockDevice& block_device);
+    BlockIndexIterator(size_t index, Inode& inode, IBlockDevice& block_device, bool should_resize);
 
+    /**
+     * If should_resize is set to true, updates inode and find new index block if necessary.
+     * Does not update inode in inode maneger and the file size!!!
+     */
     std::optional<block_index_t> next();
 
 private:
-    block_index_t _index;
-    Inode _inode;
+    size_t _index;
+    Inode& _inode;
     IBlockDevice& _block_device;
+    IBlockManager _block_manager;
+    IInodeManager _inode_manager;
     std::optional<std::vector<block_index_t>> _index_block_1;
     std::optional<std::vector<block_index_t>> _index_block_2;
     std::optional<std::vector<block_index_t>> _index_block_3;
-    bool finished = false;
+    bool _finished = false;
+    bool _should_resize;
+    size_t _occupied_blocks;
+    bool _inode_changed = false;
 
     std::expected<std::vector<block_index_t>, FsError> _readIndexBlock(block_index_t index);
+    std::expected<void, FsError> _writeIndexBlock(
+        block_index_t index, const std::vector<block_index_t>& indices);
+
+    std::expected<block_index_t, FsError> _findAndReserveBlock();
 };
