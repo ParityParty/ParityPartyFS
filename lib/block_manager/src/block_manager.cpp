@@ -13,12 +13,13 @@ block_index_t BlockManager::_toAbsolute(block_index_t relative_block) const
 }
 
 BlockManager::BlockManager(
-    block_index_t blocks_start, block_index_t space_for_data_blocks, IBlockDevice& block_device)
-    : _bitmap(block_device, blocks_start, space_for_data_blocks)
-    , _num_free_blocks(std::nullopt)
+    block_index_t blocks_start, block_index_t space_for_data_and_bitmap, IBlockDevice& block_device)
+    : _bitmap(block_device, blocks_start,
+          (8 * block_device.dataSize() * space_for_data_and_bitmap)
+              / (1 + 8 * block_device.dataSize()))
 {
     _data_blocks_start = blocks_start + _bitmap.blocksSpanned();
-    _num_data_blocks = space_for_data_blocks - _bitmap.blocksSpanned();
+    _num_data_blocks = space_for_data_and_bitmap - _bitmap.blocksSpanned();
 }
 
 std::expected<void, FsError> BlockManager::format()
@@ -26,7 +27,6 @@ std::expected<void, FsError> BlockManager::format()
     if (auto ret = _bitmap.setAll(false); !ret.has_value()) {
         return std::unexpected(ret.error());
     }
-    _num_free_blocks = _num_data_blocks;
     return {};
 }
 
@@ -45,15 +45,6 @@ std::expected<void, FsError> BlockManager::reserve(block_index_t block)
     if (!write_ret.has_value()) {
         return std::unexpected(write_ret.error());
     }
-    if (_num_free_blocks.has_value()) {
-        _num_free_blocks = _num_free_blocks.value() - 1;
-    }
-
-    auto num_free_ret = numFree();
-    if (!num_free_ret.has_value()) {
-        return std::unexpected(num_free_ret.error());
-    }
-    _num_free_blocks = num_free_ret.value();
     return {};
 }
 
@@ -73,15 +64,6 @@ std::expected<void, FsError> BlockManager::free(block_index_t block)
         return std::unexpected(write_ret.error());
     }
 
-    if (_num_free_blocks.has_value()) {
-        _num_free_blocks = _num_free_blocks.value() + 1;
-    }
-
-    auto num_free_ret = numFree();
-    if (!num_free_ret.has_value()) {
-        return std::unexpected(num_free_ret.error());
-    }
-    _num_free_blocks = num_free_ret.value();
     return {};
 }
 
@@ -94,17 +76,6 @@ std::expected<block_index_t, FsError> BlockManager::getFree()
     return _toAbsolute(get_ret.value());
 }
 
-std::expected<unsigned int, FsError> BlockManager::numFree()
-{
-    if (_num_free_blocks.has_value()) {
-        return _num_free_blocks.value();
-    }
-    auto ret = _bitmap.count(false);
-    if (!ret.has_value()) {
-        return std::unexpected(ret.error());
-    }
-    _num_free_blocks = ret.value();
-    return _num_free_blocks.value();
-}
+std::expected<std::uint32_t, FsError> BlockManager::numFree() { return _bitmap.count(false); }
 
 std::expected<unsigned int, FsError> BlockManager::numTotal() { return _num_data_blocks; }
