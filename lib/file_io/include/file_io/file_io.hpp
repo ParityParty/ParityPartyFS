@@ -5,27 +5,29 @@
 
 class FileIO {
     IBlockDevice& _block_device;
+    IBlockManager& _block_manager;
 
     std::expected<std::vector<block_index_t>, FsError> readIndirectBlock(block_index_t block_index);
 
 public:
-    FileIO(IBlockDevice& block_device);
+    FileIO(IBlockDevice& block_device, IBlockManager& block_manager);
     /**
      * Reads file with given inode
      */
-    std::expected<std::vector<std::byte>, FsError> readFile(
-        Inode inode, size_t offset, size_t bytes_to_read);
+    std::expected<std::vector<uint8_t>, FsError> readFile(
+        Inode& inode, size_t offset, size_t bytes_to_read);
 
     /**
      * Writes file with given inode. Resizes file if necessary and updates inode table.
      */
     std::expected<void, FsError> writeFile(
-        Inode inode, size_t offset, std::vector<std::byte> bytes_to_write);
+        Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write);
 };
 
 class BlockIndexIterator {
 public:
-    BlockIndexIterator(size_t index, Inode& inode, IBlockDevice& block_device, bool should_resize);
+    BlockIndexIterator(size_t index, Inode& inode, IBlockDevice& block_device,
+        IBlockManager& block_manager, bool should_resize);
 
     /**
      * If should_resize is set to true, updates inode and find new index block if necessary.
@@ -37,15 +39,13 @@ private:
     size_t _index;
     Inode& _inode;
     IBlockDevice& _block_device;
-    IBlockManager _block_manager;
-    IInodeManager _inode_manager;
-    std::optional<std::vector<block_index_t>> _index_block_1;
-    std::optional<std::vector<block_index_t>> _index_block_2;
-    std::optional<std::vector<block_index_t>> _index_block_3;
+    IBlockManager& _block_manager;
+    std::vector<block_index_t> _index_block_1;
+    std::vector<block_index_t> _index_block_2;
+    std::vector<block_index_t> _index_block_3;
     bool _finished = false;
     bool _should_resize;
     size_t _occupied_blocks;
-    bool _inode_changed = false;
 
     std::expected<std::vector<block_index_t>, FsError> _readIndexBlock(block_index_t index);
     std::expected<void, FsError> _writeIndexBlock(
