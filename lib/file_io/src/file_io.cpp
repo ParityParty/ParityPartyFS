@@ -14,6 +14,51 @@ std::expected<std::vector<std::byte>, FsError> FileIO::readFile(
     size_t block_number = offset / _block_device.dataSize();
 
     BlockIndexIterator indexIterator(block_number, inode, _block_device);
+    std::vector<std::byte> data;
+    data.reserve(bytes_to_read);
+
+    while (auto next_block = indexIterator.next()) {
+        auto read_res = _block_device.readBlock(DataLocation(*next_block, offset), bytes_to_read);
+        if (!read_res.has_value())
+            return std::unexpected(read_res.error());
+        data.insert(data.end(), read_res.value().begin(), read_res.value().end());
+
+        offset = 0;
+        bytes_to_read -= read_res.value().size();
+
+        if (bytes_to_read == 0)
+            return data;
+    }
+
+    return std::unexpected(FsError::InternalError);
+}
+
+std::expected<void, FsError> FileIO::writeFile(
+    Inode inode, size_t offset, std::vector<std::byte> bytes_to_write)
+{
+    if (offset + bytes_to_write.size() > inode.file_size)
+        return std::unexpected(FsError::OutOfBounds);
+
+    size_t written_bytes = 0;
+    size_t block_number = offset / _block_device.dataSize();
+
+    BlockIndexIterator indexIterator(block_number, inode, _block_device);
+
+    while (auto next_block = indexIterator.next()) {
+        auto write_res = _block_device.writeBlock(
+            { bytes_to_write.begin() + written_bytes, bytes_to_write.end() },
+            DataLocation(*next_block, offset));
+        if (!write_res.has_value())
+            return std::unexpected(write_res.error());
+
+        offset = 0;
+        written_bytes += write_res.value();
+
+        if (written_bytes == bytes_to_write.size())
+            return {};
+    }
+
+    return std::unexpected(FsError::InternalError);
 }
 
 BlockIndexIterator::BlockIndexIterator(block_index_t first, Inode inode, IBlockDevice& block_device)
