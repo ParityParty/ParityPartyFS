@@ -10,7 +10,7 @@ TEST(ReedSolomonBlockDevice, BasicReadWrite)
     ReedSolomonBlockDevice rs(disk, 255, 2);
 
     auto data_size = rs.dataSize();
-    std::vector<std::byte> data(data_size, static_cast<std::byte>(0xAB));
+    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0xAB));
 
     ASSERT_TRUE(rs.formatBlock(0).has_value());
     ASSERT_TRUE(rs.writeBlock(data, DataLocation(0, 0)).has_value());
@@ -30,7 +30,7 @@ TEST(ReedSolomonBlockDevice, SingleByteError)
     ReedSolomonBlockDevice rs(disk, 255, 1);
 
     auto data_size = rs.dataSize();
-    std::vector<std::byte> data(data_size, std::byte { 0x7E });
+    std::vector<std::uint8_t> data(data_size, std::uint8_t { 0x7E });
 
     ASSERT_TRUE(rs.formatBlock(0).has_value());
     ASSERT_TRUE(rs.writeBlock(data, DataLocation(0, 0)).has_value());
@@ -40,7 +40,7 @@ TEST(ReedSolomonBlockDevice, SingleByteError)
     auto bytes = raw.value();
 
     // corrupt one byte completely
-    bytes[120] = std::byte { 0x00 };
+    bytes[120] = std::uint8_t { 0x00 };
     disk.write(0, bytes);
 
     auto read_ret = rs.readBlock({ 0, 0 }, data_size);
@@ -58,7 +58,7 @@ TEST(ReedSolomonBlockDevice, DoubleByteError)
     ReedSolomonBlockDevice rs(disk, 255, 2);
 
     auto data_size = rs.dataSize();
-    std::vector<std::byte> data(data_size, static_cast<std::byte>(0xAB));
+    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0xAB));
 
     ASSERT_TRUE(rs.formatBlock(0).has_value());
     ASSERT_TRUE(rs.writeBlock(data, DataLocation(0, 0)).has_value());
@@ -68,8 +68,8 @@ TEST(ReedSolomonBlockDevice, DoubleByteError)
     auto bytes = raw.value();
 
     // corrupt two bytes
-    bytes[10] = std::byte { 0xEE };
-    bytes[200] = std::byte { 0x44 };
+    bytes[10] = std::uint8_t { 0xEE };
+    bytes[200] = std::uint8_t { 0x44 };
     disk.write(0, bytes);
 
     auto read_ret = rs.readBlock({ 0, 0 }, data_size);
@@ -87,7 +87,7 @@ TEST(ReedSolomonBlockDevice, TripleByteError)
     ReedSolomonBlockDevice rs(disk, 255, 3);
 
     auto data_size = rs.dataSize();
-    std::vector<std::byte> data(data_size, static_cast<std::byte>(0xAB));
+    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0xAB));
 
     ASSERT_TRUE(rs.formatBlock(0).has_value());
     ASSERT_TRUE(rs.writeBlock(data, DataLocation(0, 0)).has_value());
@@ -97,9 +97,9 @@ TEST(ReedSolomonBlockDevice, TripleByteError)
     auto bytes = raw.value();
 
     // corrupt two bytes
-    bytes[10] = std::byte { 0xEE };
-    bytes[100] = std::byte { 0x61 };
-    bytes[200] = std::byte { 0x44 };
+    bytes[10] = std::uint8_t { 0xEE };
+    bytes[100] = std::uint8_t { 0x61 };
+    bytes[200] = std::uint8_t { 0x44 };
     disk.write(0, bytes);
 
     auto read_ret = rs.readBlock({ 0, 0 }, data_size);
