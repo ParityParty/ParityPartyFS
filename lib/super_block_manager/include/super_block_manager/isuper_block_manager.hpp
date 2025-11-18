@@ -5,21 +5,22 @@
 #include <expected>
 
 /**
- * Interface with superblock operations
+ * Interface with superblock operations.
  */
 struct ISuperBlockManager {
     /**
-     * Read superblock from disk.
+     * Returns current configuration of super_block
      *
      * @return Superblock on success, error otherwise
      */
     std::expected<SuperBlock, FsError> get();
 
     /**
-     * Update superblock on disk
+     * Writes a new superblock to disk, creating a zero version.
+     * Only to be used during disk formatting
      *
-     * @param new_super_block new superblock data
-     * @return void on success, error otherwise
+     * @param new_super_block SuperBlock to be written.
+     * @return void on success; DiskError on failure.
      */
-    std::expected<void, FsError> update(SuperBlock new_super_block);
+    std::expected<void, FsError> put(SuperBlock new_super_block);
 };
