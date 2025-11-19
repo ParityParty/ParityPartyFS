@@ -46,8 +46,6 @@ inline std::string_view toString(FsError err)
         return "AlreadyFree";
     case FsError::NotImplemented:
         return "NotImplemented";
-    case FsError::FileSizeExceeded:
-        return "FileSizeExceeded";
     default:
         return "UnknownError";
     }

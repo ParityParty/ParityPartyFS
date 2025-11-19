@@ -110,7 +110,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
         _finished = true;
 
     if (_finished)
-        return std::unexpected(FsError::FileSizeExceeded);
+        return std::unexpected(FsError::OutOfBounds);
 
     // direct blocks
     if (_index < 12) {
@@ -321,7 +321,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
     }
 
     _finished = true;
-    return std::unexpected(FsError::FileSizeExceeded);
+    return std::unexpected(FsError::OutOfBounds);
 }
 
 std::expected<std::vector<block_index_t>, FsError> BlockIndexIterator::_readIndexBlock(
