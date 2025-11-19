@@ -2,14 +2,16 @@
 #include "blockdevice/raw_block_device.hpp"
 #include "disk/stack_disk.hpp"
 #include "file_io/file_io.hpp"
+#include "inode_manager/inode_manager.hpp"
 #include <gtest/gtest.h>
 
 TEST(FileIO, Compiles)
 {
     StackDisk disk;
-    RawBlockDevice block_device(512, disk);
+    RawBlockDevice block_device(32, disk);
     BlockManager block_manager(0, 512, block_device);
-    FileIO file_io(block_device, block_manager);
+    InodeManager inode_manager(block_device, *(new SuperBlock()));
+    FileIO file_io(block_device, block_manager, inode_manager);
 
     EXPECT_TRUE(true);
 }
@@ -17,8 +19,9 @@ TEST(FileIO, WritesAndReadsDirectBlocks)
 {
     StackDisk disk;
     RawBlockDevice block_device(32, disk);
-    BlockManager block_manager(0, 512, block_device);
-    FileIO file_io(block_device, block_manager);
+    BlockManager block_manager(0, 1024, block_device);
+    InodeManager inode_manager(block_device, *(new SuperBlock()));
+    FileIO file_io(block_device, block_manager, inode_manager);
 
     Inode inode {};
     inode.file_size = 0;
@@ -47,8 +50,9 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
 {
     StackDisk disk;
     RawBlockDevice block_device(32, disk);
-    BlockManager block_manager(0, 512, block_device);
-    FileIO file_io(block_device, block_manager);
+    BlockManager block_manager(0, 1024, block_device);
+    InodeManager inode_manager(block_device, *(new SuperBlock()));
+    FileIO file_io(block_device, block_manager, inode_manager);
 
     Inode inode {};
     inode.file_size = 0;
@@ -78,9 +82,10 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
 TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
 {
     StackDisk disk;
-    RawBlockDevice block_device(4, disk);
+    RawBlockDevice block_device(32, disk);
     BlockManager block_manager(0, 2048, block_device);
-    FileIO file_io(block_device, block_manager);
+    InodeManager inode_manager(block_device, *(new SuperBlock()));
+    FileIO file_io(block_device, block_manager, inode_manager);
 
     Inode inode {};
     inode.file_size = 0;
@@ -107,12 +112,13 @@ TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
     ASSERT_EQ(out, data);
 }
 
-TEST(FileIO, WritesAndReadsTreplyUndirectBlocks)
+TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
 {
     StackDisk disk;
-    RawBlockDevice block_device(4, disk);
-    BlockManager block_manager(0, 2048, block_device);
-    FileIO file_io(block_device, block_manager);
+    RawBlockDevice block_device(32, disk);
+    BlockManager block_manager(0, 100000, block_device);
+    InodeManager inode_manager(block_device, *(new SuperBlock()));
+    FileIO file_io(block_device, block_manager, inode_manager);
 
     Inode inode {};
     inode.file_size = 0;
@@ -122,7 +128,7 @@ TEST(FileIO, WritesAndReadsTreplyUndirectBlocks)
             + indexes_per_block * indexes_per_block * indexes_per_block));
 
     for (size_t i = 0; i < data.size(); ++i)
-        data[i] = uint8_t(i % 232);
+        data[i] = uint8_t(i % 231);
 
     auto write_res = file_io.writeFile(inode, 0, data);
     ASSERT_TRUE(write_res.has_value()) << "writeFile failed: " << toString(write_res.error());

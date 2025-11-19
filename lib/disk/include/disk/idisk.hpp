@@ -20,6 +20,18 @@ inline std::string_view toString(FsError err)
         return "InternalError";
     case FsError::OutOfMemory:
         return "OutOfMemory";
+    case FsError::CorrectionError:
+        return "CorrectionError";
+    case FsError::IndexOutOfRange:
+        return "IndexOutOfRange";
+    case FsError::NotFound:
+        return "NotFound";
+    case FsError::AlreadyTaken:
+        return "AlreadyTaken";
+    case FsError::AlreadyFree:
+        return "AlreadyFree";
+    case FsError::NotImplemented:
+        return "NotImplemented";
     default:
         return "UnknownError";
     }

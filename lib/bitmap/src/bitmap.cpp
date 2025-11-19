@@ -50,7 +50,7 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
             return std::unexpected(block_data.error());
         }
         for (auto byte : block_data.value()) {
-            for (std::uint8_t bit = 0; bit < 8; bit+=1) {
+            for (std::uint8_t bit = 0; bit < 8; bit += 1) {
                 count += (byte & (1 << bit)) != 0;
             }
         }
@@ -133,7 +133,7 @@ std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
                 return std::unexpected(FsError::NotFound);
             }
             if (BitHelpers::getBit(block_data, i) == value) {
-                return block * _block_device.dataSize() + i;
+                return block * _block_device.dataSize() * 8 + i;
             }
         }
     }
