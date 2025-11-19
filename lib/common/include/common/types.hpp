@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 typedef int num_entries_t;
 typedef int block_index_t;
 typedef int inode_index_t;
@@ -16,4 +18,37 @@ enum class FsError {
     AlreadyTaken,
     AlreadyFree,
     NotImplemented,
+    FileSizeExceeded,
 };
+
+inline std::string_view toString(FsError err)
+{
+    switch (err) {
+    case FsError::IOError:
+        return "IOError";
+    case FsError::OutOfBounds:
+        return "OutOfBounds";
+    case FsError::InvalidRequest:
+        return "InvalidRequest";
+    case FsError::InternalError:
+        return "InternalError";
+    case FsError::OutOfMemory:
+        return "OutOfMemory";
+    case FsError::CorrectionError:
+        return "CorrectionError";
+    case FsError::IndexOutOfRange:
+        return "IndexOutOfRange";
+    case FsError::NotFound:
+        return "NotFound";
+    case FsError::AlreadyTaken:
+        return "AlreadyTaken";
+    case FsError::AlreadyFree:
+        return "AlreadyFree";
+    case FsError::NotImplemented:
+        return "NotImplemented";
+    case FsError::FileSizeExceeded:
+        return "FileSizeExceeded";
+    default:
+        return "UnknownError";
+    }
+}

@@ -7,36 +7,6 @@
 #include <string_view>
 #include <vector>
 
-inline std::string_view toString(FsError err)
-{
-    switch (err) {
-    case FsError::IOError:
-        return "IOError";
-    case FsError::OutOfBounds:
-        return "OutOfBounds";
-    case FsError::InvalidRequest:
-        return "InvalidRequest";
-    case FsError::InternalError:
-        return "InternalError";
-    case FsError::OutOfMemory:
-        return "OutOfMemory";
-    case FsError::CorrectionError:
-        return "CorrectionError";
-    case FsError::IndexOutOfRange:
-        return "IndexOutOfRange";
-    case FsError::NotFound:
-        return "NotFound";
-    case FsError::AlreadyTaken:
-        return "AlreadyTaken";
-    case FsError::AlreadyFree:
-        return "AlreadyFree";
-    case FsError::NotImplemented:
-        return "NotImplemented";
-    default:
-        return "UnknownError";
-    }
-}
-
 struct IDisk {
     virtual ~IDisk() = default;
 
