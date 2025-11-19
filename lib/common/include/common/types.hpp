@@ -18,7 +18,6 @@ enum class FsError {
     AlreadyTaken,
     AlreadyFree,
     NotImplemented,
-    FileSizeExceeded,
 };
 
 inline std::string_view toString(FsError err)
