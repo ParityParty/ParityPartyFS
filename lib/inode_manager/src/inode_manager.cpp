@@ -12,3 +12,4 @@ std::expected<inode_index_t, FsError> InodeManager::create(Inode inode) { return
 std::expected<void, FsError> InodeManager::remove(inode_index_t inode) { return {}; }
 std::expected<Inode, FsError> InodeManager::get(inode_index_t inode) { return Inode {}; }
 std::expected<unsigned int, FsError> InodeManager::numFree() { return 0; }
+std::expected<void, FsError> InodeManager::update(const Inode& inode) { return {}; }

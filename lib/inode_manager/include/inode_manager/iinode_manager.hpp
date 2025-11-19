@@ -43,4 +43,12 @@ struct IInodeManager {
      * @return number of free inodes on success, error otherwise
      */
     virtual std::expected<unsigned int, FsError> numFree() = 0;
+
+    /**
+     * Update inode data on disc.
+     *
+     * @param inode index of inode to update
+     * @return void on success, error otherwise
+     */
+    virtual std::expected<void, FsError> update(const Inode& inode) = 0;
 };

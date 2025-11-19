@@ -4,26 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
-#include <string_view>
 #include <vector>
-
-inline std::string_view toString(FsError err)
-{
-    switch (err) {
-    case FsError::IOError:
-        return "IOError";
-    case FsError::OutOfBounds:
-        return "OutOfBounds";
-    case FsError::InvalidRequest:
-        return "InvalidRequest";
-    case FsError::InternalError:
-        return "InternalError";
-    case FsError::OutOfMemory:
-        return "OutOfMemory";
-    default:
-        return "UnknownError";
-    }
-}
 
 struct IDisk {
     virtual ~IDisk() = default;
