@@ -6,11 +6,12 @@
 class FileIO {
     IBlockDevice& _block_device;
     IBlockManager& _block_manager;
+    IInodeManager& _inode_manager;
 
     std::expected<std::vector<block_index_t>, FsError> readIndirectBlock(block_index_t block_index);
 
 public:
-    FileIO(IBlockDevice& block_device, IBlockManager& block_manager);
+    FileIO(IBlockDevice& block_device, IBlockManager& block_manager, IInodeManager& inode_manager);
     /**
      * Reads file with given inode
      */

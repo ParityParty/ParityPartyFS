@@ -1,9 +1,11 @@
 #include "file_io/file_io.hpp"
 #include <cstring>
 
-FileIO::FileIO(IBlockDevice& block_device, IBlockManager& block_manager)
+FileIO::FileIO(
+    IBlockDevice& block_device, IBlockManager& block_manager, IInodeManager& inode_manager)
     : _block_device(block_device)
     , _block_manager(block_manager)
+    , _inode_manager(inode_manager)
 {
 }
 
@@ -48,16 +50,27 @@ std::expected<void, FsError> FileIO::writeFile(
             { bytes_to_write.begin() + written_bytes, bytes_to_write.end() },
             DataLocation(*next_block, offset));
         if (!write_res.has_value()) {
+            // If we failed to write to a new block, we should free it
+            if (inode.file_size <= offset + written_bytes)
+                _block_manager.free(*next_block);
+
+            // We wrote some bytes already, so we need to update file size
+            if (inode.file_size < offset + written_bytes) {
+                inode.file_size = offset + written_bytes;
+                _inode_manager.update(inode);
+            }
             return std::unexpected(write_res.error());
         }
 
         offset = 0;
         written_bytes += write_res.value();
-        inode.file_size
-            = std::max<uint32_t>(inode.file_size, static_cast<uint32_t>(offset + written_bytes));
 
         if (written_bytes == bytes_to_write.size())
-            return {};
+            if (inode.file_size < offset + written_bytes) {
+                inode.file_size = offset + written_bytes;
+                _inode_manager.update(inode);
+                return {};
+            }
     }
 
     return std::unexpected(FsError::InternalError);
