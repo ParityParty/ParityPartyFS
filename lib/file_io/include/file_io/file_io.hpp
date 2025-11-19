@@ -8,18 +8,18 @@ class FileIO {
     IBlockManager& _block_manager;
     IInodeManager& _inode_manager;
 
-    std::expected<std::vector<block_index_t>, FsError> readIndirectBlock(block_index_t block_index);
-
 public:
     FileIO(IBlockDevice& block_device, IBlockManager& block_manager, IInodeManager& inode_manager);
     /**
-     * Reads file with given inode
+     * Reads file with given inode. If read exceeds file size, returns FsError::OutOfBounds.
      */
     std::expected<std::vector<uint8_t>, FsError> readFile(
         Inode& inode, size_t offset, size_t bytes_to_read);
 
     /**
      * Writes file with given inode. Resizes file if necessary and updates inode table.
+     * If writing fails after some blocks were written, those blocks are not freed again.
+     * Inode is updated with inode manager to reflect new file size and inode blocks.
      */
     std::expected<void, FsError> writeFile(
         Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write);
@@ -32,7 +32,7 @@ public:
 
     /**
      * If should_resize is set to true, updates inode and find new index block if necessary.
-     * Does not update inode in inode maneger and the file size!!!
+     * Does not update inode in inode maneger!!! File size is not updated either!!!
      */
     std::optional<block_index_t> next();
 
