@@ -21,7 +21,7 @@ public:
      * If writing fails after some blocks were written, those blocks are not freed again.
      * Inode is updated with inode manager to reflect new file size and inode blocks.
      */
-    std::expected<void, FsError> writeFile(
+    std::expected<size_t, FsError> writeFile(
         Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write);
 };
 
@@ -34,7 +34,7 @@ public:
      * If should_resize is set to true, updates inode and find new index block if necessary.
      * Does not update inode in inode maneger!!! File size is not updated either!!!
      */
-    std::optional<block_index_t> next();
+    std::expected<block_index_t, FsError> next();
 
 private:
     size_t _index;

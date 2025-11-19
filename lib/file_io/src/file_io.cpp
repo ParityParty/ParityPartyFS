@@ -21,7 +21,10 @@ std::expected<std::vector<uint8_t>, FsError> FileIO::readFile(
     std::vector<std::uint8_t> data;
     data.reserve(bytes_to_read);
 
-    while (auto next_block = indexIterator.next()) {
+    while (true) {
+        auto next_block = indexIterator.next();
+        if (!next_block.has_value())
+            return std::unexpected(next_block.error());
         auto read_res = _block_device.readBlock(DataLocation(*next_block, offset), bytes_to_read);
         if (!read_res.has_value())
             return std::unexpected(read_res.error());
@@ -33,11 +36,9 @@ std::expected<std::vector<uint8_t>, FsError> FileIO::readFile(
         if (bytes_to_read == 0)
             return data;
     }
-
-    return std::unexpected(FsError::InternalError);
 }
 
-std::expected<void, FsError> FileIO::writeFile(
+std::expected<size_t, FsError> FileIO::writeFile(
     Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write)
 {
     size_t written_bytes = 0;
@@ -45,7 +46,20 @@ std::expected<void, FsError> FileIO::writeFile(
 
     BlockIndexIterator indexIterator(block_number, inode, _block_device, _block_manager, true);
 
-    while (auto next_block = indexIterator.next()) {
+    while (true) {
+        auto next_block = indexIterator.next();
+        if (!next_block.has_value()) {
+            // We wrote some bytes already, so we need to update file size
+            if (inode.file_size < offset + written_bytes) {
+                inode.file_size = offset + written_bytes;
+                auto inode_res = _inode_manager.update(inode);
+                if (!inode_res.has_value()) {
+                    return std::unexpected(inode_res.error());
+                }
+            }
+            return std::unexpected(next_block.error());
+        }
+
         auto write_res = _block_device.writeBlock(
             { bytes_to_write.begin() + written_bytes, bytes_to_write.end() },
             DataLocation(*next_block, offset));
@@ -68,8 +82,11 @@ std::expected<void, FsError> FileIO::writeFile(
         if (written_bytes == bytes_to_write.size())
             if (inode.file_size < offset + written_bytes) {
                 inode.file_size = offset + written_bytes;
-                _inode_manager.update(inode);
-                return {};
+                auto inode_res = _inode_manager.update(inode);
+                if (!inode_res.has_value()) {
+                    return std::unexpected(inode_res.error());
+                }
+                return written_bytes;
             }
     }
 
@@ -87,23 +104,21 @@ BlockIndexIterator::BlockIndexIterator(size_t index, Inode& inode, IBlockDevice&
     _occupied_blocks = (inode.file_size + block_device.dataSize() - 1) / _block_device.dataSize();
 }
 
-std::optional<block_index_t> BlockIndexIterator::next()
+std::expected<block_index_t, FsError> BlockIndexIterator::next()
 {
     if (!_should_resize && _index >= _occupied_blocks)
         _finished = true;
 
     if (_finished)
-        return {};
+        return std::unexpected(FsError::FileSizeExceeded);
 
     // direct blocks
     if (_index < 12) {
         if (_index >= _occupied_blocks) {
             auto index_res = _findAndReserveBlock();
             if (!index_res.has_value()) {
-                _finished = true;
-                return {};
+                return std::unexpected(index_res.error());
             }
-            _occupied_blocks++;
             _inode.direct_blocks[_index] = index_res.value();
         }
         return _inode.direct_blocks[_index++];
@@ -120,16 +135,14 @@ std::optional<block_index_t> BlockIndexIterator::next()
             // if indirect block already exists, read it
             auto read_res = _readIndexBlock(_inode.indirect_block);
             if (!read_res.has_value()) {
-                _finished = true;
-                return {};
+                return std::unexpected(read_res.error());
             }
             _index_block_1 = read_res.value();
         } else {
             // else, allocate new indirect block
             auto index_res = _findAndReserveBlock();
             if (!index_res.has_value()) {
-                _finished = true;
-                return {};
+                return std::unexpected(index_res.error());
             }
             _inode.indirect_block = index_res.value();
             _block_device.formatBlock(index_res.value());
@@ -141,11 +154,14 @@ std::optional<block_index_t> BlockIndexIterator::next()
         if (_index >= _occupied_blocks) {
             auto index_res = _findAndReserveBlock();
             if (!index_res.has_value()) {
-                _finished = true;
-                return {};
+                return std::unexpected(index_res.error());
             }
             _index_block_1[index_in_segment] = index_res.value();
-            _writeIndexBlock(_inode.indirect_block, _index_block_1);
+            auto write_res = _writeIndexBlock(_inode.indirect_block, _index_block_1);
+            if (!write_res.has_value()) {
+                _block_manager.free(index_res.value());
+                return std::unexpected(write_res.error());
+            }
         }
         _index++;
         return _index_block_1[index_in_segment];
@@ -158,8 +174,7 @@ std::optional<block_index_t> BlockIndexIterator::next()
         if (_index < _occupied_blocks) {
             auto read_res = _readIndexBlock(_inode.doubly_indirect_block);
             if (!read_res.has_value()) {
-                _finished = true;
-                return {};
+                return std::unexpected(read_res.error());
             }
             _index_block_1 = read_res.value();
         }
@@ -167,8 +182,7 @@ std::optional<block_index_t> BlockIndexIterator::next()
         else {
             auto index_res = _findAndReserveBlock();
             if (!index_res.has_value()) {
-                _finished = true;
-                return {};
+                return std::unexpected(index_res.error());
             }
             _inode.doubly_indirect_block = index_res.value();
             _block_device.formatBlock(index_res.value());
@@ -183,29 +197,35 @@ std::optional<block_index_t> BlockIndexIterator::next()
                 auto index = (_index - 12 - indexes_per_block) / indexes_per_block;
                 auto read_res = _readIndexBlock(_index_block_1[index]);
                 if (!read_res.has_value()) {
-                    _finished = true;
-                    return {};
+                    return std::unexpected(read_res.error());
                 }
                 _index_block_2 = read_res.value();
             } else {
                 auto index_res = _findAndReserveBlock();
                 if (!index_res.has_value()) {
-                    _finished = true;
-                    return {};
+                    return std::unexpected(index_res.error());
                 }
                 _index_block_1[index_in_segment / indexes_per_block] = index_res.value();
-                _writeIndexBlock(_inode.doubly_indirect_block, _index_block_1);
+                auto write_res = _writeIndexBlock(_inode.doubly_indirect_block, _index_block_1);
+                if (!write_res.has_value()) {
+                    _block_manager.free(index_res.value());
+                    return std::unexpected(write_res.error());
+                }
                 _index_block_2 = std::vector<block_index_t>(indexes_per_block);
             }
         }
         if (_index >= _occupied_blocks) {
             auto index_res = _findAndReserveBlock();
             if (!index_res.has_value()) {
-                _finished = true;
-                return {};
+                return std::unexpected(index_res.error());
             }
             _index_block_2[index_in_segment % indexes_per_block] = index_res.value();
-            _writeIndexBlock(_index_block_1[index_in_segment / indexes_per_block], _index_block_2);
+            auto write_res = _writeIndexBlock(
+                _index_block_1[index_in_segment / indexes_per_block], _index_block_2);
+            if (!write_res.has_value()) {
+                _block_manager.free(index_res.value());
+                return std::unexpected(write_res.error());
+            }
         }
         return _index_block_2[(_index++ - 12 - indexes_per_block) % indexes_per_block];
     }
@@ -215,8 +235,7 @@ std::optional<block_index_t> BlockIndexIterator::next()
         if (_index < _occupied_blocks) {
             auto read_res = _readIndexBlock(_inode.trebly_indirect_block);
             if (!read_res.has_value()) {
-                _finished = true;
-                return {};
+                return std::unexpected(read_res.error());
             }
             _index_block_1 = read_res.value();
         }
@@ -224,8 +243,7 @@ std::optional<block_index_t> BlockIndexIterator::next()
         else {
             auto index_res = _findAndReserveBlock();
             if (!index_res.has_value()) {
-                _finished = true;
-                return {};
+                return std::unexpected(index_res.error());
             }
             _inode.trebly_indirect_block = index_res.value();
             _block_device.formatBlock(index_res.value());
@@ -239,20 +257,22 @@ std::optional<block_index_t> BlockIndexIterator::next()
                 auto read_res = _readIndexBlock(
                     _index_block_1[index_in_segment / (indexes_per_block * indexes_per_block)]);
                 if (!read_res.has_value()) {
-                    _finished = true;
-                    return {};
+                    return std::unexpected(read_res.error());
                 }
                 _index_block_2 = read_res.value();
             } else {
                 auto index_res = _findAndReserveBlock();
                 if (!index_res.has_value()) {
-                    _finished = true;
-                    return {};
+                    return std::unexpected(index_res.error());
                 }
                 _index_block_2 = std::vector<block_index_t>(indexes_per_block);
                 _index_block_1[index_in_segment / (indexes_per_block * indexes_per_block)]
                     = index_res.value();
-                _writeIndexBlock(_inode.trebly_indirect_block, _index_block_1);
+                auto write_res = _writeIndexBlock(_inode.trebly_indirect_block, _index_block_1);
+                if (!write_res.has_value()) {
+                    _block_manager.free(index_res.value());
+                    return std::unexpected(write_res.error());
+                }
             }
         }
 
@@ -261,42 +281,47 @@ std::optional<block_index_t> BlockIndexIterator::next()
                 auto read_res = _readIndexBlock(
                     _index_block_2[(index_in_segment / indexes_per_block) % indexes_per_block]);
                 if (!read_res.has_value()) {
-                    _finished = true;
-                    return {};
+                    return std::unexpected(read_res.error());
                 }
                 _index_block_3 = read_res.value();
             } else {
                 auto index_res = _findAndReserveBlock();
                 if (!index_res.has_value()) {
-                    _finished = true;
-                    return {};
+                    return std::unexpected(index_res.error());
                 }
                 _index_block_3 = std::vector<block_index_t>(indexes_per_block);
                 _index_block_2[(index_in_segment / indexes_per_block) % indexes_per_block]
                     = index_res.value();
-                _writeIndexBlock(
+                auto write_res = _writeIndexBlock(
                     _index_block_1[index_in_segment / (indexes_per_block * indexes_per_block)],
                     _index_block_2);
+                if (!write_res.has_value()) {
+                    _block_manager.free(index_res.value());
+                    return std::unexpected(write_res.error());
+                }
             }
         }
 
         if (_index >= _occupied_blocks) {
             auto index_res = _findAndReserveBlock();
             if (!index_res.has_value()) {
-                _finished = true;
-                return {};
+                return std::unexpected(index_res.error());
             }
             _index_block_3[index_in_segment % indexes_per_block] = index_res.value();
-            _writeIndexBlock(
+            auto write_res = _writeIndexBlock(
                 _index_block_2[(index_in_segment / indexes_per_block) % indexes_per_block],
                 _index_block_3);
+            if (!write_res.has_value()) {
+                _block_manager.free(index_res.value());
+                return std::unexpected(write_res.error());
+            }
         }
         _index++;
         return _index_block_3[index_in_segment % indexes_per_block];
     }
 
     _finished = true;
-    return {};
+    return std::unexpected(FsError::FileSizeExceeded);
 }
 
 std::expected<std::vector<block_index_t>, FsError> BlockIndexIterator::_readIndexBlock(
