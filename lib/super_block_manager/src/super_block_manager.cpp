@@ -1,4 +1,5 @@
 #include "super_block_manager/super_block_manager.hpp"
+#include "common/bit_helpers.hpp"
 #include <cmath>
 #include <cstring>
 
@@ -26,8 +27,6 @@ std::expected<SuperBlock, FsError> SuperBlockManager::get()
         return std::unexpected(read_res.error());
     }
 
-    _superBlock = read_res.value();
-
     return _superBlock.value();
 }
 
@@ -35,7 +34,7 @@ std::expected<void, FsError> SuperBlockManager::put(SuperBlock new_super_block)
 {
     _superBlock = new_super_block;
 
-    auto write_res = _writeToDisk();
+    auto write_res = _writeToDisk(true, true);
 
     if (!write_res.has_value())
         return std::unexpected(write_res.error());
@@ -43,34 +42,40 @@ std::expected<void, FsError> SuperBlockManager::put(SuperBlock new_super_block)
     return {};
 }
 
-std::expected<void, FsError> SuperBlockManager::_writeToDisk()
+std::expected<void, FsError> SuperBlockManager::_writeToDisk(bool writeAtBeginning, bool writeAtEnd)
 {
+    if (!writeAtBeginning && !writeAtEnd)
+        return std::unexpected(FsError::InvalidRequest);
+
     if (!_superBlock.has_value())
         return std::unexpected(FsError::InvalidRequest);
 
     // write at the beggining
 
-    std::vector<std::byte> buffer(2 * sizeof(SuperBlock));
+    std::vector<uint8_t> buffer(2 * sizeof(SuperBlock));
     std::memcpy(buffer.data(), &_superBlock.value(), sizeof(SuperBlock));
     std::memcpy(buffer.data() + sizeof(SuperBlock), &_superBlock.value(), sizeof(SuperBlock));
 
-    auto write_res = _disk.write(0, buffer);
-    if (!write_res.has_value())
-        return std::unexpected(write_res.error());
+    if (writeAtBeginning) {
+        auto write_res = _disk.write(0, buffer);
+        if (!write_res.has_value())
+            return std::unexpected(write_res.error());
+    }
 
     // write at the end
-
-    write_res = _disk.write(_startByte, { buffer.begin(), buffer.begin() + sizeof(SuperBlock) });
-    if (!write_res.has_value())
-        return std::unexpected(write_res.error());
-
+    if (writeAtEnd) {
+        auto write_res
+            = _disk.write(_startByte, { buffer.begin(), buffer.begin() + sizeof(SuperBlock) });
+        if (!write_res.has_value())
+            return std::unexpected(write_res.error());
+    }
     return {};
 }
 
-std::expected<SuperBlock, FsError> SuperBlockManager::_readFromDisk()
+std::expected<void, FsError> SuperBlockManager::_readFromDisk()
 {
     size_t read = 0;
-    std::vector<std::byte> buffer;
+    std::vector<uint8_t> buffer;
     buffer.reserve(sizeof(SuperBlock) * 3);
 
     // read from the beginninng
@@ -86,13 +91,59 @@ std::expected<SuperBlock, FsError> SuperBlockManager::_readFromDisk()
         return std::unexpected(read_res.error());
     buffer.insert(buffer.end(), read_res.value().begin(), read_res.value().end());
 
-    SuperBlock sb1;
-    SuperBlock sb2;
-    SuperBlock sb3;
-    std::memcpy(&sb1, buffer.data(), sizeof(SuperBlock));
-    std::memcpy(&sb2, buffer.data() + sizeof(SuperBlock), sizeof(SuperBlock));
-    std::memcpy(&sb3, buffer.data() + 2 * sizeof(SuperBlock), sizeof(SuperBlock));
-    // TODO: glosowanie
+    SuperBlock sb;
 
-    return sb3;
+    auto voting_res = _performBitVoting(
+        std::vector<uint8_t>(buffer.begin(), buffer.begin() + sizeof(SuperBlock)),
+        std::vector<uint8_t>(
+            buffer.begin() + sizeof(SuperBlock), buffer.begin() + 2 * sizeof(SuperBlock)),
+        std::vector<uint8_t>(
+            buffer.begin() + 2 * sizeof(SuperBlock), buffer.begin() + 3 * sizeof(SuperBlock)));
+
+    std::memcpy(&sb, voting_res.finalData.data(), sizeof(SuperBlock));
+
+    _writeToDisk(voting_res.damaged1 || voting_res.damaged2, voting_res.damaged3);
+
+    _superBlock = sb;
+
+    return {};
+}
+
+VotingResult SuperBlockManager::_performBitVoting(const std::vector<uint8_t>& copy1,
+    const std::vector<uint8_t>& copy2, const std::vector<uint8_t>& copy3)
+{
+    size_t numBytes = copy1.size();
+    size_t numBits = numBytes * 8;
+
+    std::vector<uint8_t> resultBytes(numBytes, 0);
+
+    bool damaged1 = false;
+    bool damaged2 = false;
+    bool damaged3 = false;
+
+    for (size_t bit = 0; bit < numBits; bit++) {
+        bool b1 = BitHelpers::getBit(copy1, bit);
+        bool b2 = BitHelpers::getBit(copy2, bit);
+        bool b3 = BitHelpers::getBit(copy3, bit);
+
+        int sum = b1 + b2 + b3;
+        bool majority = (sum >= 2);
+
+        BitHelpers::setBit(resultBytes, bit, majority);
+
+        if (b1 != majority)
+            damaged1 = true;
+        if (b2 != majority)
+            damaged2 = true;
+        if (b3 != majority)
+            damaged3 = true;
+    }
+
+    VotingResult res;
+    res.finalData = resultBytes;
+    res.damaged1 = damaged1;
+    res.damaged2 = damaged2;
+    res.damaged3 = damaged3;
+
+    return res;
 }

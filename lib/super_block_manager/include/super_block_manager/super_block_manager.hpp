@@ -11,6 +11,13 @@ struct SuperBlockEntry {
     SuperBlockEntry(block_index_t block_index);
 };
 
+struct VotingResult {
+    std::vector<uint8_t> finalData;
+    bool damaged1;
+    bool damaged2;
+    bool damaged3;
+};
+
 /**
  * Implements superblock management for the filesystem.
  *
@@ -53,14 +60,20 @@ private:
     block_index_t _startByte; /**< Index where super blocks written at the end start */
 
     /**
-     * Writes cached superblock to a specific index.
+     * Writes cached superblock to disk.
      */
-    std::expected<void, FsError> _writeToDisk();
+    std::expected<void, FsError> _writeToDisk(bool writeAtBeginning, bool writeAtEnd);
 
     /**
      * Reads superblock from disk and returns it.
      */
-    std::expected<SuperBlock, FsError> _readFromDisk();
+    std::expected<void, FsError> _readFromDisk();
+
+    /**
+     * Performs bit voting on multiple copies of superblock data.
+     */
+    VotingResult _performBitVoting(const std::vector<uint8_t>& copy1,
+        const std::vector<uint8_t>& copy2, const std::vector<uint8_t>& copy3);
 
     /**
      * Constructs manager.

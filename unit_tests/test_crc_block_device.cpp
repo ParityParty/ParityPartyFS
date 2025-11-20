@@ -1,5 +1,5 @@
-#include "blockdevice/bit_helpers.hpp"
 #include "blockdevice/crc_block_device.hpp"
+#include "common/bit_helpers.hpp"
 #include "disk/stack_disk.hpp"
 
 #include <gtest/gtest.h>
