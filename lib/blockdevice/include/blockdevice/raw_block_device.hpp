@@ -33,7 +33,7 @@ public:
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
     std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::byte>& data, DataLocation data_location) override;
+        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * Reads a portion of data from a block on the disk.
@@ -42,7 +42,7 @@ public:
      * @param bytes_to_read The number of bytes requested to be read.
      * @return On success, returns a vector of bytes read; otherwise returns a FsError.
      */
-    std::expected<std::vector<std::byte>, FsError> readBlock(
+    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     /**

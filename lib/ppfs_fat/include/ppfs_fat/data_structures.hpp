@@ -2,6 +2,7 @@
 #include "blockdevice/iblock_device.hpp"
 #include "ppfs_fat/types.hpp"
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -16,9 +17,9 @@ struct SuperBlock {
         unsigned int fat_size);
     SuperBlock() = default;
 
-    std::vector<std::byte> toBytes() const;
+    std::vector<std::uint8_t> toBytes() const;
 
-    static SuperBlock fromBytes(const std::vector<std::byte>& bytes);
+    static SuperBlock fromBytes(const std::vector<std::uint8_t>& bytes);
 };
 
 class FileAllocationTable {
@@ -30,8 +31,8 @@ public:
     FileAllocationTable(std::vector<block_index_t> fat);
     FileAllocationTable() = default;
 
-    static FileAllocationTable fromBytes(const std::vector<std::byte>& bytes);
-    std::vector<std::byte> toBytes() const;
+    static FileAllocationTable fromBytes(const std::vector<std::uint8_t>& bytes);
+    std::vector<std::uint8_t> toBytes() const;
     std::expected<void, FsError> updateFat(IBlockDevice& block_device, size_t fat_start_address);
 
     bool operator==(const FileAllocationTable& other) const;
@@ -57,8 +58,8 @@ struct DirectoryEntry {
     block_index_t start_block;
     size_t file_size;
 
-    static DirectoryEntry fromBytes(const std::array<std::byte, Layout::DIR_ENTRY_SIZE>& bytes);
-    std::array<std::byte, Layout::DIR_ENTRY_SIZE> toBytes() const;
+    static DirectoryEntry fromBytes(const std::array<std::uint8_t, Layout::DIR_ENTRY_SIZE>& bytes);
+    std::array<std::uint8_t, Layout::DIR_ENTRY_SIZE> toBytes() const;
 
     DirectoryEntry(const std::string& name, block_index_t start_block, size_t file_size);
     DirectoryEntry(const file_name_t& name, block_index_t start_block, size_t file_size);
@@ -78,8 +79,8 @@ struct Directory {
     Directory(const std::string& name, const std::vector<DirectoryEntry>& entries);
     Directory() = default;
 
-    static Directory fromBytes(const std::vector<std::byte>& bytes);
-    std::vector<std::byte> toBytes() const;
+    static Directory fromBytes(const std::vector<std::uint8_t>& bytes);
+    std::vector<std::uint8_t> toBytes() const;
     std::optional<std::reference_wrapper<DirectoryEntry>> findFile(const std::string& name);
 
     void addEntry(const DirectoryEntry& entry);

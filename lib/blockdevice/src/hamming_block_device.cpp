@@ -12,7 +12,8 @@ HammingBlockDevice::HammingBlockDevice(int block_size_power, IDisk& disk)
     _data_size = _block_size - parity_bytes;
 }
 
-std::expected<std::vector<std::byte>, FsError> HammingBlockDevice::_readAndFixBlock(int block_index)
+std::expected<std::vector<std::uint8_t>, FsError> HammingBlockDevice::_readAndFixBlock(
+    int block_index)
 {
     auto read_result = _disk.read(block_index * _block_size, _block_size);
     if (!read_result.has_value()) {
@@ -51,18 +52,19 @@ std::expected<std::vector<std::byte>, FsError> HammingBlockDevice::_readAndFixBl
     return encoded_data;
 }
 
-std::vector<std::byte> HammingBlockDevice::_extractData(const std::vector<std::byte>& encoded_data)
+std::vector<std::uint8_t> HammingBlockDevice::_extractData(
+    const std::vector<std::uint8_t>& encoded_data)
 {
-    std::vector<std::byte> data(_data_size, std::byte(0));
+    std::vector<std::uint8_t> data(_data_size, std::uint8_t(0));
     HammingDataBitsIterator it(_block_size, _data_size);
     for (unsigned int i = 0; i < _data_size * 8; i++)
         BitHelpers::setBit(data, i, BitHelpers::getBit(encoded_data, *it.next()));
     return data;
 }
 
-std::vector<std::byte> HammingBlockDevice::_encodeData(const std::vector<std::byte>& data)
+std::vector<std::uint8_t> HammingBlockDevice::_encodeData(const std::vector<std::uint8_t>& data)
 {
-    std::vector<std::byte> encoded_data(_block_size, std::byte(0));
+    std::vector<std::uint8_t> encoded_data(_block_size, std::uint8_t(0));
 
     bool parity = true;
 
@@ -97,7 +99,7 @@ std::vector<std::byte> HammingBlockDevice::_encodeData(const std::vector<std::by
 }
 
 std::expected<size_t, FsError> HammingBlockDevice::writeBlock(
-    const std::vector<std::byte>& data, DataLocation data_location)
+    const std::vector<std::uint8_t>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), _data_size - data_location.offset);
 
@@ -119,7 +121,7 @@ std::expected<size_t, FsError> HammingBlockDevice::writeBlock(
     return to_write;
 }
 
-std::expected<std::vector<std::byte>, FsError> HammingBlockDevice::readBlock(
+std::expected<std::vector<std::uint8_t>, FsError> HammingBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read)
 {
     bytes_to_read = std::min(_data_size - data_location.offset, bytes_to_read);
@@ -131,13 +133,13 @@ std::expected<std::vector<std::byte>, FsError> HammingBlockDevice::readBlock(
 
     auto decoded_data = _extractData(raw_block.value());
 
-    return std::vector<std::byte>(decoded_data.begin() + data_location.offset,
+    return std::vector<std::uint8_t>(decoded_data.begin() + data_location.offset,
         decoded_data.begin() + data_location.offset + bytes_to_read);
 }
 
 std::expected<void, FsError> HammingBlockDevice::formatBlock(unsigned int block_index)
 {
-    std::vector<std::byte> zero_data(_block_size, std::byte(0));
+    std::vector<std::uint8_t> zero_data(_block_size, std::uint8_t(0));
     auto write_result = _disk.write(block_index * _block_size, zero_data);
     return write_result.has_value() ? std::expected<void, FsError> {}
                                     : std::unexpected(write_result.error());

@@ -31,7 +31,7 @@ TEST(Bitmap, GetBit_GetsCorrectBit)
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
 
-    ASSERT_TRUE(disk.write(0, { static_cast<std::byte>(0x01) }).has_value());
+    ASSERT_TRUE(disk.write(0, { static_cast<std::uint8_t>(0x01) }).has_value());
 
     auto bit_ret = bm.getBit(7);
     ASSERT_TRUE(bit_ret.has_value());
@@ -48,7 +48,7 @@ TEST(Bitmap, SetBit)
 
     auto read_ret = disk.read(1, 1);
     ASSERT_TRUE(read_ret.has_value());
-    EXPECT_EQ(static_cast<std::byte>(1), read_ret.value()[0]);
+    EXPECT_EQ(static_cast<std::uint8_t>(1), read_ret.value()[0]);
 }
 
 TEST(Bitmap, SetBitGetBit)
@@ -57,7 +57,7 @@ TEST(Bitmap, SetBitGetBit)
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
 
-    ASSERT_TRUE(disk.write(0, { 512, static_cast<std::byte>(0) }));
+    ASSERT_TRUE(disk.write(0, std::vector(512, std::uint8_t { 0 })));
 
     std::vector<unsigned int> true_indexes = { 1, 70, 420, 999, 1000, 1024, 1300 };
     for (auto index : true_indexes) {
@@ -79,7 +79,7 @@ TEST(Bitmap, SetBitGetBitOffset)
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 3, 512 * 8); // Two blocks of bitmap
 
-    ASSERT_TRUE(disk.write(3 * 256, { 512, std::byte { 0 } }));
+    ASSERT_TRUE(disk.write(3 * 256, std::vector(512, std::uint8_t { 0 })));
 
     std::vector<unsigned int> true_indexes = { 1, 70, 420, 999, 1000, 1024, 1300 };
     for (auto index : true_indexes) {
@@ -101,7 +101,7 @@ TEST(Bitmap, FindFirst_NoSpace)
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
 
-    ASSERT_TRUE(disk.write(0, { 512, std::byte { 0xff } }));
+    ASSERT_TRUE(disk.write(0, std::vector(512, std::uint8_t { 0xFF })));
     auto ret = bm.getFirstEq(false);
     ASSERT_FALSE(ret.has_value());
     ASSERT_EQ(ret.error(), FsError::NotFound);
@@ -113,7 +113,7 @@ TEST(Bitmap, FindFirst)
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 0, 512 * 8); // Two blocks of bitmap
 
-    ASSERT_TRUE(disk.write(0, { 512, std::byte { 0xff } }));
+    ASSERT_TRUE(disk.write(0, std::vector(512, std::uint8_t { 0xFF })));
     ASSERT_TRUE(bm.setBit(166, false).has_value());
     auto ret = bm.getFirstEq(false);
     ASSERT_TRUE(ret.has_value());
@@ -126,7 +126,7 @@ TEST(Bitamp, FindFirst_true)
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 4, 512 * 8); // Two blocks of bitmap
 
-    ASSERT_TRUE(disk.write(4 * 256, { 512, std::byte { 0x00 } }));
+    ASSERT_TRUE(disk.write(4 * 256, std::vector(512, std::uint8_t { 0 })));
     ASSERT_TRUE(bm.setBit(250, true).has_value());
     auto ret = bm.getFirstEq(true);
     ASSERT_TRUE(ret.has_value());
@@ -139,7 +139,7 @@ TEST(Bitmap, SetAll)
     RawBlockDevice device(256, disk);
     Bitmap bm(device, 4, 500 * 8); // A bit less than two blocks of bitmap
 
-    ASSERT_TRUE(disk.write(4 * 256, { 512, std::byte { 0x00 } }));
+    ASSERT_TRUE(disk.write(4 * 256, std::vector(512, std::uint8_t { 0 })));
     ASSERT_TRUE(bm.setAll(true).has_value());
 
     for (int i = 0; i < 500 * 8; i++) {
@@ -147,4 +147,52 @@ TEST(Bitmap, SetAll)
         ASSERT_TRUE(ret.has_value());
         EXPECT_EQ(ret.value(), true) << "Mismatch at index: " << i;
     }
+}
+
+TEST(Bitmap, Count_allOnes)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 4, 500 * 8); // A bit less than two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(4 * 256, std::vector(512, std::uint8_t { 0xFF })));
+    auto count1 = bm.count(1);
+    auto count0 = bm.count(0);
+    ASSERT_TRUE(count1.has_value());
+    ASSERT_TRUE(count0.has_value());
+
+    EXPECT_EQ(count1.value(), 500 * 8);
+    EXPECT_EQ(count0.value(), 0);
+}
+
+TEST(Bitmap, Count_allZeros)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 4, 500 * 8); // A bit less than two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(4 * 256, std::vector(512, std::uint8_t { 0x00 })));
+    auto count1 = bm.count(1);
+    auto count0 = bm.count(0);
+    ASSERT_TRUE(count1.has_value());
+    ASSERT_TRUE(count0.has_value());
+
+    EXPECT_EQ(count0.value(), 500 * 8);
+    EXPECT_EQ(count1.value(), 0);
+}
+
+TEST(Bitmap, Count_checkerboard)
+{
+    StackDisk disk;
+    RawBlockDevice device(256, disk);
+    Bitmap bm(device, 4, 500 * 8); // A bit less than two blocks of bitmap
+
+    ASSERT_TRUE(disk.write(4 * 256, std::vector(512, std::uint8_t { 0xAA })));
+    auto count1 = bm.count(1);
+    auto count0 = bm.count(0);
+    ASSERT_TRUE(count1.has_value());
+    ASSERT_TRUE(count0.has_value());
+
+    EXPECT_EQ(count1.value(), 500 * 8 / 2);
+    EXPECT_EQ(count1.value(), count0.value());
 }

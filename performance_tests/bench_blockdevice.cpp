@@ -69,7 +69,7 @@ template <class... Args> static void BM_BlockDevice_Write(benchmark::State& stat
     IBlockDevice& device = block_devices.at(std::get<0>(args_tuple));
     state.counters["BytesWritten"] = benchmark::Counter(
         0, benchmark::Counter::kIsIterationInvariantRate, benchmark::Counter::OneK::kIs1024);
-    std::vector<std::byte> data(state.range(0), std::byte { 0x55 });
+    std::vector<std::uint8_t> data(state.range(0), std::uint8_t { 0x55 });
     for (auto _ : state) {
         auto ret = device.writeBlock(data, { 1, 0 });
         if (!ret.has_value()) {
