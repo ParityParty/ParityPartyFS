@@ -1,4 +1,4 @@
-#include "blockdevice/bit_helpers.hpp"
+#include "common/bit_helpers.hpp"
 #include <gtest/gtest.h>
 
 TEST(Bits, BlockToBits)
