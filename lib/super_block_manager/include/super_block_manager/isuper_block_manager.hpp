@@ -1,5 +1,4 @@
 #pragma once
-#include "disk/idisk.hpp"
 #include "super_block_manager/super_block.hpp"
 
 #include <expected>

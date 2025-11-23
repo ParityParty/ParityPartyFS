@@ -1,5 +1,5 @@
 #pragma once
-#include "blockdevice/iblock_device.hpp"
+#include "disk/idisk.hpp"
 #include "isuper_block_manager.hpp"
 #include "super_block_manager/isuper_block_manager.hpp"
 
