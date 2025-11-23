@@ -1,5 +1,5 @@
 #pragma once
-#include "disk/idisk.hpp"
+#include "blockdevice/iblock_device.hpp"
 #include "isuper_block_manager.hpp"
 #include "super_block_manager/isuper_block_manager.hpp"
 
@@ -38,7 +38,7 @@ public:
      *
      * @return On success, the SuperBlock; on failure, FsError.
      */
-    std::expected<SuperBlock, FsError> get();
+    std::expected<SuperBlock, FsError> get() override;
 
     /**
      * Writes a new superblock to disk, creating a zero version.
@@ -47,12 +47,13 @@ public:
      * @param new_super_block SuperBlock to be written.
      * @return void on success; FsError on failure.
      */
-    std::expected<void, FsError> put(SuperBlock new_super_block);
+    std::expected<void, FsError> put(SuperBlock new_super_block) override;
 
     /**
-     * Returns block indexes which are occupied by super blocks
+     * Returns firs and last block index that is not occupied by superblock.
+     * Last block is exclusive (the first index occupied by suberblock).
      */
-    std::vector<block_index_t> getOccupiedIndexes();
+    std::expected<BlockRange, FsError> getFreeBlocksIndexes() override;
 
 private:
     std::optional<SuperBlock> _superBlock; /**< Cached copy of the superblock */

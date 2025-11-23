@@ -42,6 +42,21 @@ std::expected<void, FsError> SuperBlockManager::put(SuperBlock new_super_block)
     return {};
 }
 
+std::expected<BlockRange, FsError> SuperBlockManager::getFreeBlocksIndexes()
+{
+    if (!_superBlock.has_value()) {
+        auto read_res = _readFromDisk();
+        if (!read_res.has_value())
+            return std::unexpected(read_res.error());
+    }
+
+    block_index_t firstFreeBlock
+        = (2 * sizeof(SuperBlock) + _superBlock->block_size - 1) / _superBlock->block_size;
+    block_index_t lastFreeBlock = (_disk.size() / _superBlock->block_size)
+        - (sizeof(SuperBlock) + _superBlock->block_size - 1) / _superBlock->block_size;
+    return BlockRange { firstFreeBlock, lastFreeBlock };
+}
+
 std::expected<void, FsError> SuperBlockManager::_writeToDisk(bool writeAtBeginning, bool writeAtEnd)
 {
     if (!writeAtBeginning && !writeAtEnd)
