@@ -9,7 +9,7 @@ struct BlockRange {
 };
 
 /**
- * Interface with superblock operations.
+ * Interface with superblock operations
  */
 struct ISuperBlockManager {
     /**
@@ -29,7 +29,7 @@ struct ISuperBlockManager {
     virtual std::expected<void, FsError> put(SuperBlock new_super_block) = 0;
 
     /**
-     * Returns firs and last block index that is not occupied by superblock.
+     * Returns first and last block index that is not occupied by superblock.
      * Last block is exclusive (the first index occupied by suberblock).
      */
     virtual std::expected<BlockRange, FsError> getFreeBlocksIndexes() = 0;

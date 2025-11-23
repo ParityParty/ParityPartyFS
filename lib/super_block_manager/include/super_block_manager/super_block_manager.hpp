@@ -50,7 +50,7 @@ public:
     std::expected<void, FsError> put(SuperBlock new_super_block) override;
 
     /**
-     * Returns firs and last block index that is not occupied by superblock.
+     * Returns first and last block index that is not occupied by superblock.
      * Last block is exclusive (the first index occupied by suberblock).
      */
     std::expected<BlockRange, FsError> getFreeBlocksIndexes() override;
@@ -75,10 +75,4 @@ private:
      */
     VotingResult _performBitVoting(const std::vector<uint8_t>& copy1,
         const std::vector<uint8_t>& copy2, const std::vector<uint8_t>& copy3);
-
-    /**
-     * Constructs manager.
-     *
-     * @param block_device Reference to underlying block device.
-     */
 };
