@@ -133,7 +133,7 @@ std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
                 return std::unexpected(FsError::NotFound);
             }
             if (BitHelpers::getBit(block_data, i) == value) {
-                return block * _block_device.dataSize() + i;
+                return block * _block_device.dataSize() * 8 + i;
             }
         }
     }
