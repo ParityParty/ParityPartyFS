@@ -1,4 +1,5 @@
 #pragma once
+
 #include "directory_manager/directory.hpp"
 #include "disk/idisk.hpp"
 #include <expected>
@@ -17,7 +18,7 @@ struct IDirectoryManager {
      * @param inode inode of a directory
      * @return list of directory entries on success, error otherwise
      */
-    std::expected<std::vector<DirectoryEntry>, FsError> getEntries(inode_index_t inode);
+    virtual std::expected<std::vector<DirectoryEntry>, FsError> getEntries(inode_index_t inode) = 0;
 
     /**
      * Add entry to existing directory.
@@ -26,7 +27,8 @@ struct IDirectoryManager {
      * @param entry new entry
      * @return void on success, error otherwise
      */
-    std::expected<void, FsError> addEntry(inode_index_t directory, DirectoryEntry entry);
+    virtual std::expected<void, FsError> addEntry(inode_index_t directory, DirectoryEntry entry)
+        = 0;
 
     /**
      * Remove entry from a directory
@@ -35,5 +37,6 @@ struct IDirectoryManager {
      * @param entry inode of entry to be removed
      * @return void on success, error otherwise
      */
-    std::expected<void, FsError> removeEntry(inode_index_t directory, inode_index_t entry);
+    virtual std::expected<void, FsError> removeEntry(inode_index_t directory, inode_index_t entry)
+        = 0;
 };
