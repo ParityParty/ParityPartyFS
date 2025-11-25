@@ -2,23 +2,17 @@
 #include "filesystem/ifilesystem.hpp"
 
 #include <memory>
+#include <stop_token>
 
 struct UseArgs {
-    int max_write_size;
-    int max_read_size;
-    float avg_ops_per_sec;
-};
-
-class FileNode {
-public:
-    bool is_dir;
-    size_t size;
-    std::vector<std::unique_ptr<FileNode>> children;
+    int max_write_size = 512;
+    int max_read_size = 512;
+    float avg_ops_per_sec = 2;
+    std::stop_token token;
 };
 
 class MockUser {
     IFilesystem& _fs;
-    std::unique_ptr<FileNode> _root;
 
 public:
     MockUser(IFilesystem& fs);
