@@ -11,6 +11,7 @@
  * Interface of basic filesystem operations
  */
 struct IFilesystem {
+    virtual ~IFilesystem() = default;
     /**
      * Formats underlying disk to be used with filesystem.
      *
@@ -20,7 +21,7 @@ struct IFilesystem {
      *
      * @return void in case of success, error otherwise.
      */
-    std::expected<void, FsError> format();
+    virtual std::expected<void, FsError> format() = 0;
 
     /**
      * Create new file
@@ -30,7 +31,7 @@ struct IFilesystem {
      * @param path absolute path to new file, including its name
      * @return void on success, error otherwise
      */
-    std::expected<void, FsError> create(std::string path);
+    virtual std::expected<void, FsError> create(std::string path) = 0;
 
     /**
      * Opens file for read/write operations.
@@ -42,7 +43,7 @@ struct IFilesystem {
      * @return inode to be used with read, write, close operations on success,
      * error otherwise
      */
-    std::expected<inode_index_t, FsError> open(std::string path);
+    virtual std::expected<inode_index_t, FsError> open(std::string path) = 0;
 
     /**
      * Close file
@@ -50,7 +51,7 @@ struct IFilesystem {
      * @param inode inode of file to close
      * @return void on success, error otherwise
      */
-    std::expected<void, FsError> close(inode_index_t inode);
+    virtual std::expected<void, FsError> close(inode_index_t inode) = 0;
 
     /**
      * Deletes file from the disk
@@ -58,7 +59,7 @@ struct IFilesystem {
      * @param path absolute path to file to be removed
      * @return void on success, error otherwise
      */
-    std::expected<void, FsError> remove(std::string path);
+    virtual std::expected<void, FsError> remove(std::string path) = 0;
 
     /**
      * Read bytes from disk
@@ -68,8 +69,9 @@ struct IFilesystem {
      * @param size amount of bytes to read
      * @return vector of bytes on success, error otherwise
      */
-    std::expected<std::vector<std::uint8_t>, FsError> read(
-        inode_index_t inode, size_t offset, size_t size);
+    virtual std::expected<std::vector<std::uint8_t>, FsError> read(
+        inode_index_t inode, size_t offset, size_t size)
+        = 0;
 
     /**
      * Write data from buffer to file.
@@ -82,8 +84,9 @@ struct IFilesystem {
      * @param offset place to write data
      * @return void on success, error otherwise
      */
-    std::expected<void, FsError> write(
-        inode_index_t inode, std::vector<std::uint8_t> buffer, size_t offset);
+    virtual std::expected<void, FsError> write(
+        inode_index_t inode, std::vector<std::uint8_t> buffer, size_t offset)
+        = 0;
 
     /**
      * Create new directory
@@ -92,7 +95,7 @@ struct IFilesystem {
      * name
      * @return void success, error otherwise
      */
-    std::expected<void, FsError> createDirectory(std::string path);
+    virtual std::expected<void, FsError> createDirectory(std::string path) = 0;
 
     /**
      * Read entries of a directory
@@ -100,5 +103,5 @@ struct IFilesystem {
      * @param path Absolute path to directory
      * @return list of filenames on success, error otherwise
      */
-    std::expected<std::vector<std::string>, FsError> readDirectory(std::string path);
+    virtual std::expected<std::vector<std::string>, FsError> readDirectory(std::string path) = 0;
 };
