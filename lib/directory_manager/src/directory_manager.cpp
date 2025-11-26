@@ -55,6 +55,45 @@ std::expected<void, FsError> DirectoryManager::addEntry(
     return {};
 }
 
+std::expected<void, FsError> DirectoryManager::removeEntry(
+    inode_index_t directory, inode_index_t entry)
+{
+    auto inode_result = _inode_manager.get(directory);
+    if (!inode_result.has_value()) {
+        return std::unexpected(inode_result.error());
+    }
+
+    Inode dir_inode = inode_result.value();
+
+    auto read_res = _readDirectoryData(dir_inode);
+
+    if (!read_res.has_value()) {
+        return std::unexpected(read_res.error());
+    }
+
+    std::vector<DirectoryEntry> entries = read_res.value();
+
+    int index = _findEntryIndexByInode(entries, entry);
+    if (index == -1) {
+        return std::unexpected(FsError::NotFound);
+    }
+
+    entries.erase(entries.begin() + index);
+
+    std::vector<uint8_t> new_data;
+    for (const auto& entry : entries) {
+        const uint8_t* entry_ptr = reinterpret_cast<const uint8_t*>(&entry);
+        new_data.insert(new_data.end(), entry_ptr, entry_ptr + sizeof(DirectoryEntry));
+    }
+
+    auto write_res = _file_io.writeFile(dir_inode, 0, new_data);
+    if (!write_res.has_value()) {
+        return std::unexpected(write_res.error());
+    }
+
+    return {};
+}
+
 std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::_readDirectoryData(
     Inode& dir_inode)
 {
@@ -80,6 +119,17 @@ int DirectoryManager::_findEntryIndexByName(
 {
     for (size_t i = 0; i < entries.size(); ++i) {
         if (std::strncmp(entries[i].name.data(), name, std::strlen(name)) == 0) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+int DirectoryManager::_findEntryIndexByInode(
+    const std::vector<DirectoryEntry>& entries, inode_index_t inode)
+{
+    for (size_t i = 0; i < entries.size(); ++i) {
+        if (entries[i].inode == inode) {
             return static_cast<int>(i);
         }
     }
