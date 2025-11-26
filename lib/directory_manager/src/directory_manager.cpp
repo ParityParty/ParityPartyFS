@@ -72,25 +72,25 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     }
 
     std::vector<DirectoryEntry> entries = read_res.value();
-
     int index = _findEntryIndexByInode(entries, entry);
     if (index == -1) {
         return std::unexpected(FsError::NotFound);
     }
 
-    entries.erase(entries.begin() + index);
+    auto new_dir_size = dir_inode.file_size - sizeof(DirectoryEntry);
+    if (index * sizeof(DirectoryEntry) != new_dir_size) {
+        // move last entry to deleted entry position
+        auto write_res = _file_io.writeFile(dir_inode, index * sizeof(DirectoryEntry),
+            std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&entries.back()),
+                reinterpret_cast<uint8_t*>(&entries.back()) + sizeof(DirectoryEntry)));
 
-    std::vector<uint8_t> new_data;
-    for (const auto& entry : entries) {
-        const uint8_t* entry_ptr = reinterpret_cast<const uint8_t*>(&entry);
-        new_data.insert(new_data.end(), entry_ptr, entry_ptr + sizeof(DirectoryEntry));
+        if (!write_res.has_value())
+            return std::unexpected(write_res.error());
     }
-
-    auto write_res = _file_io.writeFile(dir_inode, 0, new_data);
-    if (!write_res.has_value()) {
-        return std::unexpected(write_res.error());
+    auto resize_res = _file_io.resizeFile(dir_inode, new_dir_size);
+    if (!resize_res.has_value()) {
+        return std::unexpected(resize_res.error());
     }
-
     return {};
 }
 

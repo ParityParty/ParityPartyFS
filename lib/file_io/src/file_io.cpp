@@ -93,6 +93,67 @@ std::expected<size_t, FsError> FileIO::writeFile(
     return std::unexpected(FsError::InternalError);
 }
 
+std::expected<void, FsError> FileIO::resizeFile(Inode& inode, size_t new_size)
+{
+    if (new_size == inode.file_size)
+        return {};
+
+    if (new_size > inode.file_size) {
+        BlockIndexIterator indexIterator(
+            (inode.file_size + _block_device.dataSize() - 1) / _block_device.dataSize(), inode,
+            _block_device, _block_manager, true);
+        size_t bytes_to_allocate = new_size - inode.file_size;
+        while (bytes_to_allocate > 0) {
+            auto next_block = indexIterator.next();
+            if (!next_block.has_value()) {
+                inode.file_size = new_size - bytes_to_allocate;
+                auto inode_res = _inode_manager.update(inode);
+                if (!inode_res.has_value())
+                    return std::unexpected(inode_res.error());
+                return std::unexpected(next_block.error());
+            }
+            auto format_res = _block_device.formatBlock(*next_block);
+            if (!format_res.has_value()) {
+                inode.file_size = new_size - bytes_to_allocate;
+                auto inode_res = _inode_manager.update(inode);
+                if (!inode_res.has_value())
+                    return std::unexpected(inode_res.error());
+                return std::unexpected(format_res.error());
+            }
+            bytes_to_allocate == bytes_to_allocate > _block_device.dataSize()
+                ? bytes_to_allocate - _block_device.dataSize()
+                : 0;
+        }
+    }
+
+    auto old_size = inode.file_size;
+    inode.file_size = new_size;
+    auto inode_res = _inode_manager.update(inode);
+    if (!inode_res.has_value()) {
+        inode.file_size = old_size;
+        return std::unexpected(inode_res.error());
+    }
+
+    BlockIndexIterator indexIterator(
+        (old_size + _block_device.dataSize() - 1) / _block_device.dataSize(), inode, _block_device,
+        _block_manager, false);
+
+    size_t blocks_to_free
+        = (inode.file_size + _block_device.dataSize() - 1) / _block_device.dataSize() - old_size;
+
+    for (size_t i = 0; i < blocks_to_free; i++) {
+        auto next_block = indexIterator.nextWithIndirectBlocksAdded();
+        if (!next_block.has_value()) {
+            return std::unexpected(next_block.error());
+        }
+        for (auto& index : std::get<1>(next_block.value())) {
+            _block_manager.free(index);
+        }
+        _block_manager.free(std::get<0>(next_block.value()));
+    }
+    return {};
+}
+
 BlockIndexIterator::BlockIndexIterator(size_t index, Inode& inode, IBlockDevice& block_device,
     IBlockManager& block_manager, bool should_resize)
     : _index(index)
@@ -104,7 +165,8 @@ BlockIndexIterator::BlockIndexIterator(size_t index, Inode& inode, IBlockDevice&
     _occupied_blocks = (inode.file_size + block_device.dataSize() - 1) / _block_device.dataSize();
 }
 
-std::expected<block_index_t, FsError> BlockIndexIterator::next()
+std::expected<std::tuple<block_index_t, std::vector<block_index_t>>, FsError>
+BlockIndexIterator::nextWithIndirectBlocksAdded()
 {
     if (!_should_resize && _index >= _occupied_blocks)
         _finished = true;
@@ -121,14 +183,15 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
             }
             _inode.direct_blocks[_index] = index_res.value();
         }
-        return _inode.direct_blocks[_index++];
+        return std::tuple<block_index_t, std::vector<block_index_t>>(
+            _inode.direct_blocks[_index++], {});
     }
 
     size_t indexes_per_block = _block_device.dataSize() / sizeof(block_index_t);
 
     // indirect blocks
     auto index_in_segment = _index - 12;
-
+    std::vector<block_index_t> indirect_blocks_added;
     // first block in indirect segment
     if (index_in_segment == 0) {
         if (_index < _occupied_blocks) {
@@ -137,6 +200,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
             if (!read_res.has_value()) {
                 return std::unexpected(read_res.error());
             }
+            indirect_blocks_added.push_back(_inode.indirect_block);
             _index_block_1 = read_res.value();
         } else {
             // else, allocate new indirect block
@@ -147,6 +211,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
             _inode.indirect_block = index_res.value();
             _block_device.formatBlock(index_res.value());
             _index_block_1 = std::vector<block_index_t>(indexes_per_block);
+            indirect_blocks_added.push_back(_inode.indirect_block);
         }
     }
 
@@ -164,7 +229,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
             }
         }
         _index++;
-        return _index_block_1[index_in_segment];
+        return std::tuple(_index_block_1[index_in_segment], indirect_blocks_added);
     }
 
     // doubly
@@ -177,6 +242,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
                 return std::unexpected(read_res.error());
             }
             _index_block_1 = read_res.value();
+            indirect_blocks_added.push_back(_inode.doubly_indirect_block);
         }
 
         else {
@@ -187,6 +253,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
             _inode.doubly_indirect_block = index_res.value();
             _block_device.formatBlock(index_res.value());
             _index_block_1 = std::vector<block_index_t>(indexes_per_block);
+            indirect_blocks_added.push_back(_inode.doubly_indirect_block);
         }
     }
 
@@ -200,6 +267,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
                     return std::unexpected(read_res.error());
                 }
                 _index_block_2 = read_res.value();
+                indirect_blocks_added.push_back(_index_block_1[index]);
             } else {
                 auto index_res = _findAndReserveBlock();
                 if (!index_res.has_value()) {
@@ -212,6 +280,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
                     return std::unexpected(write_res.error());
                 }
                 _index_block_2 = std::vector<block_index_t>(indexes_per_block);
+                indirect_blocks_added.push_back(index_res.value());
             }
         }
         if (_index >= _occupied_blocks) {
@@ -227,7 +296,8 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
                 return std::unexpected(write_res.error());
             }
         }
-        return _index_block_2[(_index++ - 12 - indexes_per_block) % indexes_per_block];
+        return std::tuple(_index_block_2[(_index++ - 12 - indexes_per_block) % indexes_per_block],
+            indirect_blocks_added);
     }
     // trebly
     index_in_segment -= indexes_per_block * indexes_per_block;
@@ -238,6 +308,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
                 return std::unexpected(read_res.error());
             }
             _index_block_1 = read_res.value();
+            indirect_blocks_added.push_back(_inode.trebly_indirect_block);
         }
 
         else {
@@ -248,6 +319,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
             _inode.trebly_indirect_block = index_res.value();
             _block_device.formatBlock(index_res.value());
             _index_block_1 = std::vector<block_index_t>(indexes_per_block);
+            indirect_blocks_added.push_back(_inode.trebly_indirect_block);
         }
     }
 
@@ -260,6 +332,8 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
                     return std::unexpected(read_res.error());
                 }
                 _index_block_2 = read_res.value();
+                indirect_blocks_added.push_back(
+                    _index_block_1[index_in_segment / (indexes_per_block * indexes_per_block)]);
             } else {
                 auto index_res = _findAndReserveBlock();
                 if (!index_res.has_value()) {
@@ -273,6 +347,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
                     _block_manager.free(index_res.value());
                     return std::unexpected(write_res.error());
                 }
+                indirect_blocks_added.push_back(index_res.value());
             }
         }
 
@@ -284,6 +359,8 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
                     return std::unexpected(read_res.error());
                 }
                 _index_block_3 = read_res.value();
+                indirect_blocks_added.push_back(
+                    _index_block_2[(index_in_segment / indexes_per_block) % indexes_per_block]);
             } else {
                 auto index_res = _findAndReserveBlock();
                 if (!index_res.has_value()) {
@@ -299,6 +376,7 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
                     _block_manager.free(index_res.value());
                     return std::unexpected(write_res.error());
                 }
+                indirect_blocks_added.push_back(index_res.value());
             }
         }
 
@@ -317,11 +395,20 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
             }
         }
         _index++;
-        return _index_block_3[index_in_segment % indexes_per_block];
+        return std::tuple(
+            _index_block_3[index_in_segment % indexes_per_block], indirect_blocks_added);
     }
 
     _finished = true;
     return std::unexpected(FsError::OutOfBounds);
+}
+
+std::expected<block_index_t, FsError> BlockIndexIterator::next()
+{
+    auto res = nextWithIndirectBlocksAdded();
+    if (!res.has_value())
+        return std::unexpected(res.error());
+    return std::get<0>(res.value());
 }
 
 std::expected<std::vector<block_index_t>, FsError> BlockIndexIterator::_readIndexBlock(
