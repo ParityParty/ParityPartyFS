@@ -15,4 +15,5 @@ target_link_libraries(${NAME}
         block_manager
         blockdevice
         common
+        file_io
 )

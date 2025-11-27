@@ -79,6 +79,45 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
     ASSERT_EQ(out, data);
 }
 
+TEST(FileIO, ReadAndWriteWithOffset)
+{
+    StackDisk disk;
+    RawBlockDevice block_device(32, disk);
+    BlockManager block_manager(0, 1024, block_device);
+    InodeManager inode_manager(block_device, *(new SuperBlock()));
+    FileIO file_io(block_device, block_manager, inode_manager);
+
+    size_t size1 = 524;
+    size_t size2 = 873;
+    std::vector<uint8_t> data1(size1, 200);
+    std::vector<uint8_t> data2(size2, 153);
+    Inode inode {};
+    inode.file_size = 0;
+    std::cout << "We are here." << std::endl;
+    ASSERT_TRUE(file_io.writeFile(inode, 0, data1));
+    std::cout << "One write worked" << std::endl;
+    ASSERT_TRUE(file_io.writeFile(inode, size1, data2));
+    std::cout << "Write worked" << std::endl;
+    ASSERT_EQ(inode.file_size, size1 + size2);
+
+    auto read_res = file_io.readFile(inode, size1, size2);
+    ASSERT_TRUE(read_res.has_value());
+    for (int i = 0; i < read_res.value().size(); i++) {
+        if (read_res.value()[i] != 153)
+            std::cout << i << ": " << read_res.value()[i] << std::endl;
+    }
+    ASSERT_EQ(read_res.value(), data2);
+
+    read_res = file_io.readFile(inode, 0, size1 + size2);
+
+    std::vector<uint8_t> concatenated;
+    concatenated.reserve(size1 + size2);
+    concatenated.insert(concatenated.end(), data1.begin(), data1.end());
+    concatenated.insert(concatenated.end(), data2.begin(), data2.end());
+    ASSERT_TRUE(read_res.has_value());
+    ASSERT_EQ(read_res.value(), concatenated);
+}
+
 TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
 {
     StackDisk disk;
@@ -144,4 +183,102 @@ TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
 
     ASSERT_EQ(out.size(), data.size());
     ASSERT_EQ(out, data);
+}
+
+TEST(FileIO, ResizeAndReadFile)
+{
+    StackDisk disk;
+    RawBlockDevice block_device(32, disk);
+    BlockManager block_manager(0, 1024, block_device);
+    InodeManager inode_manager(block_device, *(new SuperBlock()));
+    FileIO file_io(block_device, block_manager, inode_manager);
+
+    Inode inode {};
+    inode.file_size = 0;
+
+    size_t indexes_per_block = block_device.dataSize() / sizeof(block_index_t);
+    size_t num_of_blocks = 12 + indexes_per_block + indexes_per_block * indexes_per_block
+        + indexes_per_block * indexes_per_block * indexes_per_block;
+
+    auto resize_res = file_io.resizeFile(inode, num_of_blocks * block_device.dataSize());
+    ASSERT_TRUE(resize_res.has_value()) << "resizeFile failed: " << toString(resize_res.error());
+    ASSERT_EQ(inode.file_size, num_of_blocks * block_device.dataSize());
+
+    ASSERT_NE(inode.direct_blocks[0], 0);
+    ASSERT_NE(inode.direct_blocks[1], 0);
+    ASSERT_NE(inode.direct_blocks[2], 0);
+
+    auto read_res = file_io.readFile(inode, 0, num_of_blocks * block_device.dataSize());
+    ASSERT_TRUE(read_res.has_value());
+    ASSERT_EQ(read_res.value().size(), num_of_blocks * block_device.dataSize());
+}
+
+TEST(FileIO, TruncatePartOfBlock)
+{
+    StackDisk disk;
+    RawBlockDevice block_device(32, disk);
+    BlockManager block_manager(0, 1024, block_device);
+    InodeManager inode_manager(block_device, *(new SuperBlock()));
+    FileIO file_io(block_device, block_manager, inode_manager);
+
+    Inode inode {};
+    inode.file_size = 0;
+
+    size_t indexes_per_block = block_device.dataSize() / sizeof(block_index_t);
+    size_t num_of_blocks = 12 + indexes_per_block + indexes_per_block * indexes_per_block
+        + indexes_per_block * indexes_per_block * indexes_per_block;
+    size_t to_truncate = block_device.dataSize() / 2;
+    size_t file_size = num_of_blocks * block_device.dataSize();
+
+    std::vector<uint8_t> data(file_size);
+    for (size_t i = 0; i < data.size(); i++)
+        data[i] = uint8_t(i % 251);
+
+    ASSERT_TRUE(file_io.writeFile(inode, 0, data).has_value());
+
+    auto resize_res = file_io.resizeFile(inode, file_size - to_truncate);
+    ASSERT_TRUE(resize_res.has_value()) << "resizeFile failed: " << toString(resize_res.error());
+
+    ASSERT_EQ(inode.file_size, file_size - to_truncate);
+
+    auto read_res = file_io.readFile(inode, 0, file_size - to_truncate);
+    ASSERT_TRUE(read_res.has_value());
+    std::vector<uint8_t> expected_data(data.begin(), data.end() - to_truncate);
+    ASSERT_EQ(read_res.value(), expected_data);
+}
+
+TEST(FileIO, ResizeHugeFileToZero)
+{
+    StackDisk disk;
+    RawBlockDevice block_device(32, disk);
+    BlockManager block_manager(0, 200000, block_device);
+    auto num_free_res = block_manager.numFree();
+    ASSERT_TRUE(num_free_res.has_value()) << "numFree failed";
+    auto free_blocks = num_free_res.value();
+    InodeManager inode_manager(block_device, *(new SuperBlock()));
+    FileIO file_io(block_device, block_manager, inode_manager);
+
+    Inode inode {};
+    inode.file_size = 0;
+
+    size_t indexes_per_block = block_device.dataSize() / sizeof(block_index_t);
+    size_t num_of_blocks = 12 + indexes_per_block + indexes_per_block * indexes_per_block
+        + indexes_per_block * indexes_per_block * indexes_per_block;
+
+    size_t file_size = num_of_blocks * block_device.dataSize();
+
+    std::vector<uint8_t> data(file_size);
+    for (size_t i = 0; i < data.size(); i++)
+        data[i] = uint8_t(i % 251);
+
+    auto write_res = file_io.writeFile(inode, 0, data);
+    ASSERT_TRUE(write_res.has_value()) << "write failed";
+
+    auto resize_res = file_io.resizeFile(inode, 0);
+    ASSERT_TRUE(resize_res.has_value()) << "resizeFile failed";
+    ASSERT_EQ(inode.file_size, 0);
+
+    num_free_res = block_manager.numFree();
+    ASSERT_TRUE(num_free_res.has_value()) << "numFree failed";
+    ASSERT_EQ(block_manager.numFree().value(), free_blocks);
 }
