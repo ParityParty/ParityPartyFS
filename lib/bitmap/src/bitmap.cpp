@@ -1,5 +1,5 @@
 #include "bitmap/bitmap.hpp"
-#include "blockdevice/bit_helpers.hpp"
+#include "common/bit_helpers.hpp"
 
 #include <cmath>
 
@@ -20,7 +20,7 @@ std::expected<unsigned char, FsError> Bitmap::_getByte(unsigned int bit_index)
     }
     return static_cast<unsigned char>(read_ret.value().front());
 }
-int Bitmap::_blockSpanned() const
+int Bitmap::blocksSpanned() const
 {
     return std::ceil(std::ceil(static_cast<float>(_bit_count) / 8.0)
         / static_cast<float>(_block_device.dataSize()));
@@ -41,9 +41,8 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
         }
         return _bit_count - _ones_count.value();
     }
-
     std::uint32_t count = 0;
-    auto blocks_spanned = _blockSpanned();
+    auto blocks_spanned = blocksSpanned();
     for (int block = 0; block < blocks_spanned - 1; block++) {
         auto block_data = _block_device.readBlock(
             DataLocation { _start_block + block, 0 }, _block_device.dataSize());
@@ -51,7 +50,7 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
             return std::unexpected(block_data.error());
         }
         for (auto byte : block_data.value()) {
-            for (std::uint8_t bit = 0; bit < 8; bit+=1) {
+            for (std::uint8_t bit = 0; bit < 8; bit += 1) {
                 count += (byte & (1 << bit)) != 0;
             }
         }
@@ -115,9 +114,10 @@ std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
     };
     return std::unexpected(write_ret.error());
 }
+
 std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
 {
-    int blocks_spanned = _blockSpanned();
+    int blocks_spanned = blocksSpanned();
 
     for (int block = 0; block < blocks_spanned; block++) {
         auto block_ret = _block_device.readBlock(
@@ -133,15 +133,16 @@ std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
                 return std::unexpected(FsError::NotFound);
             }
             if (BitHelpers::getBit(block_data, i) == value) {
-                return block * _block_device.dataSize() + i;
+                return block * _block_device.dataSize() * 8 + i;
             }
         }
     }
     return std::unexpected(FsError::NotFound);
 }
+
 std::expected<void, FsError> Bitmap::setAll(bool value)
 {
-    auto blocks_spanned = _blockSpanned();
+    auto blocks_spanned = blocksSpanned();
     std::uint8_t value_byte = value ? 0xff : 0x00;
     auto block_data = std::vector<std::uint8_t>(_block_device.dataSize(), value_byte);
     for (int block = 0; block < blocks_spanned - 1; block++) {

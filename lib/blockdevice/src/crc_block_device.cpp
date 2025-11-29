@@ -1,5 +1,5 @@
 #include "blockdevice/crc_block_device.hpp"
-#include "blockdevice/bit_helpers.hpp"
+#include "common/bit_helpers.hpp"
 
 #include <algorithm>
 #include <cmath>
