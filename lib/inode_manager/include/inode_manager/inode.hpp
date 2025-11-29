@@ -18,6 +18,12 @@ enum FileType {
 struct __attribute__((packed)) Inode {
     std::uint64_t time_creation;
     std::uint64_t time_modified;
+
+    /**
+     * Inode ID. It should only be set by the InodeManager, never manually.
+     */
+    inode_index_t id;
+
     /**
      * First 12 block pointers are stored directly in the inode.
      */

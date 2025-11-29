@@ -16,7 +16,7 @@ struct IInodeManager {
      * @param inode data of the new inode
      * @return inode index on success, error otherwise
      */
-    virtual std::expected<inode_index_t, FsError> create(Inode inode) = 0;
+    virtual std::expected<inode_index_t, FsError> create(Inode& inode) = 0;
 
     /**
      * Remove inode.
