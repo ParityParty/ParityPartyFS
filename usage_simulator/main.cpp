@@ -8,9 +8,9 @@ int main()
 {
     FsMock fs;
     Logger logger;
-    MockUser user(fs, logger, { .max_write_size = 100, .avg_steps_between_ops = 30 }, 1);
+    MockUser user(fs, logger, { .max_write_size = 4000, .avg_steps_between_ops = 30 }, 1);
     StackDisk disk;
-    SimpleBitFlipper flipper(disk, 0.01, 1, logger);
+    SimpleBitFlipper flipper(disk, 0.005, 1, logger);
 
     for (int i = 0; i < 1000; i++) {
         logger.step();
