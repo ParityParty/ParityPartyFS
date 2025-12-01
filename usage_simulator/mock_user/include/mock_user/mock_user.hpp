@@ -1,20 +1,18 @@
 #pragma once
 #include "filesystem/ifilesystem.hpp"
 
-#include <memory>
-#include <stop_token>
-
-struct UseArgs {
+struct UserBehaviour {
     int max_write_size = 512;
     int max_read_size = 512;
-    float avg_ops_per_sec = 2;
-    std::stop_token token;
+    int avg_steps_between_ops = 10;
 };
 
 class MockUser {
     IFilesystem& _fs;
+    UserBehaviour _behaviour;
+    int _to_next_op = 0;
 
 public:
-    MockUser(IFilesystem& fs);
-    void use(UseArgs args);
+    MockUser(IFilesystem& fs, UserBehaviour behaviour);
+    void step();
 };
