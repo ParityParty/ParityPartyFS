@@ -22,7 +22,7 @@ struct IInodeManager {
      * Remove inode.
      *
      * Method removes inode from inode table, and updates bitmap. Inode occurrences in directories
-     * are uneffected by this method, so they need to be handled separately.
+     * are unaffected by this method, so they need to be handled separately.
      *
      * @param inode index of inode to be deleted
      * @return void on success, error otherwise

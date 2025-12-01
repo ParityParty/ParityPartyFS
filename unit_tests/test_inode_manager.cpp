@@ -7,8 +7,9 @@ TEST(InodeManager, Compiles)
 {
     StackDisk disk;
     HammingBlockDevice device(8, disk);
-    Bitmap bitmap(device, 0, 10);
-    // InodeManager inode_manager(bitmap, 2);
+    SuperBlock sb;
+
+    InodeManager inode_manager(device, sb);
 
     EXPECT_TRUE(true);
 }
