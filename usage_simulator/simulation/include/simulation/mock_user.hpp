@@ -2,6 +2,8 @@
 #include "data_collection/data_colection.hpp"
 #include "filesystem/ifilesystem.hpp"
 
+#include <random>
+
 struct UserBehaviour {
     int max_write_size = 512;
     int max_read_size = 512;
@@ -13,8 +15,9 @@ class MockUser {
     Logger& _logger;
     UserBehaviour _behaviour;
     int _to_next_op = 0;
+    std::mt19937 _rng;
 
 public:
-    MockUser(IFilesystem& fs, Logger& logger, UserBehaviour behaviour);
+    MockUser(IFilesystem& fs, Logger& logger, UserBehaviour behaviour, unsigned int seed);
     void step();
 };
