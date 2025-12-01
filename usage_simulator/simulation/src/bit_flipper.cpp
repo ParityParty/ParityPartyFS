@@ -22,7 +22,10 @@ void SimpleBitFlipper::step()
         if (!read_ret.has_value()) {
             return;
         }
-        BitHelpers::setBit(read_ret.value(), 3, !BitHelpers::getBit(read_ret.value(), 3));
+        std::uniform_int_distribution<int> bit_dist(0, 7);
+        auto bit_pos = bit_dist(_rng);
+        BitHelpers::setBit(
+            read_ret.value(), bit_pos, !BitHelpers::getBit(read_ret.value(), bit_pos));
         if (!_disk.write(pos, read_ret.value()).has_value()) {
             return;
         };
