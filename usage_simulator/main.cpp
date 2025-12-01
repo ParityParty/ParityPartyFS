@@ -1,3 +1,4 @@
+#include "data_collection/data_colection.hpp"
 #include "filesystem/fs_mock.hpp"
 #include "mock_user/mock_user.hpp"
 
@@ -5,40 +6,14 @@
 #include <iostream>
 #include <thread>
 
-struct ReadEvent {
-    int time_stamp;
-    size_t read_size;
-    int time_ms;
-};
-
-struct BitFlipEvent {
-    int time_stamp;
-};
-
-struct ErrorCorrectionEvent {
-    int time_stamp;
-};
-
-typedef std::variant<ReadEvent, BitFlipEvent, ErrorCorrectionEvent> Event;
-
-class Logger {
-    std::ofstream file;
-
-public:
-    void log(Event event)
-    {
-        switch (event.index()) {
-        }
-    }
-};
-
 int main()
 {
     FsMock fs;
-    MockUser user(fs, {});
+    Logger logger;
+    MockUser user(fs, logger, {});
 
-    for (int i = 0; i < 1000; i++) {
-        std::cout << i << std::endl;
+    for (int i = 0; i < 100; i++) {
+        logger.step();
         user.step();
     }
     return 0;

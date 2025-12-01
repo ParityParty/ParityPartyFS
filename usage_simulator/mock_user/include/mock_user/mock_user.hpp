@@ -1,4 +1,5 @@
 #pragma once
+#include "data_collection/data_colection.hpp"
 #include "filesystem/ifilesystem.hpp"
 
 struct UserBehaviour {
@@ -9,10 +10,11 @@ struct UserBehaviour {
 
 class MockUser {
     IFilesystem& _fs;
+    Logger& _logger;
     UserBehaviour _behaviour;
     int _to_next_op = 0;
 
 public:
-    MockUser(IFilesystem& fs, UserBehaviour behaviour);
+    MockUser(IFilesystem& fs, Logger& logger, UserBehaviour behaviour);
     void step();
 };
