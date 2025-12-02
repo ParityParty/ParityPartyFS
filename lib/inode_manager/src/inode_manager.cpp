@@ -26,10 +26,16 @@ std::expected<inode_index_t, FsError> InodeManager::create(Inode& inode)
 
     auto data = (std::uint8_t*)(&inode);
     std::vector<std::uint8_t> data_vector(data, data + sizeof(inode));
-    _block_device.writeBlock(data_vector, _getInodeLocation(node_id));
+    auto write_res = _block_device.writeBlock(data_vector, _getInodeLocation(node_id));
+    if (!write_res.has_value()) {
+        return std::unexpected(write_res.error());
+    }
 
-    _bitmap.setBit(node_id, 0);
-    return 0;
+    auto setbit_res = _bitmap.setBit(node_id, 0);
+    if (!setbit_res.has_value()) {
+        return std::unexpected(setbit_res.error());
+    }
+    return node_id;
 }
 
 std::expected<void, FsError> InodeManager::remove(inode_index_t inode)
