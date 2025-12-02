@@ -24,7 +24,6 @@ std::expected<inode_index_t, FsError> InodeManager::create(Inode& inode)
     }
     auto node_id = result.value();
 
-    inode.id = node_id;
     auto data = (std::uint8_t*)(&inode);
     std::vector<std::uint8_t> data_vector(data, data + sizeof(inode));
     _block_device.writeBlock(data_vector, _getInodeLocation(node_id));
@@ -39,7 +38,7 @@ std::expected<void, FsError> InodeManager::remove(inode_index_t inode)
     if (!is_free.has_value()) {
         return std::unexpected(is_free.error());
     }
-    if (is_free) {
+    if (is_free.value()) {
         return std::unexpected(FsError::AlreadyFree);
     }
     return _bitmap.setBit(inode, 1);
@@ -51,7 +50,7 @@ std::expected<Inode, FsError> InodeManager::get(inode_index_t inode)
     if (!is_free.has_value()) {
         return std::unexpected(is_free.error());
     }
-    if (is_free) {
+    if (is_free.value()) {
         return std::unexpected(FsError::NotFound);
     }
 
@@ -65,19 +64,22 @@ std::expected<Inode, FsError> InodeManager::get(inode_index_t inode)
 
 std::expected<unsigned int, FsError> InodeManager::numFree() { return _bitmap.count(1); }
 
-std::expected<void, FsError> InodeManager::update(const Inode& inode)
+std::expected<void, FsError> InodeManager::update(inode_index_t inode_index, const Inode& inode)
 {
-    auto is_free = _bitmap.getBit(inode.id);
+    auto is_free = _bitmap.getBit(inode_index);
     if (!is_free.has_value()) {
         return std::unexpected(is_free.error());
     }
-    if (is_free) {
+    if (is_free.value()) {
         return std::unexpected(FsError::NotFound);
     }
 
     auto data = (std::uint8_t*)(&inode);
     std::vector<std::uint8_t> data_vector(data, data + sizeof(inode));
-    _block_device.writeBlock(data_vector, _getInodeLocation(inode.id));
+    auto write_res = _block_device.writeBlock(data_vector, _getInodeLocation(inode_index));
+    if (!write_res.has_value()) {
+        return std::unexpected(write_res.error());
+    }
 
     return {};
 }

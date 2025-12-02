@@ -50,5 +50,5 @@ struct IInodeManager {
      * @param inode index of inode to update
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> update(const Inode& inode) = 0;
+    virtual std::expected<void, FsError> update(inode_index_t inode_index, const Inode& inode) = 0;
 };

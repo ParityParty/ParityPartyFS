@@ -97,22 +97,33 @@ std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
     if (!byte_ret.has_value()) {
         return std::unexpected(byte_ret.error());
     }
-    auto byte = byte_ret.value();
+    auto old_byte = byte_ret.value();
     auto bit = bit_index % 8;
 
+    std::uint8_t byte;
     if (value) {
-        byte = byte | (1 << (7 - bit));
+        byte = old_byte | (1 << (7 - bit));
     } else {
-        byte = byte & ~(1 << (7 - bit));
+        byte = old_byte & ~(1 << (7 - bit));
     }
 
     auto location = _getByteLocation(bit_index);
 
-    auto write_ret = _block_device.writeBlock({ static_cast<std::uint8_t>(byte) }, location);
-    if (write_ret.has_value()) {
-        return {};
-    };
-    return std::unexpected(write_ret.error());
+    auto write_ret = _block_device.writeBlock({ byte }, location);
+    if (!write_ret.has_value()) {
+        std::unexpected(write_ret.error());
+    }
+
+    if (_ones_count.has_value() && byte != old_byte) {
+        if (value) {
+            _ones_count.value()++;
+        }
+        else {
+            _ones_count.value()--;
+        }
+    }
+
+    return {};
 }
 
 std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
@@ -166,5 +177,6 @@ std::expected<void, FsError> Bitmap::setAll(bool value)
     if (!write_ret.has_value()) {
         return std::unexpected(write_ret.error());
     }
+    _ones_count = value * _bit_count;
     return {};
 }
