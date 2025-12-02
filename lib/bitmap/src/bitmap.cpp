@@ -63,7 +63,10 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
         return std::unexpected(last_block_ret.error());
     }
 
-    for (int bit_index = 0; bit_index < _bit_count % (_block_device.dataSize() * 8); bit_index++) {
+    auto bits_left = _bit_count % (_block_device.dataSize() * 8);
+    if (bits_left == 0) bits_left = _block_device.dataSize() * 8;
+
+    for (int bit_index = 0; bit_index < bits_left; bit_index++) {
         count += BitHelpers::getBit(last_block, bit_index);
     }
     _ones_count = count;
