@@ -20,17 +20,21 @@ TEST(FileIO, WritesAndReadsDirectBlocks)
     StackDisk disk;
     RawBlockDevice block_device(128, disk);
     BlockManager block_manager(16, 1024, block_device);
-    SuperBlock superblock { .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128 };
+    SuperBlock superblock {
+        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+    };
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
     Inode inode {};
     inode.file_size = 0;
     // Assume formatted bitmap (1 means free)
-    auto disk_write_res = disk.write(0, std::vector<uint8_t>{0xFF});
-    ASSERT_TRUE(disk_write_res.has_value()) << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto disk_write_res = disk.write(0, std::vector<uint8_t> { 0xFF });
+    ASSERT_TRUE(disk_write_res.has_value())
+        << "Failed to write to disk: " << toString(disk_write_res.error());
     auto inode_index = inode_manager.create(inode);
-    ASSERT_TRUE(inode_index.has_value()) << "Failed to create inode: " << toString(inode_index.error());
+    ASSERT_TRUE(inode_index.has_value())
+        << "Failed to create inode: " << toString(inode_index.error());
 
     std::vector<uint8_t> data(block_device.dataSize() * 12);
 
@@ -57,17 +61,21 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
     StackDisk disk;
     RawBlockDevice block_device(128, disk);
     BlockManager block_manager(16, 1024, block_device);
-    SuperBlock superblock { .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128 };
+    SuperBlock superblock {
+        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+    };
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
     Inode inode {};
     inode.file_size = 0;
     // Assume formatted bitmap (1 means free)
-    auto disk_write_res = disk.write(0, std::vector<uint8_t>{0xFF});
-    ASSERT_TRUE(disk_write_res.has_value()) << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto disk_write_res = disk.write(0, std::vector<uint8_t> { 0xFF });
+    ASSERT_TRUE(disk_write_res.has_value())
+        << "Failed to write to disk: " << toString(disk_write_res.error());
     auto inode_index = inode_manager.create(inode);
-    ASSERT_TRUE(inode_index.has_value()) << "Failed to create inode: " << toString(inode_index.error());
+    ASSERT_TRUE(inode_index.has_value())
+        << "Failed to create inode: " << toString(inode_index.error());
 
     std::vector<uint8_t> data(block_device.dataSize() * 12
         + block_device.dataSize() * (block_device.dataSize() / sizeof(block_index_t)));
@@ -96,17 +104,21 @@ TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
     StackDisk disk;
     RawBlockDevice block_device(128, disk);
     BlockManager block_manager(16, 2048, block_device);
-    SuperBlock superblock { .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128 };
+    SuperBlock superblock {
+        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+    };
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
     Inode inode {};
     inode.file_size = 0;
     // Assume formatted bitmap (1 means free)
-    auto disk_write_res = disk.write(0, std::vector<uint8_t>{0xFF});
-    ASSERT_TRUE(disk_write_res.has_value()) << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto disk_write_res = disk.write(0, std::vector<uint8_t> { 0xFF });
+    ASSERT_TRUE(disk_write_res.has_value())
+        << "Failed to write to disk: " << toString(disk_write_res.error());
     auto inode_index = inode_manager.create(inode);
-    ASSERT_TRUE(inode_index.has_value()) << "Failed to create inode: " << toString(inode_index.error());
+    ASSERT_TRUE(inode_index.has_value())
+        << "Failed to create inode: " << toString(inode_index.error());
 
     auto indexes_per_block = block_device.dataSize() / sizeof(block_index_t);
     std::vector<uint8_t> data(
@@ -137,17 +149,18 @@ TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
 //     StackDisk disk;
 //     RawBlockDevice block_device(128, disk);
 //     BlockManager block_manager(16, 160000000, block_device);
-//     SuperBlock superblock { .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128 };
-//     InodeManager inode_manager(block_device, superblock);
-//     FileIO file_io(block_device, block_manager, inode_manager);
+//     SuperBlock superblock { .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address =
+//     1, .block_size = 128 }; InodeManager inode_manager(block_device, superblock); FileIO
+//     file_io(block_device, block_manager, inode_manager);
 //
 //     Inode inode {};
 //     inode.file_size = 0;
 //     // Assume formatted bitmap (1 means free)
 //     auto disk_write_res = disk.write(0, std::vector<uint8_t>{0xFF});
-//     ASSERT_TRUE(disk_write_res.has_value()) << "Failed to write to disk: " << toString(disk_write_res.error());
-//     auto inode_index = inode_manager.create(inode);
-//     ASSERT_TRUE(inode_index.has_value()) << "Failed to create inode: " << toString(inode_index.error());
+//     ASSERT_TRUE(disk_write_res.has_value()) << "Failed to write to disk: " <<
+//     toString(disk_write_res.error()); auto inode_index = inode_manager.create(inode);
+//     ASSERT_TRUE(inode_index.has_value()) << "Failed to create inode: " <<
+//     toString(inode_index.error());
 //
 //     auto indexes_per_block = block_device.dataSize() / sizeof(block_index_t);
 //     std::vector<uint8_t> data(block_device.dataSize()

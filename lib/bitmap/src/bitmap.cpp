@@ -117,8 +117,7 @@ std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
     if (_ones_count.has_value() && byte != old_byte) {
         if (value) {
             _ones_count.value()++;
-        }
-        else {
+        } else {
             _ones_count.value()--;
         }
     }
