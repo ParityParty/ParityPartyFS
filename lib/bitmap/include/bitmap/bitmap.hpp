@@ -4,11 +4,6 @@
 #include <cstdint>
 #include <optional>
 
-#include <cstdint>
-#include <optional>
-
-enum BitmapError { IndexOutOfRange, Disk, NotFound };
-
 /**
  * Class for working with bitmaps in disk
  */
