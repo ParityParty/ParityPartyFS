@@ -89,3 +89,5 @@ std::expected<void, FsError> InodeManager::update(inode_index_t inode_index, con
 
     return {};
 }
+
+std::expected<void, FsError> InodeManager::format() { return _bitmap.setAll(1); }

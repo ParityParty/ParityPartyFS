@@ -19,4 +19,5 @@ public:
     virtual std::expected<unsigned int, FsError> numFree() override;
     virtual std::expected<void, FsError> update(
         inode_index_t inode_index, const Inode& inode) override;
+    virtual std::expected<void, FsError> format() override;
 };

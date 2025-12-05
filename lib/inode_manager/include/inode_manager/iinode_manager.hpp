@@ -51,4 +51,11 @@ struct IInodeManager {
      * @return void on success, error otherwise
      */
     virtual std::expected<void, FsError> update(inode_index_t inode_index, const Inode& inode) = 0;
+
+    /**
+     * Format inode table and bitmap
+     *
+     * @return void on success, error otherwise
+     */
+    virtual std::expected<void, FsError> format() = 0;
 };

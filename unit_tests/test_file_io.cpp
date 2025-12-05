@@ -28,10 +28,9 @@ TEST(FileIO, WritesAndReadsDirectBlocks)
 
     Inode inode {};
     inode.file_size = 0;
-    // Assume formatted bitmap (1 means free)
-    auto disk_write_res = disk.write(0, std::vector<uint8_t> { 0xFF });
-    ASSERT_TRUE(disk_write_res.has_value())
-        << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto format_res = inode_manager.format();
+    ASSERT_TRUE(format_res.has_value())
+        << "Failed to format inode table: " << toString(format_res.error());
     auto inode_index = inode_manager.create(inode);
     ASSERT_TRUE(inode_index.has_value())
         << "Failed to create inode: " << toString(inode_index.error());
@@ -69,10 +68,9 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
 
     Inode inode {};
     inode.file_size = 0;
-    // Assume formatted bitmap (1 means free)
-    auto disk_write_res = disk.write(0, std::vector<uint8_t> { 0xFF });
-    ASSERT_TRUE(disk_write_res.has_value())
-        << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto format_res = inode_manager.format();
+    ASSERT_TRUE(format_res.has_value())
+        << "Failed to format inode table: " << toString(format_res.error());
     auto inode_index = inode_manager.create(inode);
     ASSERT_TRUE(inode_index.has_value())
         << "Failed to create inode: " << toString(inode_index.error());
@@ -112,10 +110,9 @@ TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
 
     Inode inode {};
     inode.file_size = 0;
-    // Assume formatted bitmap (1 means free)
-    auto disk_write_res = disk.write(0, std::vector<uint8_t> { 0xFF });
-    ASSERT_TRUE(disk_write_res.has_value())
-        << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto format_res = inode_manager.format();
+    ASSERT_TRUE(format_res.has_value())
+        << "Failed to format inode table: " << toString(format_res.error());
     auto inode_index = inode_manager.create(inode);
     ASSERT_TRUE(inode_index.has_value())
         << "Failed to create inode: " << toString(inode_index.error());

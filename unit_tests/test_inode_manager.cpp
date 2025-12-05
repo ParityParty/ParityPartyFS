@@ -13,6 +13,31 @@ TEST(InodeManager, Compiles)
     EXPECT_TRUE(true);
 }
 
+TEST(InodeManager, FormatsInodeTable)
+{
+    StackDisk disk;
+    RawBlockDevice device(128, disk);
+    SuperBlock superblock {
+        .total_inodes = 8, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+    };
+    InodeManager inode_manager(device, superblock);
+
+    auto set_disk_0s_res = disk.write(0, std::vector<std::uint8_t>(1, 0x00));
+    ASSERT_TRUE(set_disk_0s_res.has_value())
+        << "Failed to initialize disk: " << toString(set_disk_0s_res.error());
+
+    auto format_res = inode_manager.format();
+    ASSERT_TRUE(format_res.has_value())
+        << "Failed to format inode table: " << toString(format_res.error());
+
+    auto bitmap_data_res = disk.read(0, 1);
+    ASSERT_TRUE(bitmap_data_res.has_value())
+        << "Failed to read bitmap from disk: " << toString(bitmap_data_res.error());
+
+    // After formatting, all inodes should be free (1)
+    ASSERT_EQ(bitmap_data_res.value()[0], 0xFF);
+}
+
 TEST(InodeManager, CreatesAndGetsInode)
 {
     StackDisk disk;
@@ -25,10 +50,9 @@ TEST(InodeManager, CreatesAndGetsInode)
     Inode inode {};
     inode.file_size = 1234;
 
-    // Assume formatted bitmap (1 means free)
-    auto disk_write_res = disk.write(0, std::vector<uint8_t> { 0xFF });
-    ASSERT_TRUE(disk_write_res.has_value())
-        << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto format_res = inode_manager.format();
+    ASSERT_TRUE(format_res.has_value())
+        << "Failed to format inode table: " << toString(format_res.error());
 
     auto inode_index = inode_manager.create(inode);
     ASSERT_TRUE(inode_index.has_value())
@@ -53,10 +77,9 @@ TEST(InodeManager, CreatesAndRemovesInode)
     Inode inode {};
     inode.file_size = 1234;
 
-    // Assume formatted bitmap (1 means free)
-    auto disk_write_res = disk.write(0, std::vector<uint8_t> { 0xFF });
-    ASSERT_TRUE(disk_write_res.has_value())
-        << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto format_res = inode_manager.format();
+    ASSERT_TRUE(format_res.has_value())
+        << "Failed to format inode table: " << toString(format_res.error());
 
     auto inode_index = inode_manager.create(inode);
     ASSERT_TRUE(inode_index.has_value())
@@ -88,10 +111,9 @@ TEST(InodeManager, UpdatesInode)
     Inode inode {};
     inode.file_size = 1234;
 
-    // Assume formatted bitmap (1 means free)
-    auto disk_write_res = disk.write(0, std::vector<uint8_t> { 0xFF });
-    ASSERT_TRUE(disk_write_res.has_value())
-        << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto format_res = inode_manager.format();
+    ASSERT_TRUE(format_res.has_value())
+        << "Failed to format inode table: " << toString(format_res.error());
 
     auto inode_index = inode_manager.create(inode);
     ASSERT_TRUE(inode_index.has_value())
@@ -118,10 +140,9 @@ TEST(InodeManager, CountsFreeInodes)
     };
     InodeManager inode_manager(device, superblock);
 
-    // Assume formatted bitmap (1 means free)
-    auto disk_write_res = disk.write(0, std::vector<uint8_t> { 0xFF });
-    ASSERT_TRUE(disk_write_res.has_value())
-        << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto format_res = inode_manager.format();
+    ASSERT_TRUE(format_res.has_value())
+        << "Failed to format inode table: " << toString(format_res.error());
 
     auto free_count_res = inode_manager.numFree();
     ASSERT_TRUE(free_count_res.has_value())
@@ -154,11 +175,9 @@ TEST(InodeManager, WorksForMultipleInodes)
         .block_size = 128 };
     InodeManager inode_manager(device, superblock);
 
-    // Assume formatted bitmap (1 means free)
-    std::vector<uint8_t> bitmap_data(superblock.inode_table_address * 128, 0xFF);
-    auto disk_write_res = disk.write(0, bitmap_data);
-    ASSERT_TRUE(disk_write_res.has_value())
-        << "Failed to write to disk: " << toString(disk_write_res.error());
+    auto format_res = inode_manager.format();
+    ASSERT_TRUE(format_res.has_value())
+        << "Failed to format inode table: " << toString(format_res.error());
 
     for (int i = 0; i < 512; i++) {
         Inode inode {};
