@@ -4,8 +4,6 @@
 #include "directory_manager/idirectory_manager.hpp"
 #include "file_io/file_io.hpp"
 
-#include "directory_manager/idirectory_manager.hpp"
-
 class DirectoryManager : public IDirectoryManager {
     IBlockDevice& _block_device;
     IInodeManager& _inode_manager;
