@@ -25,6 +25,9 @@ public:
     std::expected<size_t, FsError> writeFile(inode_index_t inode_index, Inode& inode, size_t offset,
         std::vector<uint8_t> bytes_to_write);
 
+    /**
+     * Resizes file to a given size
+     */
     std::expected<void, FsError> resizeFile(
         inode_index_t inode_index, Inode& inode, size_t new_size);
 };
