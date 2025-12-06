@@ -1,5 +1,7 @@
 #include "inode_manager/inode_manager.hpp"
 
+#include <iostream>
+
 InodeManager::InodeManager(IBlockDevice& block_device, SuperBlock& superblock)
     : _block_device(block_device)
     , _superblock(superblock)
@@ -18,6 +20,7 @@ DataLocation InodeManager::_getInodeLocation(inode_index_t inode)
 
 std::expected<inode_index_t, FsError> InodeManager::create(Inode& inode)
 {
+    std::cout << "Creating" << std::endl;
     auto result = _bitmap.getFirstEq(1); // one means free
     if (!result.has_value()) {
         return std::unexpected(result.error());
@@ -64,6 +67,7 @@ std::expected<Inode, FsError> InodeManager::get(inode_index_t inode)
     if (!result.has_value()) {
         return std::unexpected(result.error());
     }
+    std::cout << "Get worked: " << inode << std::endl;
 
     return *(Inode*)(result.value().data());
 }
@@ -77,6 +81,7 @@ std::expected<void, FsError> InodeManager::update(inode_index_t inode_index, con
         return std::unexpected(is_free.error());
     }
     if (is_free.value()) {
+        std::cout << "Update did not work: " << inode_index << std::endl;
         return std::unexpected(FsError::NotFound);
     }
 

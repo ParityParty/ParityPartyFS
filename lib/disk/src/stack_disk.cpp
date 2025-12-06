@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <expected>
+#include <iostream>
 
 size_t StackDisk::size() { return _size; }
 
@@ -17,6 +18,7 @@ std::expected<size_t, FsError> StackDisk::write(
     size_t address, const std::vector<std::uint8_t>& data)
 {
     if (address + data.size() > _size) {
+        std::cout << "Whyyy" << std::endl;
         return std::unexpected(FsError::OutOfBounds);
     }
     std::memcpy(_data + address, data.data(), data.size());

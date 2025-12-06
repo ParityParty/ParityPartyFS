@@ -168,10 +168,10 @@ std::expected<void, FsError> Bitmap::setAll(bool value)
 
     auto last_block_ret = _block_device.readBlock(
         { _start_block + blocks_spanned - 1, 0 }, _block_device.dataSize());
-    auto last_block = last_block_ret.value();
     if (!last_block_ret.has_value()) {
         return std::unexpected(last_block_ret.error());
     }
+    auto last_block = last_block_ret.value();
     for (int bit_index = 0; bit_index < _bit_count % (_block_device.dataSize() * 8); bit_index++) {
         BitHelpers::setBit(last_block, bit_index, value);
     }

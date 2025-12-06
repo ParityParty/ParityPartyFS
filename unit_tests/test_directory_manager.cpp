@@ -18,22 +18,25 @@ TEST(DirectoryManager, compiles)
 TEST(DirectoryManager, AddAndReadEntries)
 {
     StackDisk disk;
-    RawBlockDevice dev(64, disk);
-    BlockManager bm(0, 1024, dev);
-    InodeManager im(dev, *(new SuperBlock()));
+    RawBlockDevice dev(1024, disk);
+    SuperBlock superblock {
+        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 1024
+    };
+    InodeManager im(dev, superblock);
+    BlockManager bm(2, 1024, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
-
+    ASSERT_TRUE(im.format());
     Inode dir_inode;
     auto root = im.create(dir_inode);
     ASSERT_TRUE(root.has_value());
     inode_index_t dir = root.value();
-
     DirectoryEntry e1;
     e1.inode = 42;
     strcpy(e1.name.data(), "hello");
 
-    ASSERT_TRUE(dm.addEntry(dir, e1).has_value());
+    auto add_res = dm.addEntry(dir, e1);
+    ASSERT_TRUE(add_res.has_value()) << "Adding entry failed: " << toString(add_res.error());
 
     auto entries = dm.getEntries(dir);
     ASSERT_TRUE(entries.has_value());
@@ -45,13 +48,19 @@ TEST(DirectoryManager, AddAndReadEntries)
 TEST(DirectoryManager, RemoveFirstOfMultipleEntries)
 {
     StackDisk disk;
-    RawBlockDevice dev(64, disk);
-    BlockManager bm(0, 1024, dev);
-    InodeManager im(dev, *(new SuperBlock()));
+    RawBlockDevice dev(1024, disk);
+    SuperBlock superblock {
+        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 1024
+    };
+    InodeManager im(dev, superblock);
+    BlockManager bm(2, 1024, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
-
-    auto dir = im.create(Inode()).value();
+    ASSERT_TRUE(im.format());
+    Inode dir_inode;
+    auto root = im.create(dir_inode);
+    ASSERT_TRUE(root.has_value());
+    inode_index_t dir = root.value();
 
     DirectoryEntry a, b, c;
     a.inode = 1;
@@ -66,7 +75,8 @@ TEST(DirectoryManager, RemoveFirstOfMultipleEntries)
     ASSERT_TRUE(dm.addEntry(dir, c).has_value());
 
     // Usuwamy pierwszy (A)
-    ASSERT_TRUE(dm.removeEntry(dir, 1).has_value());
+    auto rm_res = dm.removeEntry(dir, 1);
+    ASSERT_TRUE(rm_res.has_value()) << "Removing file failed: " << toString(rm_res.error());
 
     auto entries = dm.getEntries(dir);
     ASSERT_TRUE(entries.has_value());
@@ -80,13 +90,19 @@ TEST(DirectoryManager, RemoveFirstOfMultipleEntries)
 TEST(DirectoryManager, AddDuplicateNameFails)
 {
     StackDisk disk;
-    RawBlockDevice dev(64, disk);
-    BlockManager bm(0, 1024, dev);
-    InodeManager im(dev, *(new SuperBlock()));
+    RawBlockDevice dev(1024, disk);
+    SuperBlock superblock {
+        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 1024
+    };
+    InodeManager im(dev, superblock);
+    BlockManager bm(2, 1024, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
-
-    auto dir = im.create(Inode()).value();
+    ASSERT_TRUE(im.format());
+    Inode dir_inode;
+    auto root = im.create(dir_inode);
+    ASSERT_TRUE(root.has_value());
+    inode_index_t dir = root.value();
 
     DirectoryEntry e1;
     e1.inode = 10;
@@ -105,13 +121,19 @@ TEST(DirectoryManager, AddDuplicateNameFails)
 TEST(DirectoryManager, RemoveNonexistentEntryFails)
 {
     StackDisk disk;
-    RawBlockDevice dev(64, disk);
-    BlockManager bm(0, 1024, dev);
-    InodeManager im(dev, *(new SuperBlock()));
+    RawBlockDevice dev(1024, disk);
+    SuperBlock superblock {
+        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 1024
+    };
+    InodeManager im(dev, superblock);
+    BlockManager bm(2, 1024, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
-
-    auto dir = im.create(Inode()).value();
+    ASSERT_TRUE(im.format());
+    Inode dir_inode;
+    auto root = im.create(dir_inode);
+    ASSERT_TRUE(root.has_value());
+    inode_index_t dir = root.value();
 
     DirectoryEntry e;
     e.inode = 123;

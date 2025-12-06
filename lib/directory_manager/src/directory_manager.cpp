@@ -21,7 +21,7 @@ std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::getEntries
 
     Inode dir_inode = inode_result.value();
 
-    return _readDirectoryData(dir_inode);
+    return _readDirectoryData(inode, dir_inode);
 }
 
 std::expected<void, FsError> DirectoryManager::addEntry(
@@ -29,15 +29,13 @@ std::expected<void, FsError> DirectoryManager::addEntry(
 {
     auto inode_result = _inode_manager.get(directory);
     if (!inode_result.has_value()) {
-        std::cout << "Here" << std::endl;
         return std::unexpected(inode_result.error());
     }
     Inode dir_inode = inode_result.value();
 
-    auto read_res = _readDirectoryData(dir_inode);
+    auto read_res = _readDirectoryData(directory, dir_inode);
 
     if (!read_res.has_value()) {
-        std::cout << "dupa" << std::endl;
         return std::unexpected(read_res.error());
     }
 
@@ -45,11 +43,10 @@ std::expected<void, FsError> DirectoryManager::addEntry(
 
     int index = _findEntryIndexByName(entries, entry.name.data());
     if (index != -1) {
-        std::cout << "AAA" << std::endl;
         return std::unexpected(FsError::NameTaken);
     }
 
-    auto write_res = _file_io.writeFile(dir_inode, dir_inode.file_size,
+    auto write_res = _file_io.writeFile(directory, dir_inode, dir_inode.file_size,
         std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&entry),
             reinterpret_cast<uint8_t*>(&entry) + sizeof(DirectoryEntry)));
 
@@ -70,9 +67,11 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
 
     Inode dir_inode = inode_result.value();
 
-    auto read_res = _readDirectoryData(dir_inode);
+    auto read_res = _readDirectoryData(directory, dir_inode);
 
     if (!read_res.has_value()) {
+        std::cout << "Read failed" << std::endl;
+
         return std::unexpected(read_res.error());
     }
 
@@ -85,25 +84,29 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     auto new_dir_size = dir_inode.file_size - sizeof(DirectoryEntry);
     if (index * sizeof(DirectoryEntry) != new_dir_size) {
         // move last entry to deleted entry position
-        auto write_res = _file_io.writeFile(dir_inode, index * sizeof(DirectoryEntry),
+        auto write_res = _file_io.writeFile(directory, dir_inode, index * sizeof(DirectoryEntry),
             std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&entries.back()),
                 reinterpret_cast<uint8_t*>(&entries.back()) + sizeof(DirectoryEntry)));
 
-        if (!write_res.has_value())
+        if (!write_res.has_value()) {
+            std::cout << "Write failed" << std::endl;
             return std::unexpected(write_res.error());
+        }
     }
-    auto resize_res = _file_io.resizeFile(dir_inode, new_dir_size);
+    auto resize_res = _file_io.resizeFile(directory, dir_inode, new_dir_size);
     if (!resize_res.has_value()) {
+        std::cout << "Resize failed" << std::endl;
+
         return std::unexpected(resize_res.error());
     }
     return {};
 }
 
 std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::_readDirectoryData(
-    Inode& dir_inode)
+    inode_index_t inode_index, Inode& dir_inode)
 {
     std::cout << dir_inode.file_size << std::endl;
-    auto data_result = _file_io.readFile(dir_inode, 0, dir_inode.file_size);
+    auto data_result = _file_io.readFile(inode_index, dir_inode, 0, dir_inode.file_size);
     if (!data_result.has_value()) {
         std::cout << "dupa" << std::endl;
         return std::unexpected(data_result.error());

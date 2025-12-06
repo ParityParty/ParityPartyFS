@@ -11,7 +11,8 @@ class DirectoryManager : public IDirectoryManager {
     IInodeManager& _inode_manager;
     FileIO& _file_io;
 
-    std::expected<std::vector<DirectoryEntry>, FsError> _readDirectoryData(Inode& dir_inode);
+    std::expected<std::vector<DirectoryEntry>, FsError> _readDirectoryData(
+        inode_index_t inode_index, Inode& dir_inode);
     int _findEntryIndexByName(const std::vector<DirectoryEntry>& entries, char const* name);
     int _findEntryIndexByInode(const std::vector<DirectoryEntry>& entries, inode_index_t inode);
 

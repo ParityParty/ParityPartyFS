@@ -43,6 +43,7 @@ std::expected<size_t, FsError> FileIO::writeFile(
     inode_index_t inode_index, Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write)
 {
     size_t written_bytes = 0;
+    std::cout << "We shold write " << bytes_to_write.size() << std::endl;
     size_t block_number = offset / _block_device.dataSize();
     size_t offset_in_block = offset % _block_device.dataSize();
 
@@ -51,16 +52,19 @@ std::expected<size_t, FsError> FileIO::writeFile(
         auto next_block = indexIterator.next();
         if (!next_block.has_value()) {
             // We wrote some bytes already, so we need to update file size
+            std::cout << "No next block" << std::endl;
             if (inode.file_size < offset + written_bytes) {
                 inode.file_size = offset + written_bytes;
                 auto inode_res = _inode_manager.update(inode_index, inode);
                 if (!inode_res.has_value()) {
+                    std::cout << "1" << std::endl;
                     return std::unexpected(inode_res.error());
                 }
             }
+            std::cout << "2" << std::endl;
             return std::unexpected(next_block.error());
         }
-
+        // std::cout << "Writing to block: " << *next_block << std::endl;
         auto write_res = _block_device.writeBlock(
             { bytes_to_write.begin() + written_bytes, bytes_to_write.end() },
             DataLocation(*next_block, offset_in_block));
@@ -74,27 +78,33 @@ std::expected<size_t, FsError> FileIO::writeFile(
                 inode.file_size = offset + written_bytes;
                 _inode_manager.update(inode_index, inode);
             }
+            std::cout << "Write failed:" << *next_block << std::endl;
+
             return std::unexpected(write_res.error());
         }
 
         offset_in_block = 0;
         written_bytes += write_res.value();
+        // std::cout << "Written bytes" << written_bytes << std::endl;
 
-        if (written_bytes == bytes_to_write.size())
+        if (written_bytes == bytes_to_write.size()) {
             if (inode.file_size < offset + written_bytes) {
                 inode.file_size = offset + written_bytes;
                 auto inode_res = _inode_manager.update(inode_index, inode);
                 if (!inode_res.has_value()) {
+                    std::cout << "Failed on inode update" << std::endl;
                     return std::unexpected(inode_res.error());
-                }
-                return written_bytes;
+                };
             }
+            return written_bytes;
+        }
     }
 
     return std::unexpected(FsError::InternalError);
 }
 
-std::expected<void, FsError> FileIO::resizeFile(Inode& inode, size_t new_size)
+std::expected<void, FsError> FileIO::resizeFile(
+    inode_index_t inode_index, Inode& inode, size_t new_size)
 {
     if (new_size == inode.file_size)
         return {};
@@ -112,7 +122,7 @@ std::expected<void, FsError> FileIO::resizeFile(Inode& inode, size_t new_size)
                 = bytes_to_allocate > free_in_block ? bytes_to_allocate - free_in_block : 0;
 
             inode.file_size += std::min(free_in_block, new_size - inode.file_size);
-            auto inode_res = _inode_manager.update(inode);
+            auto inode_res = _inode_manager.update(inode_index, inode);
             if (!inode_res.has_value())
                 return std::unexpected(inode_res.error());
         }
@@ -120,7 +130,7 @@ std::expected<void, FsError> FileIO::resizeFile(Inode& inode, size_t new_size)
             auto next_block = indexIterator.next();
             if (!next_block.has_value()) {
                 inode.file_size = new_size - bytes_to_allocate;
-                auto inode_res = _inode_manager.update(inode);
+                auto inode_res = _inode_manager.update(inode_index, inode);
                 if (!inode_res.has_value())
                     return std::unexpected(inode_res.error());
                 return std::unexpected(next_block.error());
@@ -128,7 +138,7 @@ std::expected<void, FsError> FileIO::resizeFile(Inode& inode, size_t new_size)
             auto format_res = _block_device.formatBlock(*next_block);
             if (!format_res.has_value()) {
                 inode.file_size = new_size - bytes_to_allocate;
-                auto inode_res = _inode_manager.update(inode);
+                auto inode_res = _inode_manager.update(inode_index, inode);
                 if (!inode_res.has_value())
                     return std::unexpected(inode_res.error());
                 return std::unexpected(format_res.error());
@@ -138,7 +148,7 @@ std::expected<void, FsError> FileIO::resizeFile(Inode& inode, size_t new_size)
                 : 0;
         }
         inode.file_size = new_size;
-        auto inode_res = _inode_manager.update(inode);
+        auto inode_res = _inode_manager.update(inode_index, inode);
         if (!inode_res.has_value())
             return std::unexpected(inode_res.error());
         return {};
@@ -150,7 +160,7 @@ std::expected<void, FsError> FileIO::resizeFile(Inode& inode, size_t new_size)
 
     auto old_size = inode.file_size;
     inode.file_size = new_size;
-    auto inode_res = _inode_manager.update(inode);
+    auto inode_res = _inode_manager.update(inode_index, inode);
     if (!inode_res.has_value()) {
         inode.file_size = old_size;
         return std::unexpected(inode_res.error());
@@ -289,7 +299,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
                     return std::unexpected(read_res.error());
                 }
                 _index_block_2 = read_res.value();
-                if (index_in_segment == 0)
+                if (index_in_segment % indexes_per_block == 0)
                     indirect_blocks_added.push_back(_index_block_1[index]);
             } else {
                 auto index_res = _findAndReserveBlock();
@@ -303,7 +313,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
                     return std::unexpected(write_res.error());
                 }
                 _index_block_2 = std::vector<block_index_t>(indexes_per_block);
-                if (index_in_segment == 0)
+                if (index_in_segment % indexes_per_block == 0)
                     indirect_blocks_added.push_back(index_res.value());
             }
         }
@@ -361,7 +371,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
                     return std::unexpected(read_res.error());
                 }
                 _index_block_2 = read_res.value();
-                if (index_in_segment == 0)
+                if (index_in_segment % (indexes_per_block * indexes_per_block) == 0)
                     indirect_blocks_added.push_back(
                         _index_block_1[index_in_segment / (indexes_per_block * indexes_per_block)]);
             } else {
@@ -377,7 +387,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
                     _block_manager.free(index_res.value());
                     return std::unexpected(write_res.error());
                 }
-                if (index_in_segment == 0)
+                if (index_in_segment % (indexes_per_block * indexes_per_block) == 0)
                     indirect_blocks_added.push_back(index_res.value());
             }
         }
@@ -390,7 +400,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
                     return std::unexpected(read_res.error());
                 }
                 _index_block_3 = read_res.value();
-                if (index_in_segment == 0)
+                if (index_in_segment % indexes_per_block == 0)
                     indirect_blocks_added.push_back(
                         _index_block_2[(index_in_segment / indexes_per_block) % indexes_per_block]);
             } else {
@@ -408,7 +418,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
                     _block_manager.free(index_res.value());
                     return std::unexpected(write_res.error());
                 }
-                if (index_in_segment == 0)
+                if (index_in_segment % indexes_per_block == 0)
                     indirect_blocks_added.push_back(index_res.value());
             }
         }
