@@ -1,7 +1,6 @@
 #include "directory_manager/directory_manager.hpp"
 
 #include <cstring>
-#include <iostream>
 
 DirectoryManager::DirectoryManager(
     IBlockDevice& block_device, IInodeManager& inode_manager, FileIO& file_io)
@@ -51,7 +50,6 @@ std::expected<void, FsError> DirectoryManager::addEntry(
             reinterpret_cast<uint8_t*>(&entry) + sizeof(DirectoryEntry)));
 
     if (!write_res.has_value()) {
-        std::cout << "fdsjfo" << std::endl;
         return std::unexpected(write_res.error());
     }
     return {};
@@ -70,8 +68,6 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     auto read_res = _readDirectoryData(directory, dir_inode);
 
     if (!read_res.has_value()) {
-        std::cout << "Read failed" << std::endl;
-
         return std::unexpected(read_res.error());
     }
 
@@ -89,14 +85,11 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
                 reinterpret_cast<uint8_t*>(&entries.back()) + sizeof(DirectoryEntry)));
 
         if (!write_res.has_value()) {
-            std::cout << "Write failed" << std::endl;
             return std::unexpected(write_res.error());
         }
     }
     auto resize_res = _file_io.resizeFile(directory, dir_inode, new_dir_size);
     if (!resize_res.has_value()) {
-        std::cout << "Resize failed" << std::endl;
-
         return std::unexpected(resize_res.error());
     }
     return {};
@@ -105,10 +98,8 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
 std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::_readDirectoryData(
     inode_index_t inode_index, Inode& dir_inode)
 {
-    std::cout << dir_inode.file_size << std::endl;
     auto data_result = _file_io.readFile(inode_index, dir_inode, 0, dir_inode.file_size);
     if (!data_result.has_value()) {
-        std::cout << "dupa" << std::endl;
         return std::unexpected(data_result.error());
     }
     std::vector<uint8_t> dir_data = data_result.value();

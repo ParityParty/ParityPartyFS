@@ -1,6 +1,5 @@
 #include "file_io/file_io.hpp"
 #include <cstring>
-#include <iostream>
 
 FileIO::FileIO(
     IBlockDevice& block_device, IBlockManager& block_manager, IInodeManager& inode_manager)
@@ -43,7 +42,6 @@ std::expected<size_t, FsError> FileIO::writeFile(
     inode_index_t inode_index, Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write)
 {
     size_t written_bytes = 0;
-    std::cout << "We shold write " << bytes_to_write.size() << std::endl;
     size_t block_number = offset / _block_device.dataSize();
     size_t offset_in_block = offset % _block_device.dataSize();
 
@@ -52,16 +50,13 @@ std::expected<size_t, FsError> FileIO::writeFile(
         auto next_block = indexIterator.next();
         if (!next_block.has_value()) {
             // We wrote some bytes already, so we need to update file size
-            std::cout << "No next block" << std::endl;
             if (inode.file_size < offset + written_bytes) {
                 inode.file_size = offset + written_bytes;
                 auto inode_res = _inode_manager.update(inode_index, inode);
                 if (!inode_res.has_value()) {
-                    std::cout << "1" << std::endl;
                     return std::unexpected(inode_res.error());
                 }
             }
-            std::cout << "2" << std::endl;
             return std::unexpected(next_block.error());
         }
         // std::cout << "Writing to block: " << *next_block << std::endl;
@@ -78,7 +73,6 @@ std::expected<size_t, FsError> FileIO::writeFile(
                 inode.file_size = offset + written_bytes;
                 _inode_manager.update(inode_index, inode);
             }
-            std::cout << "Write failed:" << *next_block << std::endl;
 
             return std::unexpected(write_res.error());
         }
@@ -92,7 +86,6 @@ std::expected<size_t, FsError> FileIO::writeFile(
                 inode.file_size = offset + written_bytes;
                 auto inode_res = _inode_manager.update(inode_index, inode);
                 if (!inode_res.has_value()) {
-                    std::cout << "Failed on inode update" << std::endl;
                     return std::unexpected(inode_res.error());
                 };
             }

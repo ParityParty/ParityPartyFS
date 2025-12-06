@@ -216,7 +216,6 @@ TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
     std::vector<uint8_t> data(block_device.dataSize()
         * (12 + indexes_per_block + indexes_per_block * indexes_per_block
             + indexes_per_block * indexes_per_block * indexes_per_block));
-    std::cout << data.size() << std::endl;
 
     for (size_t i = 0; i < data.size(); ++i)
         data[i] = uint8_t(i % 231);
