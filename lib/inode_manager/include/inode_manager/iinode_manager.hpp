@@ -16,13 +16,13 @@ struct IInodeManager {
      * @param inode data of the new inode
      * @return inode index on success, error otherwise
      */
-    virtual std::expected<inode_index_t, FsError> create(Inode inode) = 0;
+    virtual std::expected<inode_index_t, FsError> create(Inode& inode) = 0;
 
     /**
      * Remove inode.
      *
      * Method removes inode from inode table, and updates bitmap. Inode occurrences in directories
-     * are uneffected by this method, so they need to be handled separately.
+     * are unaffected by this method, so they need to be handled separately.
      *
      * @param inode index of inode to be deleted
      * @return void on success, error otherwise
@@ -50,5 +50,12 @@ struct IInodeManager {
      * @param inode index of inode to update
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> update(const Inode& inode) = 0;
+    virtual std::expected<void, FsError> update(inode_index_t inode_index, const Inode& inode) = 0;
+
+    /**
+     * Format inode table and bitmap
+     *
+     * @return void on success, error otherwise
+     */
+    virtual std::expected<void, FsError> format() = 0;
 };

@@ -11,7 +11,7 @@ FileIO::FileIO(
 }
 
 std::expected<std::vector<uint8_t>, FsError> FileIO::readFile(
-    Inode& inode, size_t offset, size_t bytes_to_read)
+    inode_index_t inode_index, Inode& inode, size_t offset, size_t bytes_to_read)
 {
     if (offset + bytes_to_read > inode.file_size)
         return std::unexpected(FsError::OutOfBounds);
@@ -40,7 +40,7 @@ std::expected<std::vector<uint8_t>, FsError> FileIO::readFile(
 }
 
 std::expected<size_t, FsError> FileIO::writeFile(
-    Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write)
+    inode_index_t inode_index, Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write)
 {
     size_t written_bytes = 0;
     size_t block_number = offset / _block_device.dataSize();
@@ -53,7 +53,7 @@ std::expected<size_t, FsError> FileIO::writeFile(
             // We wrote some bytes already, so we need to update file size
             if (inode.file_size < offset + written_bytes) {
                 inode.file_size = offset + written_bytes;
-                auto inode_res = _inode_manager.update(inode);
+                auto inode_res = _inode_manager.update(inode_index, inode);
                 if (!inode_res.has_value()) {
                     return std::unexpected(inode_res.error());
                 }
@@ -72,7 +72,7 @@ std::expected<size_t, FsError> FileIO::writeFile(
             // We wrote some bytes already, so we need to update file size
             if (inode.file_size < offset + written_bytes) {
                 inode.file_size = offset + written_bytes;
-                _inode_manager.update(inode);
+                _inode_manager.update(inode_index, inode);
             }
             return std::unexpected(write_res.error());
         }
@@ -83,7 +83,7 @@ std::expected<size_t, FsError> FileIO::writeFile(
         if (written_bytes == bytes_to_write.size())
             if (inode.file_size < offset + written_bytes) {
                 inode.file_size = offset + written_bytes;
-                auto inode_res = _inode_manager.update(inode);
+                auto inode_res = _inode_manager.update(inode_index, inode);
                 if (!inode_res.has_value()) {
                     return std::unexpected(inode_res.error());
                 }
