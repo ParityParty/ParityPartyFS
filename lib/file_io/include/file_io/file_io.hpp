@@ -35,11 +35,21 @@ public:
         IBlockManager& block_manager, bool should_resize);
 
     /**
+     * Returns the next data block index of the file.
+     *
      * If should_resize is set to true, updates inode and find new index block if necessary.
      * Does not update inode in inode maneger!!! File size is not updated either!!!
      */
     std::expected<block_index_t, FsError> next();
 
+    /**
+     * Returns the next data block index of the file. If this data block is the
+     * first one coming from a given indirect block, also returns the indices of
+     * the indirect blocks that were newly added.
+     *
+     * If should_resize is set to true, updates inode and find new index block if necessary.
+     * Does not update inode in inode maneger!!! File size is not updated either!!!
+     */
     std::expected<std::tuple<block_index_t, std::vector<block_index_t>>, FsError>
     nextWithIndirectBlocksAdded();
 

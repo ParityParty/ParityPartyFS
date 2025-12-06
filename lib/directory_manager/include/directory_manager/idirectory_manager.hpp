@@ -21,7 +21,7 @@ struct IDirectoryManager {
     virtual std::expected<std::vector<DirectoryEntry>, FsError> getEntries(inode_index_t inode) = 0;
 
     /**
-     * Add entry to existing directory.
+     * Add entry to existing directory. Checks if the name is unique in the parent directory.
      *
      * @param directory inode of directory to add entry to
      * @param entry new entry
