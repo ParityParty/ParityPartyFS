@@ -1,56 +1,7 @@
 #pragma once
 
+#include "blockdevice/crc_polynomial.hpp"
 #include "blockdevice/iblock_device.hpp"
-#include "common/types.hpp"
-
-/**
- * Class representing polynomial used in crc error detection
- */
-class CrcPolynomial {
-    /**
-     * Coefficients with most significant bit first, with explicit +1
-     */
-    std::vector<bool> _coefficients;
-    unsigned int _n;
-
-    /**
-     *
-     * @param coefficients Polynomial with explicit +1
-     * @return Degree of the polynomial
-     */
-    static unsigned int _findDegree(unsigned long int coefficients);
-
-    CrcPolynomial(const std::vector<bool>& coefficients, unsigned int n);
-
-public:
-    CrcPolynomial() = delete;
-    /**
-     * Create polynomial
-     *
-     * @param polynomial polynomial with most significant bit first, with explicit +1
-     * @return Polynomial
-     */
-    static CrcPolynomial MsgExplicit(unsigned long int polynomial);
-
-    /**
-     * Create polynomial
-     *
-     * @param polynomial polynomial with most significant bit first, with implicit +1
-     * @return Polynomial
-     */
-    static CrcPolynomial MsgImplicit(unsigned long int polynomial);
-
-    /**
-     * Divide long polynomial by self
-     *
-     * @param other Coefficients of other polynomial
-     * @return remainder after division other/self
-     */
-    std::vector<bool> divide(const std::vector<bool>& other);
-
-    std::vector<bool> getCoefficients() const;
-    unsigned int getDegree() const;
-};
 
 /**
  * Block device with customizable crc error detection
@@ -76,7 +27,7 @@ class CrcBlockDevice : public IBlockDevice {
      * reads whole block with redundancy bits and checks integrity
      *
      * @param block index of a block to read
-     * @return block with redundancy bits on success, error othewise
+     * @return block with redundancy bits on success, error otherwise
      */
     std::expected<std::vector<std::uint8_t>, FsError> _readAndCheckRaw(block_index_t block);
 

@@ -90,4 +90,39 @@ std::expected<void, FsError> InodeManager::update(inode_index_t inode_index, con
     return {};
 }
 
-std::expected<void, FsError> InodeManager::format() { return _bitmap.setAll(1); }
+std::expected<void, FsError> InodeManager::format()
+{
+    auto set_res = _bitmap.setAll(1);
+    if (!set_res.has_value()) {
+        return std::unexpected(set_res.error());
+    }
+    return _createRootInode();
+}
+
+std::expected<void, FsError> InodeManager::_createRootInode()
+{
+    auto is_free = _bitmap.getBit(0);
+    if (!is_free.has_value()) {
+        return std::unexpected(is_free.error());
+    }
+    if (!is_free.value()) {
+        return std::unexpected(FsError::AlreadyTaken);
+    }
+
+    Inode root {};
+    root.type = FileType::Directory;
+
+    auto data = (std::uint8_t*)(&root);
+    std::vector<std::uint8_t> data_vector(data, data + sizeof(root));
+    auto write_res = _block_device.writeBlock(data_vector, _getInodeLocation(0));
+    if (!write_res.has_value()) {
+        return std::unexpected(write_res.error());
+    }
+
+    auto setbit_res = _bitmap.setBit(0, 0);
+    if (!setbit_res.has_value()) {
+        return std::unexpected(setbit_res.error());
+    }
+
+    return {};
+}

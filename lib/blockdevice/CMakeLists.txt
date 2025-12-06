@@ -8,6 +8,7 @@ target_sources(${NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/parity_block_device.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/rs_block_device.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/crc_block_device.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/crc_polynomial.cpp
 )
 
 target_include_directories(${NAME} PUBLIC

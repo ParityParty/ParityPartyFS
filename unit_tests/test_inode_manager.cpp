@@ -34,8 +34,8 @@ TEST(InodeManager, FormatsInodeTable)
     ASSERT_TRUE(bitmap_data_res.has_value())
         << "Failed to read bitmap from disk: " << toString(bitmap_data_res.error());
 
-    // After formatting, all inodes should be free (1)
-    ASSERT_EQ(bitmap_data_res.value()[0], 0xFF);
+    // After formatting, all inodes but one (root) should be free
+    ASSERT_EQ(bitmap_data_res.value()[0], 0x7F);
 }
 
 TEST(InodeManager, CreatesAndGetsInode)
@@ -43,7 +43,7 @@ TEST(InodeManager, CreatesAndGetsInode)
     StackDisk disk;
     RawBlockDevice device(128, disk);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     InodeManager inode_manager(device, superblock);
 
@@ -70,7 +70,7 @@ TEST(InodeManager, CreatesAndRemovesInode)
     StackDisk disk;
     RawBlockDevice device(128, disk);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     InodeManager inode_manager(device, superblock);
 
@@ -104,7 +104,7 @@ TEST(InodeManager, UpdatesInode)
     StackDisk disk;
     RawBlockDevice device(128, disk);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     InodeManager inode_manager(device, superblock);
 
@@ -136,7 +136,7 @@ TEST(InodeManager, CountsFreeInodes)
     StackDisk disk;
     RawBlockDevice device(128, disk);
     SuperBlock superblock {
-        .total_inodes = 8, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 9, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     InodeManager inode_manager(device, superblock);
 
@@ -197,5 +197,5 @@ TEST(InodeManager, WorksForMultipleInodes)
     auto free_count_res = inode_manager.numFree();
     ASSERT_TRUE(free_count_res.has_value())
         << "Failed to count free inodes: " << toString(free_count_res.error());
-    ASSERT_EQ(free_count_res.value(), 1000 - 512);
+    ASSERT_EQ(free_count_res.value(), 1000 - 512 - 1); // minus root inode
 }

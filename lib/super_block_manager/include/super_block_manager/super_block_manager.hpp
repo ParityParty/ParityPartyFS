@@ -31,7 +31,7 @@ class SuperBlockManager : public ISuperBlockManager {
     IDisk& _disk; /**< Underlying disk */
 
 public:
-    SuperBlockManager(IDisk& block_device);
+    SuperBlockManager(IDisk& disk);
 
     /**
      * Returns the current superblock from disk or from cache if available.
