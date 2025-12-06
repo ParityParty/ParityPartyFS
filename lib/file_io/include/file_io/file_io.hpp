@@ -8,9 +8,6 @@ class FileIO {
     IBlockManager& _block_manager;
     IInodeManager& _inode_manager;
 
-    std::expected<void, FsError> _freeIndirectAndDirectBlocks(
-        block_index_t first_index_to_free, block_index_t last_index_to_free, int levels);
-
 public:
     FileIO(IBlockDevice& block_device, IBlockManager& block_manager, IInodeManager& inode_manager);
     /**
@@ -25,14 +22,11 @@ public:
      * Inode is updated with inode manager to reflect new file size and inode blocks.
      */
 
-    std::expected<size_t, FsError> writeFile(
-        Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write);
+    std::expected<size_t, FsError> writeFile(inode_index_t inode_index, Inode& inode, size_t offset,
+        std::vector<uint8_t> bytes_to_write);
 
     std::expected<void, FsError> resizeFile(
         inode_index_t inode_index, Inode& inode, size_t new_size);
-
-    std::expected<size_t, FsError> writeFile(inode_index_t inode_index, Inode& inode, size_t offset,
-        std::vector<uint8_t> bytes_to_write);
 };
 
 class BlockIndexIterator {

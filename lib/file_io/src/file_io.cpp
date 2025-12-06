@@ -59,7 +59,6 @@ std::expected<size_t, FsError> FileIO::writeFile(
             }
             return std::unexpected(next_block.error());
         }
-        // std::cout << "Writing to block: " << *next_block << std::endl;
         auto write_res = _block_device.writeBlock(
             { bytes_to_write.begin() + written_bytes, bytes_to_write.end() },
             DataLocation(*next_block, offset_in_block));
@@ -79,7 +78,6 @@ std::expected<size_t, FsError> FileIO::writeFile(
 
         offset_in_block = 0;
         written_bytes += write_res.value();
-        // std::cout << "Written bytes" << written_bytes << std::endl;
 
         if (written_bytes == bytes_to_write.size()) {
             if (inode.file_size < offset + written_bytes) {
