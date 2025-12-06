@@ -196,3 +196,28 @@ TEST(Bitmap, Count_checkerboard)
     EXPECT_EQ(count1.value(), 500 * 8 / 2);
     EXPECT_EQ(count1.value(), count0.value());
 }
+
+TEST(Bitmap, Count_setBitChangesCount)
+{
+    StackDisk disk;
+    RawBlockDevice device(32, disk);
+    Bitmap bm(device, 0, 32 * 8);
+
+    // Initialize with ones
+    ASSERT_TRUE(disk.write(0, std::vector(32, std::uint8_t { 0xFF })));
+    auto count = bm.count(0);
+    ASSERT_TRUE(count.has_value());
+    EXPECT_EQ(count.value(), 0);
+
+    // Set bit 16 to 0
+    ASSERT_TRUE(bm.setBit(16, false));
+    auto count2 = bm.count(0);
+    ASSERT_TRUE(count2.has_value());
+    EXPECT_EQ(count2.value(), 1);
+
+    // Set bit 16 to 1
+    ASSERT_TRUE(bm.setBit(16, true));
+    auto count3 = bm.count(0);
+    ASSERT_TRUE(count3.has_value());
+    EXPECT_EQ(count3.value(), 0);
+}

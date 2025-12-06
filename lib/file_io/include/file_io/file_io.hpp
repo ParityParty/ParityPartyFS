@@ -14,15 +14,15 @@ public:
      * Reads file with given inode. If read exceeds file size, returns FsError::OutOfBounds.
      */
     std::expected<std::vector<uint8_t>, FsError> readFile(
-        Inode& inode, size_t offset, size_t bytes_to_read);
+        inode_index_t inode_index, Inode& inode, size_t offset, size_t bytes_to_read);
 
     /**
      * Writes file with given inode. Resizes file if necessary and updates inode table.
      * If writing fails after some blocks were written, those blocks are not freed again.
      * Inode is updated with inode manager to reflect new file size and inode blocks.
      */
-    std::expected<size_t, FsError> writeFile(
-        Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write);
+    std::expected<size_t, FsError> writeFile(inode_index_t inode_index, Inode& inode, size_t offset,
+        std::vector<uint8_t> bytes_to_write);
 };
 
 class BlockIndexIterator {
