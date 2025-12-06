@@ -31,7 +31,8 @@ struct IDirectoryManager {
         = 0;
 
     /**
-     * Remove entry from a directory
+     * Remove entry from a directory. Does not free file blocks and
+     * does not free inode.
      *
      * @param directory directory to remove entry from
      * @param entry inode of entry to be removed
