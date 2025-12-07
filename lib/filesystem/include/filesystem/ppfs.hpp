@@ -21,21 +21,25 @@ class PpFS : public IFilesystem {
     std::unique_ptr<FileIO> _fileIO;
 
     inode_index_t _root = 0;
+    SuperBlock _superBlock;
+
+    std::expected<inode_index_t, FsError> _getParentInodeFromPath(std::string_view path);
 
 public:
     PpFS(IDisk& disk);
 
     virtual std::expected<void, FsError> init() override;
     virtual std::expected<void, FsError> format(FsConfig options) override;
-    virtual std::expected<void, FsError> create(std::string path) override;
-    virtual std::expected<inode_index_t, FsError> open(std::string path) override;
+    virtual std::expected<void, FsError> create(std::string_view path) override;
+    virtual std::expected<inode_index_t, FsError> open(std::string_view path) override;
     virtual std::expected<void, FsError> close(inode_index_t inode) override;
-    virtual std::expected<void, FsError> remove(std::string path) override;
+    virtual std::expected<void, FsError> remove(std::string_view path) override;
     virtual std::expected<std::vector<std::uint8_t>, FsError> read(
         inode_index_t inode, size_t offset, size_t size) override;
     virtual std::expected<void, FsError> write(
         inode_index_t inode, std::vector<std::uint8_t> buffer, size_t offset) override;
-    virtual std::expected<void, FsError> createDirectory(std::string path) override;
-    virtual std::expected<std::vector<std::string>, FsError> readDirectory(
-        std::string path) override;
+    virtual std::expected<void, FsError> createDirectory(std::string_view path) override;
+    virtual std::expected<std::vector<std::string_view>, FsError> readDirectory(
+        std::string_view path) override;
+    virtual bool isInitialized() const override;
 };

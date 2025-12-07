@@ -21,6 +21,8 @@ enum class FsError {
     NameTaken,
     NotImplemented,
     DiskNotFormatted,
+    NotInitialized,
+    InvalidPath,
 };
 
 inline std::string_view toString(FsError err)
@@ -52,6 +54,10 @@ inline std::string_view toString(FsError err)
         return "NameTaken";
     case FsError::DiskNotFormatted:
         return "DiskNotFormatted";
+    case FsError::NotInitialized:
+        return "NotInitialized";
+    case FsError::InvalidPath:
+        return "InvalidPath";
     default:
         return "UnknownError";
     }

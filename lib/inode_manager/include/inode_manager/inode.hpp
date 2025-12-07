@@ -36,6 +36,6 @@ struct __attribute__((packed)) Inode {
      */
     block_index_t trebly_indirect_block;
 
-    std::uint32_t file_size;
+    std::uint32_t file_size = 0;
     FileType type;
 };

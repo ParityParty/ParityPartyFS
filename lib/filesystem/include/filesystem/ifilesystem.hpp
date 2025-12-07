@@ -23,9 +23,8 @@ struct IFilesystem {
     /**
      * Formats underlying disk to be used with filesystem.
      *
-     * Method should create all needed structures (i.e. Superblocks, inode
-     * table, bitmaps, journal)
-     * for filesystem on a disk. Format can destroy all data on disk.
+     * Method creates all structures (i.e. Superblocks, inode table, bitmaps, journal)
+     * for the filesystem on a disk. Format can destroy all data on disk.
      *
      * @param options configuration options for filesystem
      * @return void in case of success, error otherwise.
@@ -40,7 +39,7 @@ struct IFilesystem {
      * @param path absolute path to new file, including its name
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> create(std::string path) = 0;
+    virtual std::expected<void, FsError> create(std::string_view path) = 0;
 
     /**
      * Opens file for read/write operations.
@@ -52,7 +51,7 @@ struct IFilesystem {
      * @return inode to be used with read, write, close operations on success,
      * error otherwise
      */
-    virtual std::expected<inode_index_t, FsError> open(std::string path) = 0;
+    virtual std::expected<inode_index_t, FsError> open(std::string_view path) = 0;
 
     /**
      * Close file
@@ -68,7 +67,7 @@ struct IFilesystem {
      * @param path absolute path to file to be removed
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> remove(std::string path) = 0;
+    virtual std::expected<void, FsError> remove(std::string_view path) = 0;
 
     /**
      * Read bytes from disk
@@ -104,7 +103,7 @@ struct IFilesystem {
      * name
      * @return void success, error otherwise
      */
-    virtual std::expected<void, FsError> createDirectory(std::string path) = 0;
+    virtual std::expected<void, FsError> createDirectory(std::string_view path) = 0;
 
     /**
      * Read entries of a directory
@@ -112,5 +111,14 @@ struct IFilesystem {
      * @param path Absolute path to directory
      * @return list of filenames on success, error otherwise
      */
-    virtual std::expected<std::vector<std::string>, FsError> readDirectory(std::string path) = 0;
+    virtual std::expected<std::vector<std::string_view>, FsError> readDirectory(
+        std::string_view path)
+        = 0;
+
+    /**
+     * Check if filesystem has been initialized and is ready for operations
+     *
+     * @return true if initialized, false otherwise
+     */
+    virtual bool isInitialized() const = 0;
 };
