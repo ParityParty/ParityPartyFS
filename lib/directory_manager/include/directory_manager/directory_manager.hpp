@@ -13,6 +13,7 @@ class DirectoryManager : public IDirectoryManager {
         inode_index_t inode_index, Inode& dir_inode);
     int _findEntryIndexByName(const std::vector<DirectoryEntry>& entries, char const* name);
     int _findEntryIndexByInode(const std::vector<DirectoryEntry>& entries, inode_index_t inode);
+    std::expected<Inode, FsError> _getDirectoryInode(inode_index_t inode_index);
 
 public:
     DirectoryManager(IBlockDevice& block_device, IInodeManager& inode_manager, FileIO& file_io);

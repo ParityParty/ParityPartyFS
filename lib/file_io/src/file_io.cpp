@@ -79,16 +79,20 @@ std::expected<size_t, FsError> FileIO::writeFile(
         offset_in_block = 0;
         written_bytes += write_res.value();
 
-        if (written_bytes == bytes_to_write.size()) {
-            if (inode.file_size < offset + written_bytes) {
-                inode.file_size = offset + written_bytes;
-                auto inode_res = _inode_manager.update(inode_index, inode);
-                if (!inode_res.has_value()) {
-                    return std::unexpected(inode_res.error());
-                };
-            }
+        if (written_bytes != bytes_to_write.size())
+            continue;
+
+        if (inode.file_size >= offset + written_bytes) {
             return written_bytes;
         }
+
+        inode.file_size = offset + written_bytes;
+        auto inode_res = _inode_manager.update(inode_index, inode);
+        if (!inode_res.has_value()) {
+            return std::unexpected(inode_res.error());
+        };
+
+        return written_bytes;
     }
 
     return std::unexpected(FsError::InternalError);
@@ -106,9 +110,9 @@ std::expected<void, FsError> FileIO::resizeFile(
             _block_device, _block_manager, true);
         size_t bytes_to_allocate = new_size - inode.file_size;
         // Check if we can resize part of file without allocating new blocks
-        auto reamaining_in_block = inode.file_size % _block_device.dataSize();
-        if (reamaining_in_block != 0) {
-            size_t free_in_block = _block_device.dataSize() - reamaining_in_block;
+        auto remaining_in_block = inode.file_size % _block_device.dataSize();
+        if (remaining_in_block != 0) {
+            size_t free_in_block = _block_device.dataSize() - remaining_in_block;
             bytes_to_allocate
                 = bytes_to_allocate > free_in_block ? bytes_to_allocate - free_in_block : 0;
 

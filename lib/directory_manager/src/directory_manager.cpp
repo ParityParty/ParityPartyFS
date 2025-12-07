@@ -13,7 +13,7 @@ DirectoryManager::DirectoryManager(
 std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::getEntries(
     inode_index_t inode)
 {
-    auto inode_result = _inode_manager.get(inode);
+    auto inode_result = _getDirectoryInode(inode);
     if (!inode_result.has_value()) {
         return std::unexpected(inode_result.error());
     }
@@ -26,7 +26,7 @@ std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::getEntries
 std::expected<void, FsError> DirectoryManager::addEntry(
     inode_index_t directory, DirectoryEntry entry)
 {
-    auto inode_result = _inode_manager.get(directory);
+    auto inode_result = _getDirectoryInode(directory);
     if (!inode_result.has_value()) {
         return std::unexpected(inode_result.error());
     }
@@ -58,7 +58,7 @@ std::expected<void, FsError> DirectoryManager::addEntry(
 std::expected<void, FsError> DirectoryManager::removeEntry(
     inode_index_t directory, inode_index_t entry)
 {
-    auto inode_result = _inode_manager.get(directory);
+    auto inode_result = _getDirectoryInode(directory);
     if (!inode_result.has_value()) {
         return std::unexpected(inode_result.error());
     }
@@ -135,4 +135,17 @@ int DirectoryManager::_findEntryIndexByInode(
         }
     }
     return -1;
+}
+
+std::expected<Inode, FsError> DirectoryManager::_getDirectoryInode(inode_index_t inode_index)
+{
+    auto inode_result = _inode_manager.get(inode_index);
+    if (!inode_result.has_value()) {
+        return std::unexpected(inode_result.error());
+    }
+
+    if (inode_result->type != FileType::Directory)
+        return std::unexpected(FsError::InvalidRequest);
+
+    return *inode_result;
 }

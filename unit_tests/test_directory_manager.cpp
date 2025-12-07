@@ -74,7 +74,6 @@ TEST(DirectoryManager, RemoveFirstOfMultipleEntries)
     ASSERT_TRUE(dm.addEntry(dir, b).has_value());
     ASSERT_TRUE(dm.addEntry(dir, c).has_value());
 
-    // Usuwamy pierwszy (A)
     auto rm_res = dm.removeEntry(dir, 1);
     ASSERT_TRUE(rm_res.has_value()) << "Removing file failed: " << toString(rm_res.error());
 
