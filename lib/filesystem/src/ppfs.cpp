@@ -129,7 +129,6 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     }
 
     // Create block device with appropriate ECC
-    // Create block device with appropriate ECC
     switch (options.ecc_type) {
     case ECCType::None: {
         _blockDevice = std::make_unique<RawBlockDevice>(options.block_size, _disk);
@@ -162,7 +161,6 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     auto format_inode_res = _inodeManager->format();
     if (!format_inode_res.has_value()) {
         return std::unexpected(format_inode_res.error());
-        ;
     }
 
     // Create and format block manager
