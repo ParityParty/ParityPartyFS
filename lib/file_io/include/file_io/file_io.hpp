@@ -1,3 +1,4 @@
+#pragma once
 #include "block_manager/iblock_manager.hpp"
 #include "blockdevice/iblock_device.hpp"
 #include "inode_manager/iinode_manager.hpp"

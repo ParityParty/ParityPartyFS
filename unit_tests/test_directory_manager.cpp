@@ -26,11 +26,9 @@ TEST(DirectoryManager, AddAndReadEntries)
     BlockManager bm(2, 1024, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
+
     ASSERT_TRUE(im.format());
-    Inode dir_inode { .file_size = 0, .type = FileType::Directory };
-    auto root = im.create(dir_inode);
-    ASSERT_TRUE(root.has_value());
-    inode_index_t dir = root.value();
+    inode_index_t dir = 0; // root directory inode
     DirectoryEntry e1;
     e1.inode = 42;
     strcpy(e1.name.data(), "hello");
@@ -56,11 +54,9 @@ TEST(DirectoryManager, RemoveFirstOfMultipleEntries)
     BlockManager bm(2, 1024, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
+
     ASSERT_TRUE(im.format());
-    Inode dir_inode { .file_size = 0, .type = FileType::Directory };
-    auto root = im.create(dir_inode);
-    ASSERT_TRUE(root.has_value());
-    inode_index_t dir = root.value();
+    inode_index_t dir = 0; // root directory inode
 
     DirectoryEntry a, b, c;
     a.inode = 1;
@@ -97,11 +93,9 @@ TEST(DirectoryManager, AddDuplicateNameFails)
     BlockManager bm(2, 1024, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
+
     ASSERT_TRUE(im.format());
-    Inode dir_inode { .file_size = 0, .type = FileType::Directory };
-    auto root = im.create(dir_inode);
-    ASSERT_TRUE(root.has_value());
-    inode_index_t dir = root.value();
+    inode_index_t dir = 0; // root directory inode
 
     DirectoryEntry e1;
     e1.inode = 10;
@@ -128,11 +122,9 @@ TEST(DirectoryManager, RemoveNonexistentEntryFails)
     BlockManager bm(2, 1024, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
+
     ASSERT_TRUE(im.format());
-    Inode dir_inode { .file_size = 0, .type = FileType::Directory };
-    auto root = im.create(dir_inode);
-    ASSERT_TRUE(root.has_value());
-    inode_index_t dir = root.value();
+    inode_index_t dir = 0; // root directory inode
 
     DirectoryEntry e;
     e.inode = 123;

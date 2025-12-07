@@ -7,6 +7,7 @@
 #include "blockdevice/iblock_device.hpp"
 #include "directory_manager/directory_manager.hpp"
 #include "disk/idisk.hpp"
+#include "file_io/file_io.hpp"
 #include "inode_manager/inode_manager.hpp"
 #include "super_block_manager/super_block_manager.hpp"
 
@@ -17,6 +18,7 @@ class PpFS : public IFilesystem {
     std::unique_ptr<IInodeManager> _inodeManager;
     std::unique_ptr<IBlockManager> _blockManager;
     std::unique_ptr<IDirectoryManager> _directoryManager;
+    std::unique_ptr<FileIO> _fileIO;
 
     inode_index_t _root = 0;
 

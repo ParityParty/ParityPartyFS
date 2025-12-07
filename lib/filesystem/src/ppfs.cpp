@@ -60,8 +60,11 @@ std::expected<void, FsError> PpFS::init()
     auto last = sb.last_data_block_address;
     _blockManager = std::make_unique<BlockManager>(first, last - first + 1, *_blockDevice);
 
+    // Create file IO
+    _fileIO = std::make_unique<FileIO>(*_blockDevice, *_blockManager, *_inodeManager);
+
     // Create directory manager
-    _directoryManager = std::make_unique<DirectoryManager>();
+    _directoryManager = std::make_unique<DirectoryManager>(*_blockDevice, *_inodeManager, *_fileIO);
 
     return {};
 }
@@ -171,8 +174,11 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
         return std::unexpected(format_block_res.error());
     }
 
+    // Create file IO
+    _fileIO = std::make_unique<FileIO>(*_blockDevice, *_blockManager, *_inodeManager);
+
     // Create directory manager
-    _directoryManager = std::make_unique<DirectoryManager>();
+    _directoryManager = std::make_unique<DirectoryManager>(*_blockDevice, *_inodeManager, *_fileIO);
 
     return {};
 }
