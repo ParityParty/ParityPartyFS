@@ -109,8 +109,7 @@ std::expected<void, FsError> InodeManager::_createRootInode()
         return std::unexpected(FsError::AlreadyTaken);
     }
 
-    Inode root {};
-    root.type = FileType::Directory;
+    Inode root { .file_size = 0, .type = FileType::Directory };
 
     auto data = (std::uint8_t*)(&root);
     std::vector<std::uint8_t> data_vector(data, data + sizeof(root));
