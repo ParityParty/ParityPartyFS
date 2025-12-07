@@ -27,7 +27,7 @@ TEST(DirectoryManager, AddAndReadEntries)
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
     ASSERT_TRUE(im.format());
-    Inode dir_inode;
+    Inode dir_inode { .file_size = 0, .type = FileType::Directory };
     auto root = im.create(dir_inode);
     ASSERT_TRUE(root.has_value());
     inode_index_t dir = root.value();
@@ -57,7 +57,7 @@ TEST(DirectoryManager, RemoveFirstOfMultipleEntries)
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
     ASSERT_TRUE(im.format());
-    Inode dir_inode;
+    Inode dir_inode { .file_size = 0, .type = FileType::Directory };
     auto root = im.create(dir_inode);
     ASSERT_TRUE(root.has_value());
     inode_index_t dir = root.value();
@@ -98,7 +98,7 @@ TEST(DirectoryManager, AddDuplicateNameFails)
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
     ASSERT_TRUE(im.format());
-    Inode dir_inode;
+    Inode dir_inode { .file_size = 0, .type = FileType::Directory };
     auto root = im.create(dir_inode);
     ASSERT_TRUE(root.has_value());
     inode_index_t dir = root.value();
@@ -129,7 +129,7 @@ TEST(DirectoryManager, RemoveNonexistentEntryFails)
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
     ASSERT_TRUE(im.format());
-    Inode dir_inode;
+    Inode dir_inode { .file_size = 0, .type = FileType::Directory };
     auto root = im.create(dir_inode);
     ASSERT_TRUE(root.has_value());
     inode_index_t dir = root.value();
