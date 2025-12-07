@@ -210,3 +210,110 @@ TEST(PpFS, Create_Fails_ParentDirectoryDoesNotExist)
     auto create_res = fs.create("/nonexistent_dir/file.txt");
     ASSERT_EQ(create_res.error(), FsError::NotFound);
 }
+
+TEST(PpFS, CreateDirectory_Fails_NotInitialized)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    auto create_res = fs.createDirectory("/mydir");
+    ASSERT_FALSE(create_res.has_value());
+    ASSERT_EQ(create_res.error(), FsError::NotInitialized);
+}
+
+TEST(PpFS, CreateDirectory_Succeeds_AfterFormat)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.createDirectory("/mydir");
+    ASSERT_TRUE(create_res.has_value())
+        << "CreateDirectory failed: " << toString(create_res.error());
+}
+
+TEST(PpFS, CreateDirectory_Fails_DuplicateDirectory)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res1 = fs.createDirectory("/mydir");
+    ASSERT_TRUE(create_res1.has_value())
+        << "First CreateDirectory failed: " << toString(create_res1.error());
+
+    auto create_res2 = fs.createDirectory("/mydir");
+    ASSERT_EQ(create_res2.error(), FsError::NameTaken);
+}
+
+TEST(PpFS, CreateDirectory_Fails_InvalidPath)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res1 = fs.createDirectory("mydir");
+    ASSERT_EQ(create_res1.error(), FsError::InvalidPath);
+
+    auto create_res2 = fs.createDirectory("/dir//mydir");
+    ASSERT_EQ(create_res2.error(), FsError::InvalidPath);
+}
+
+TEST(PpFS, CreateDirectory_Fails_ParentDirectoryDoesNotExist)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.createDirectory("/nonexistent_dir/mydir");
+    ASSERT_EQ(create_res.error(), FsError::NotFound);
+}
+
+TEST(PpFS, CreateFileInNewDirectory)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_dir_res = fs.createDirectory("/mydir");
+    ASSERT_TRUE(create_dir_res.has_value())
+        << "CreateDirectory failed: " << toString(create_dir_res.error());
+    auto create_file_res = fs.create("/mydir/file.txt");
+    ASSERT_TRUE(create_file_res.has_value())
+        << "Create file in directory failed: " << toString(create_file_res.error());
+}

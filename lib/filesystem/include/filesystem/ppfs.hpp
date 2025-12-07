@@ -24,6 +24,9 @@ class PpFS : public IFilesystem {
     SuperBlock _superBlock;
 
     std::expected<inode_index_t, FsError> _getParentInodeFromPath(std::string_view path);
+    bool _isPathValid(std::string_view path);
+    std::expected<void, FsError> _isUniqueInDirectory(
+        inode_index_t dir_inode, std::string_view name);
 
 public:
     PpFS(IDisk& disk);

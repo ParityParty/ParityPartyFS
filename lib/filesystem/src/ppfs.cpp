@@ -196,15 +196,8 @@ std::expected<void, FsError> PpFS::create(std::string_view path)
         return std::unexpected(FsError::NotInitialized);
     }
 
-    // Validate path
-    if (path.empty() || path.front() != '/') {
+    if (!_isPathValid(path)) {
         return std::unexpected(FsError::InvalidPath);
-    }
-    // Check if path does not contain double slashes
-    for (size_t i = 1; i < path.size(); ++i) {
-        if (path[i] == '/' && path[i - 1] == '/') {
-            return std::unexpected(FsError::InvalidPath);
-        }
     }
 
     // Get parent inode
@@ -217,15 +210,9 @@ std::expected<void, FsError> PpFS::create(std::string_view path)
     // Check if parent inode does not already contain an entry with the same name
     size_t last_slash = path.find_last_of('/');
     std::string_view filename = path.substr(last_slash + 1);
-    auto entries_res = _directoryManager->getEntries(parent_inode);
-    if (!entries_res.has_value()) {
-        return std::unexpected(entries_res.error());
-    }
-    const auto& entries = entries_res.value();
-    for (const auto& entry : entries) {
-        if (filename == entry.name.data()) {
-            return std::unexpected(FsError::NameTaken);
-        }
+    auto unique_res = _isUniqueInDirectory(parent_inode, filename);
+    if (!unique_res.has_value()) {
+        return std::unexpected(unique_res.error());
     }
 
     // Create new inode
@@ -245,6 +232,36 @@ std::expected<void, FsError> PpFS::create(std::string_view path)
     }
 
     return {};
+}
+
+std::expected<void, FsError> PpFS::_isUniqueInDirectory(
+    inode_index_t dir_inode, std::string_view name)
+{
+    auto entries_res = _directoryManager->getEntries(dir_inode);
+    if (!entries_res.has_value()) {
+        return std::unexpected(entries_res.error());
+    }
+    const auto& entries = entries_res.value();
+    for (const auto& entry : entries) {
+        if (name == entry.name.data()) {
+            return std::unexpected(FsError::NameTaken);
+        }
+    }
+    return {};
+}
+
+bool PpFS::_isPathValid(std::string_view path)
+{
+    if (path.empty() || path.front() != '/') {
+        return false;
+    }
+    // Check if path does not contain double slashes
+    for (size_t i = 1; i < path.size(); ++i) {
+        if (path[i] == '/' && path[i - 1] == '/') {
+            return false;
+        }
+    }
+    return true;
 }
 
 std::expected<inode_index_t, FsError> PpFS::_getParentInodeFromPath(std::string_view path)
@@ -309,7 +326,46 @@ std::expected<void, FsError> PpFS::write(
 
 std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
 {
-    return std::unexpected(FsError::NotImplemented);
+    if (!isInitialized()) {
+        return std::unexpected(FsError::NotInitialized);
+    }
+
+    if (!_isPathValid(path)) {
+        return std::unexpected(FsError::InvalidPath);
+    }
+
+    // Get parent inode
+    auto parent_inode_res = _getParentInodeFromPath(path);
+    if (!parent_inode_res.has_value()) {
+        return std::unexpected(parent_inode_res.error());
+    }
+    inode_index_t parent_inode = parent_inode_res.value();
+
+    // Check if parent inode does not already contain an entry with the same name
+    size_t last_slash = path.find_last_of('/');
+    std::string_view dirname = path.substr(last_slash + 1);
+    auto unique_res = _isUniqueInDirectory(parent_inode, dirname);
+    if (!unique_res.has_value()) {
+        return std::unexpected(unique_res.error());
+    }
+
+    // Create new inode
+    Inode new_inode { .type = InodeType::Directory };
+    auto create_inode_res = _inodeManager->create(new_inode);
+    if (!create_inode_res.has_value()) {
+        return std::unexpected(create_inode_res.error());
+    }
+    inode_index_t new_inode_index = create_inode_res.value();
+
+    // Add entry to parent directory
+    DirectoryEntry new_entry { .inode = new_inode_index };
+    std::strncpy(new_entry.name.data(), dirname.data(), new_entry.name.size() - 1);
+    auto add_entry_res = _directoryManager->addEntry(parent_inode, new_entry);
+    if (!add_entry_res.has_value()) {
+        return std::unexpected(add_entry_res.error());
+    }
+
+    return {};
 }
 
 std::expected<std::vector<std::string_view>, FsError> PpFS::readDirectory(std::string_view path)
