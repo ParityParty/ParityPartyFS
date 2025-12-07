@@ -18,6 +18,7 @@ enum class FsError {
     NotFound,
     AlreadyTaken,
     AlreadyFree,
+    NameTaken,
     NotImplemented,
 };
 
@@ -46,6 +47,8 @@ inline std::string_view toString(FsError err)
         return "AlreadyFree";
     case FsError::NotImplemented:
         return "NotImplemented";
+    case FsError::NameTaken:
+        return "NameTaken";
     default:
         return "UnknownError";
     }

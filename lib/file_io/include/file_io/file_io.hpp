@@ -21,8 +21,15 @@ public:
      * If writing fails after some blocks were written, those blocks are not freed again.
      * Inode is updated with inode manager to reflect new file size and inode blocks.
      */
+
     std::expected<size_t, FsError> writeFile(inode_index_t inode_index, Inode& inode, size_t offset,
         std::vector<uint8_t> bytes_to_write);
+
+    /**
+     * Resizes file to a given size
+     */
+    std::expected<void, FsError> resizeFile(
+        inode_index_t inode_index, Inode& inode, size_t new_size);
 };
 
 class BlockIndexIterator {
@@ -31,10 +38,23 @@ public:
         IBlockManager& block_manager, bool should_resize);
 
     /**
+     * Returns the next data block index of the file.
+     *
      * If should_resize is set to true, updates inode and find new index block if necessary.
      * Does not update inode in inode maneger!!! File size is not updated either!!!
      */
     std::expected<block_index_t, FsError> next();
+
+    /**
+     * Returns the next data block index of the file. If this data block is the
+     * first one coming from a given indirect block, also returns the indices of
+     * the indirect blocks that were newly added.
+     *
+     * If should_resize is set to true, updates inode and find new index block if necessary.
+     * Does not update inode in inode maneger!!! File size is not updated either!!!
+     */
+    std::expected<std::tuple<block_index_t, std::vector<block_index_t>>, FsError>
+    nextWithIndirectBlocksAdded();
 
 private:
     size_t _index;
