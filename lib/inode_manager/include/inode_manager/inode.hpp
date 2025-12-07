@@ -4,7 +4,7 @@
 #include <array>
 #include <cstdint>
 
-enum FileType {
+enum InodeType {
     File,
     Directory,
 };
@@ -37,5 +37,5 @@ struct __attribute__((packed)) Inode {
     block_index_t trebly_indirect_block;
 
     std::uint32_t file_size = 0;
-    FileType type;
+    InodeType type;
 };

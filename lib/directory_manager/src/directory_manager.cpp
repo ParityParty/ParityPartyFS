@@ -144,7 +144,7 @@ std::expected<Inode, FsError> DirectoryManager::_getDirectoryInode(inode_index_t
         return std::unexpected(inode_result.error());
     }
 
-    if (inode_result->type != FileType::Directory)
+    if (inode_result->type != InodeType::Directory)
         return std::unexpected(FsError::InvalidRequest);
 
     return *inode_result;

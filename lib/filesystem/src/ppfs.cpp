@@ -229,7 +229,7 @@ std::expected<void, FsError> PpFS::create(std::string_view path)
     }
 
     // Create new inode
-    Inode new_inode { .type = FileType::File };
+    Inode new_inode { .type = InodeType::File };
     auto create_inode_res = _inodeManager->create(new_inode);
     if (!create_inode_res.has_value()) {
         return std::unexpected(create_inode_res.error());
