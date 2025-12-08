@@ -7,7 +7,7 @@ void SingleDirMockUser::_createFile()
 {
     std::stringstream ss;
     ss << _dir << "/" << _file_id++;
-    auto fn = new FileNode(ss.str(), false, std::vector<FileNode*>());
+    auto fn = new FileNode(ss.str(), false, 0, std::vector<FileNode*>());
     auto ret = _fs.create(fn->name);
     if (!ret.has_value()) {
         _logger.logError(toString(ret.error()));
@@ -30,6 +30,7 @@ void SingleDirMockUser::_writeToFile()
     auto open_ret = _fs.open(file->name, OpenMode::Append);
     if (!open_ret.has_value()) {
         _logger.logError(toString(open_ret.error()));
+        return;
     }
     auto start = std::chrono::high_resolution_clock::now();
     auto write_ret = _fs.write(open_ret.value(), std::vector<uint8_t>(write_size, _id));
@@ -39,9 +40,49 @@ void SingleDirMockUser::_writeToFile()
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    file->size += write_size;
 
     _logger.logEvent(WriteEvent(write_size, duration));
 
+    auto close_ret = _fs.close(open_ret.value());
+    if (!close_ret.has_value()) {
+        _logger.logError(toString(close_ret.error()));
+    }
+}
+void SingleDirMockUser::_readFromFile()
+{
+    if (_root->children.size() <= 0) {
+        return;
+    }
+    std::uniform_int_distribution<int> file_distribution(0, _root->children.size() - 1);
+    auto file = _root->children.at(file_distribution(_rng));
+    if (file->size == 0) {
+        return;
+    }
+
+    std::uniform_int_distribution<int> read_size_distribution(1, _behaviour.max_read_size);
+    auto read_size = std::min(file->size, static_cast<size_t>(read_size_distribution(_rng)));
+
+    auto open_ret = _fs.open(file->name, OpenMode::Normal);
+    if (!open_ret.has_value()) {
+        _logger.logError(toString(open_ret.error()));
+        return;
+    }
+    auto start = std::chrono::high_resolution_clock::now();
+    auto read_ret = _fs.read(open_ret.value(), read_size);
+    if (!read_ret.has_value()) {
+        _logger.logError(toString(read_ret.error()));
+        return;
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    _logger.logEvent(ReadEvent(read_size, duration));
+    for (auto b : read_ret.value()) {
+        if (b != _id) {
+            _logger.logError("Data contains an error");
+            break;
+        }
+    }
     auto close_ret = _fs.close(open_ret.value());
     if (!close_ret.has_value()) {
         _logger.logError(toString(close_ret.error()));
@@ -77,7 +118,7 @@ void SingleDirMockUser::step()
     std::uniform_int_distribution<int> next_op_dist(1, 2 * _behaviour.avg_steps_between_ops);
     _to_next_op = next_op_dist(_rng);
 
-    std::uniform_int_distribution<int> op_dist(0, 1);
+    std::discrete_distribution<int> op_dist({ 2, 10, 9 });
 
     switch (op_dist(_rng)) {
     case 0: {
@@ -89,7 +130,8 @@ void SingleDirMockUser::step()
         break;
     }
     case 2: {
-        // reads from file
+        _readFromFile();
+        break;
     }
     case 3: {
         // deletes file

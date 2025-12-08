@@ -13,6 +13,7 @@ struct UserBehaviour {
 struct FileNode {
     std::string name;
     bool is_dir;
+    size_t size;
     std::vector<FileNode*> children;
 };
 
@@ -22,7 +23,7 @@ class SingleDirMockUser {
     UserBehaviour _behaviour;
     const std::uint8_t _id;
 
-    std::string_view _dir;
+    std::string _dir;
     FileNode* _root = nullptr;
     int _to_next_op = 0;
     std::mt19937 _rng;
@@ -30,6 +31,7 @@ class SingleDirMockUser {
 
     void _createFile();
     void _writeToFile();
+    void _readFromFile();
 
 public:
     SingleDirMockUser(IFilesystem& fs, Logger& logger, UserBehaviour behaviour, std::uint8_t id,

@@ -1327,7 +1327,7 @@ TEST(PpFS, Create_ToWrites_RS)
     PpFS fs(disk);
     FsConfig config;
     config.total_size = disk.size();
-    config.block_size = 512;
+    config.block_size = 256;
     config.average_file_size = 2000;
     config.rs_correctable_bytes = 2;
     config.ecc_type = ECCType::ReedSolomon;
