@@ -23,6 +23,12 @@ enum class FsError {
     DiskNotFormatted,
     NotInitialized,
     InvalidPath,
+
+    MutexInitFailed,
+    MutexLockFailed,
+    MutexUnlockFailed,
+    MutexNotInitialized,
+    MutexAlreadyInitialized
 };
 
 inline std::string_view toString(FsError err)

@@ -1,4 +1,6 @@
 #include "filesystem/ppfs.hpp"
+#include "common/ppfs_mutex.hpp"
+#include <cstring>
 
 #include "blockdevice/crc_block_device.hpp"
 #include "blockdevice/hamming_block_device.hpp"
@@ -6,8 +8,6 @@
 #include "blockdevice/parity_block_device.hpp"
 #include "blockdevice/raw_block_device.hpp"
 #include "blockdevice/rs_block_device.hpp"
-
-#include <cstring>
 
 PpFS::PpFS(IDisk& disk)
     : _disk(disk)
@@ -297,8 +297,45 @@ std::expected<inode_index_t, FsError> PpFS::_getParentInodeFromPath(std::string_
     }
 }
 
+std::expected<inode_index_t, FsError> PpFS::_getInodeFromPath(std::string_view path)
+{
+    if (path == "/") {
+        return _root;
+    }
+
+    auto parent_inode_res = _getParentInodeFromPath(path);
+    if (!parent_inode_res.has_value()) {
+        return std::unexpected(parent_inode_res.error());
+    }
+    inode_index_t parent_inode = parent_inode_res.value();
+
+    size_t last_slash = path.find_last_of('/');
+    std::string_view name = path.substr(last_slash + 1);
+
+    auto entries_res = _directoryManager->getEntries(parent_inode);
+    if (!entries_res.has_value()) {
+        return std::unexpected(entries_res.error());
+    }
+    const auto& entries = entries_res.value();
+
+    for (const auto& entry : entries) {
+        if (name == entry.name.data()) {
+            return entry.inode;
+        }
+    }
+
+    return std::unexpected(FsError::NotFound);
+}
+
 std::expected<inode_index_t, FsError> PpFS::open(std::string_view path)
 {
+    if (!isInitialized()) {
+        return std::unexpected(FsError::NotInitialized);
+    }
+    if (!_isPathValid(path)) {
+        return std::unexpected(FsError::InvalidPath);
+    }
+
     return std::unexpected(FsError::NotImplemented);
 }
 
@@ -368,7 +405,31 @@ std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
     return {};
 }
 
-std::expected<std::vector<std::string_view>, FsError> PpFS::readDirectory(std::string_view path)
+std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(std::string_view path)
 {
-    return std::unexpected(FsError::NotImplemented);
+    if (!isInitialized()) {
+        return std::unexpected(FsError::NotInitialized);
+    }
+    if (!_isPathValid(path)) {
+        return std::unexpected(FsError::InvalidPath);
+    }
+
+    auto dir_inode_res = _getInodeFromPath(path);
+    if (!dir_inode_res.has_value()) {
+        return std::unexpected(dir_inode_res.error());
+    }
+    inode_index_t dir_inode = dir_inode_res.value();
+
+    auto entries_res = _directoryManager->getEntries(dir_inode);
+    if (!entries_res.has_value()) {
+        return std::unexpected(entries_res.error());
+    }
+    const auto& entries = entries_res.value();
+    std::vector<std::string> names;
+    names.reserve(entries.size());
+
+    for (const auto& entry : entries) {
+        names.emplace_back(entry.name.data());
+    }
+    return names;
 }

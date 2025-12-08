@@ -24,6 +24,7 @@ class PpFS : public IFilesystem {
     SuperBlock _superBlock;
 
     std::expected<inode_index_t, FsError> _getParentInodeFromPath(std::string_view path);
+    std::expected<inode_index_t, FsError> _getInodeFromPath(std::string_view path);
     bool _isPathValid(std::string_view path);
     std::expected<void, FsError> _isUniqueInDirectory(
         inode_index_t dir_inode, std::string_view name);
@@ -42,7 +43,7 @@ public:
     virtual std::expected<void, FsError> write(
         inode_index_t inode, std::vector<std::uint8_t> buffer, size_t offset) override;
     virtual std::expected<void, FsError> createDirectory(std::string_view path) override;
-    virtual std::expected<std::vector<std::string_view>, FsError> readDirectory(
+    virtual std::expected<std::vector<std::string>, FsError> readDirectory(
         std::string_view path) override;
     virtual bool isInitialized() const override;
 };

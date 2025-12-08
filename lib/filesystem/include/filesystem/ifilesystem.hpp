@@ -111,8 +111,7 @@ struct IFilesystem {
      * @param path Absolute path to directory
      * @return list of filenames on success, error otherwise
      */
-    virtual std::expected<std::vector<std::string_view>, FsError> readDirectory(
-        std::string_view path)
+    virtual std::expected<std::vector<std::string>, FsError> readDirectory(std::string_view path)
         = 0;
 
     /**
