@@ -13,4 +13,6 @@ template <typename T> struct buffer {
     virtual T* end() = 0;
     virtual const T* begin() const = 0;
     virtual const T* end() const = 0;
+    virtual void resize(size_t size) = 0;
+    template <typename InputIt> virtual void insert(T* pos, InputIt first, InputIt last) = 0;
 };

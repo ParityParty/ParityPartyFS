@@ -82,6 +82,8 @@ public:
     const T* begin() const override { return base_type::begin(); }
     const T* end() const override { return base_type::end(); }
 
+    void resize(size_t size) { base_type::resize(size); }
+
 private:
     std::array<T, max_size> _buffer;
     static_allocator<T, max_size> _alloc;
