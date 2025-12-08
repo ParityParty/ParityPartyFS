@@ -10,8 +10,8 @@ DirectoryManager::DirectoryManager(
 {
 }
 
-std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::getEntries(
-    inode_index_t inode)
+std::expected<void, FsError> DirectoryManager::getEntries(
+    inode_index_t inode, buffer<DirectoryEntry>& buf)
 {
     auto inode_result = _getDirectoryInode(inode);
     if (!inode_result.has_value()) {
@@ -20,7 +20,10 @@ std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::getEntries
 
     Inode dir_inode = inode_result.value();
 
-    return _readDirectoryData(inode, dir_inode);
+    auto read_res = _readDirectoryData(inode, dir_inode, buf);
+    if (!read_res.has_value())
+        return std::unexpected(read_res.error());
+    return {};
 }
 
 std::expected<void, FsError> DirectoryManager::addEntry(
@@ -31,23 +34,23 @@ std::expected<void, FsError> DirectoryManager::addEntry(
         return std::unexpected(inode_result.error());
     }
     Inode dir_inode = inode_result.value();
-
-    auto read_res = _readDirectoryData(directory, dir_inode);
+    static_vector<DirectoryEntry, MAX_BLOCK_SIZE> temp(MAX_BLOCK_SIZE);
+    auto read_res = _readDirectoryData(directory, dir_inode, temp);
 
     if (!read_res.has_value()) {
         return std::unexpected(read_res.error());
     }
 
-    std::vector<DirectoryEntry> entries = read_res.value();
+    static_vector<uint8_t, MAX_BLOCK_SIZE> temp(MAX_BLOCK_SIZE);
 
-    int index = _findEntryIndexByName(entries, entry.name.data());
+    int index = _findEntryIndexByName(temp, entry.name.data());
     if (index != -1) {
         return std::unexpected(FsError::NameTaken);
     }
 
-    auto write_res = _file_io.writeFile(directory, dir_inode, dir_inode.file_size,
-        std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&entry),
-            reinterpret_cast<uint8_t*>(&entry) + sizeof(DirectoryEntry)));
+    static_vector<uint8_t, sizeof(DirectoryEntry)> temp2(reinterpret_cast<uint8_t*>(&entry),
+        reinterpret_cast<uint8_t*>(&entry) + sizeof(DirectoryEntry));
+    auto write_res = _file_io.writeFile(directory, dir_inode, dir_inode.file_size, temp2);
 
     if (!write_res.has_value()) {
         return std::unexpected(write_res.error());
@@ -64,14 +67,13 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     }
 
     Inode dir_inode = inode_result.value();
-
-    auto read_res = _readDirectoryData(directory, dir_inode);
+    static_vector<DirectoryEntry, MAX_BLOCK_SIZE> entries(MAX_BLOCK_SIZE);
+    auto read_res = _readDirectoryData(directory, dir_inode, entries);
 
     if (!read_res.has_value()) {
         return std::unexpected(read_res.error());
     }
 
-    std::vector<DirectoryEntry> entries = read_res.value();
     int index = _findEntryIndexByInode(entries, entry);
     if (index == -1) {
         return std::unexpected(FsError::NotFound);
@@ -80,9 +82,11 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     auto new_dir_size = dir_inode.file_size - sizeof(DirectoryEntry);
     if (index * sizeof(DirectoryEntry) != new_dir_size) {
         // move last entry to deleted entry position
-        auto write_res = _file_io.writeFile(directory, dir_inode, index * sizeof(DirectoryEntry),
-            std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&entries.back()),
-                reinterpret_cast<uint8_t*>(&entries.back()) + sizeof(DirectoryEntry)));
+        static_vector<uint8_t, sizeof(DirectoryEntry)> temp(
+            reinterpret_cast<uint8_t*>(&entries.back()),
+            reinterpret_cast<uint8_t*>(&entries.back()) + sizeof(DirectoryEntry));
+        auto write_res
+            = _file_io.writeFile(directory, dir_inode, index * sizeof(DirectoryEntry), temp);
 
         if (!write_res.has_value()) {
             return std::unexpected(write_res.error());
@@ -95,28 +99,25 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     return {};
 }
 
-std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::_readDirectoryData(
-    inode_index_t inode_index, Inode& dir_inode)
+std::expected<void, FsError> DirectoryManager::_readDirectoryData(
+    inode_index_t inode_index, Inode& dir_inode, buffer<DirectoryEntry>& buf)
 {
-    auto data_result = _file_io.readFile(inode_index, dir_inode, 0, dir_inode.file_size);
+    static_vector<uint8_t, MAX_BLOCK_SIZE> temp(MAX_BLOCK_SIZE);
+    auto data_result = _file_io.readFile(inode_index, dir_inode, 0, dir_inode.file_size, temp);
     if (!data_result.has_value()) {
         return std::unexpected(data_result.error());
     }
-    std::vector<uint8_t> dir_data = data_result.value();
 
-    size_t count = dir_data.size() / sizeof(DirectoryEntry);
-    auto raw_ptr = reinterpret_cast<const DirectoryEntry*>(dir_data.data());
-    std::vector<DirectoryEntry> entries;
-    entries.reserve(count);
+    size_t count = temp.size() / sizeof(DirectoryEntry);
+    auto raw_ptr = reinterpret_cast<const DirectoryEntry*>(temp.data());
     for (size_t i = 0; i < count; ++i) {
-        entries.push_back(raw_ptr[i]);
+        buf.push_back(raw_ptr[i]);
     }
 
-    return entries;
+    return {};
 }
 
-int DirectoryManager::_findEntryIndexByName(
-    const std::vector<DirectoryEntry>& entries, char const* name)
+int DirectoryManager::_findEntryIndexByName(const buffer<DirectoryEntry>& entries, char const* name)
 {
     for (size_t i = 0; i < entries.size(); ++i) {
         if (std::strncmp(entries[i].name.data(), name, std::strlen(name)) == 0) {
@@ -127,7 +128,7 @@ int DirectoryManager::_findEntryIndexByName(
 }
 
 int DirectoryManager::_findEntryIndexByInode(
-    const std::vector<DirectoryEntry>& entries, inode_index_t inode)
+    const buffer<DirectoryEntry>& entries, inode_index_t inode)
 {
     for (size_t i = 0; i < entries.size(); ++i) {
         if (entries[i].inode == inode) {
