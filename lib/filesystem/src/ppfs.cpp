@@ -450,15 +450,8 @@ std::expected<void, FsError> PpFS::remove(std::string_view path, bool recursive)
             return std::unexpected(inode_data_res.error());
         }
         Inode inode_data = inode_data_res.value();
-        if (inode_data.type == InodeType::Directory) {
-            auto entries_res = _directoryManager->getEntries(inode);
-            if (!entries_res.has_value()) {
-                return std::unexpected(entries_res.error());
-            }
-            const auto& entries = entries_res.value();
-            if (!entries.empty()) {
-                return std::unexpected(FsError::DirectoryNotEmpty);
-            }
+        if (inode_data.type == InodeType::Directory && inode_data.file_size > 0) {
+            return std::unexpected(FsError::DirectoryNotEmpty);
         }
     }
 
