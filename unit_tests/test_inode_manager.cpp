@@ -168,11 +168,11 @@ TEST(InodeManager, CountsFreeInodes)
 TEST(InodeManager, WorksForMultipleInodes)
 {
     StackDisk disk;
-    RawBlockDevice device(128, disk);
+    RawBlockDevice device(4096, disk);
     SuperBlock superblock { .total_inodes = 1000,
         .inode_bitmap_address = 0,
         .inode_table_address = 1000 / 8 + 1,
-        .block_size = 128 };
+        .block_size = 4096 };
     InodeManager inode_manager(device, superblock);
 
     auto format_res = inode_manager.format();

@@ -24,6 +24,8 @@ Other presets you can use:
 
 - `debug` → Debug mode (with tests, symbols).
 - `release` → Release mode (optimized).
+- `freertos_debug` 
+- `freertos_release`
 
 ## ▶️ Run the filesystem
 
