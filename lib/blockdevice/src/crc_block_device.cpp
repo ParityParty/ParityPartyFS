@@ -61,7 +61,7 @@ CrcBlockDevice::CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t blo
 }
 
 std::expected<size_t, FsError> CrcBlockDevice::writeBlock(
-    const std::vector<std::uint8_t>& data, DataLocation data_location)
+    const buffer<std::uint8_t>& data, DataLocation data_location)
 {
     auto read_res = _readAndCheckRaw(data_location.block_index);
     if (!read_res.has_value()) {
@@ -77,8 +77,8 @@ std::expected<size_t, FsError> CrcBlockDevice::writeBlock(
     return to_write;
 }
 
-std::expected<std::vector<std::uint8_t>, FsError> CrcBlockDevice::readBlock(
-    DataLocation data_location, size_t bytes_to_read)
+std::expected<void, FsError> CrcBlockDevice::readBlock(
+    DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data)
 {
     auto read_ret = _readAndCheckRaw(data_location.block_index);
     if (!read_ret.has_value()) {
@@ -86,8 +86,8 @@ std::expected<std::vector<std::uint8_t>, FsError> CrcBlockDevice::readBlock(
     }
     auto block = read_ret.value();
     size_t to_read = std::min(bytes_to_read, dataSize() - data_location.offset);
-    return std::vector(
-        block.begin() + data_location.offset, block.begin() + data_location.offset + to_read);
+    std::copy_n(data.begin(), to_read, block.begin() + data_location.offset);
+    return {};
 }
 
 size_t CrcBlockDevice::rawBlockSize() const { return _block_size; }

@@ -53,7 +53,7 @@ public:
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
     std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
+        const buffer<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * Reads a sequence of bytes from the device at a specified data location.
@@ -64,8 +64,8 @@ public:
      * @param bytes_to_read Number of bytes to read starting from the specified location.
      * @return On success, returns the bytes read; otherwise returns a FsError.
      */
-    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read) override;
+    std::expected<void, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data) override;
 
     /**
      * Returns the physical (raw) block size of the underlying device.

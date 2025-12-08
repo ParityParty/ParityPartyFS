@@ -44,8 +44,8 @@ std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
     return _disk.write(_raw_block_size * data_location.block_index, raw_block.value());
 }
 
-std::expected<std::vector<std::uint8_t>, FsError> ParityBlockDevice::readBlock(
-    DataLocation data_location, size_t to_read)
+std::expected<void, FsError> ParityBlockDevice::readBlock(
+    DataLocation data_location, size_t to_read, buffer<uint8_t>& data)
 {
     to_read = std::min(to_read, _data_size - data_location.offset);
 

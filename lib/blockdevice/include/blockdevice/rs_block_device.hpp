@@ -30,12 +30,12 @@ public:
     ReedSolomonBlockDevice(IDisk& disk, size_t raw_block_size, size_t correctable_bytes);
 
     /** Writes data to a block at the specified location. */
-    virtual std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location);
+    virtualstd::expected<size_t, FsError> writeBlock(
+        const buffer<std::uint8_t>& data, DataLocation data_location);
 
     /** Reads a block from the specified location, returning only the requested bytes. */
-    virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read);
+    virtual std::expected<void, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data);
 
     /** Returns the size of a raw encoded block in bytes. */
     virtual size_t rawBlockSize() const;

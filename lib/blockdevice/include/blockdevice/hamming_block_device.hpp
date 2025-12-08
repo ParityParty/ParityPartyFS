@@ -31,7 +31,7 @@ public:
      * If size of data exceeds the data size per block, it will be truncated.
      */
     std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
+        const buffer<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * @brief Reads a block of data from the device and performs Hamming error correction.
@@ -42,8 +42,8 @@ public:
      * If size of requested bytes exceeds the data size available on the block, it will be
      * truncated.
      */
-    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read) override;
+    std::expected<void, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data) override;
 
     /**
      * @brief Fills a specific block with zeros.

@@ -11,7 +11,7 @@ size_t RawBlockDevice::rawBlockSize() const { return _block_size; }
 size_t RawBlockDevice::dataSize() const { return _block_size; }
 
 std::expected<size_t, FsError> RawBlockDevice::writeBlock(
-    const std::vector<std::uint8_t>& data, DataLocation data_location)
+    const buffer<std::uint8_t>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), _block_size - data_location.offset);
 
@@ -24,8 +24,8 @@ std::expected<size_t, FsError> RawBlockDevice::writeBlock(
     return to_write;
 }
 
-std::expected<std::vector<std::uint8_t>, FsError> RawBlockDevice::readBlock(
-    DataLocation data_location, size_t bytes_to_read)
+std::expected<void, FsError> RawBlockDevice::readBlock(
+    DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data)
 {
     size_t to_read = std::min(bytes_to_read, _block_size - data_location.offset);
 

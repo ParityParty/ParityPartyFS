@@ -1,4 +1,7 @@
 #pragma once
+
+#define MAX_BLOCK_SIZE 1024
+
 #include <expected>
 #include <vector>
 
@@ -43,7 +46,7 @@ public:
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
     virtual std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location)
+        const buffer<std::uint8_t>& data, DataLocation data_location)
         = 0;
 
     /**
@@ -56,8 +59,8 @@ public:
      * @param bytes_to_read Number of bytes to read starting from the specified location.
      * @return On success, returns the bytes read; otherwise returns a FsError.
      */
-    virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read)
+    virtual std::expected<void, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data)
         = 0;
 
     /**

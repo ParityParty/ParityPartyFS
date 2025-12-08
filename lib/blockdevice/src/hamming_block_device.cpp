@@ -99,7 +99,7 @@ std::vector<std::uint8_t> HammingBlockDevice::_encodeData(const std::vector<std:
 }
 
 std::expected<size_t, FsError> HammingBlockDevice::writeBlock(
-    const std::vector<std::uint8_t>& data, DataLocation data_location)
+    const buffer<std::uint8_t>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), _data_size - data_location.offset);
 
@@ -121,8 +121,8 @@ std::expected<size_t, FsError> HammingBlockDevice::writeBlock(
     return to_write;
 }
 
-std::expected<std::vector<std::uint8_t>, FsError> HammingBlockDevice::readBlock(
-    DataLocation data_location, size_t bytes_to_read)
+std::expected<void, FsError> HammingBlockDevice::readBlock(
+    DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data)
 {
     bytes_to_read = std::min(_data_size - data_location.offset, bytes_to_read);
 

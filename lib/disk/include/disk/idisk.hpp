@@ -1,4 +1,5 @@
 #pragma once
+#include "common/buffer.hpp"
 #include "common/types.hpp"
 
 #include <cstddef>
@@ -9,9 +10,9 @@
 struct IDisk {
     virtual ~IDisk() = default;
 
-    virtual std::expected<std::vector<std::uint8_t>, FsError> read(size_t address, size_t size) = 0;
-    virtual std::expected<size_t, FsError> write(
-        size_t address, const std::vector<std::uint8_t>& data)
+    virtual std::expected<void, FsError> read(size_t address, size_t size, buffer<uint8_t>& data)
+        = 0;
+    virtual std::expected<size_t, FsError> write(size_t address, const buffer<std::uint8_t>& data)
         = 0;
     virtual size_t size() = 0;
 };

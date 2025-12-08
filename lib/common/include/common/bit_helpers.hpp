@@ -5,7 +5,7 @@
 
 namespace BitHelpers {
 
-inline bool getBit(const std::vector<std::uint8_t>& data, unsigned int index)
+inline bool getBit(const buffer<uint8_t>& data, unsigned int index)
 {
     unsigned int byteIndex = index / 8;
     unsigned int bitIndex = index % 8;
@@ -14,7 +14,7 @@ inline bool getBit(const std::vector<std::uint8_t>& data, unsigned int index)
     return (byteValue >> (7 - bitIndex)) & 0x1;
 }
 
-inline void setBit(std::vector<std::uint8_t>& data, unsigned int index, bool value)
+inline void setBit(buffer<uint8_t>& data, unsigned int index, bool value)
 {
     unsigned int byteIndex = index / 8;
     unsigned int bitIndex = index % 8;
@@ -28,7 +28,7 @@ inline void setBit(std::vector<std::uint8_t>& data, unsigned int index, bool val
     data[byteIndex] = std::uint8_t(byteValue);
 }
 
-inline std::vector<bool> blockToBits(const std::vector<std::uint8_t>& block)
+inline std::vector<bool> blockToBits(const buffer<uint8_t>& block)
 {
     std::vector<bool> bits(block.size() * 8);
 

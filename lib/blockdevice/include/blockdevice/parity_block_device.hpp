@@ -18,14 +18,14 @@ public:
      * If data corruption is detected, returns an error.
      */
     std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
+        const buffer<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * Reads data and verifies parity to detect bit flips.
      * If data corruption is detected, returns an error.
      */
-    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read) override;
+    std::expected<void, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data) override;
 
     /** Formats a block (fills it with zeros and valid parity). */
     std::expected<void, FsError> formatBlock(unsigned int block_index) override;

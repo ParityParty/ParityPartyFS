@@ -12,10 +12,18 @@ struct SuperBlockEntry {
 };
 
 struct VotingResult {
-    std::vector<uint8_t> finalData;
+    const buffer<uint8_t>& finalData;
     bool damaged1;
     bool damaged2;
     bool damaged3;
+
+    VotingResult(const buffer<uint8_t>& data, bool d1, bool d2, bool d3)
+        : finalData(data)
+        , damaged1(d1)
+        , damaged2(d2)
+        , damaged3(d3)
+    {
+    }
 };
 
 /**
@@ -73,6 +81,5 @@ private:
     /**
      * Performs bit voting on multiple copies of superblock data.
      */
-    VotingResult _performBitVoting(const std::vector<uint8_t>& copy1,
-        const std::vector<uint8_t>& copy2, const std::vector<uint8_t>& copy3);
+    VotingResult _performBitVoting(const static_vector<uint8_t, 3 * sizeof(SuperBlock)> copies);
 };

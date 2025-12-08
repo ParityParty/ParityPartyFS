@@ -26,8 +26,8 @@ std::expected<void, FsError> ReedSolomonBlockDevice::formatBlock(unsigned int bl
                                     : std::unexpected(write_result.error());
 }
 
-std::expected<std::vector<std::uint8_t>, FsError> ReedSolomonBlockDevice::readBlock(
-    DataLocation data_location, size_t bytes_to_read)
+std::expected<void, FsError> ReedSolomonBlockDevice::readBlock(
+    DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data)
 {
     bytes_to_read = std::min(dataSize() - data_location.offset, bytes_to_read);
     auto raw_block = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size);
@@ -42,7 +42,7 @@ std::expected<std::vector<std::uint8_t>, FsError> ReedSolomonBlockDevice::readBl
 }
 
 std::expected<size_t, FsError> ReedSolomonBlockDevice::writeBlock(
-    const std::vector<std::uint8_t>& data, DataLocation data_location)
+    const buffer<std::uint8_t>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), dataSize() - data_location.offset);
 
