@@ -1,6 +1,7 @@
-#include <optional>
+#pragma once
 
 #include "iblock_device.hpp"
+#include <optional>
 
 /**
  * @brief Block device that applies Hamming code for error detection and correction.

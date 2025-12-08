@@ -16,14 +16,15 @@ PpFS::PpFS(IDisk& disk)
 
 bool PpFS::isInitialized() const
 {
-    return _superBlockManager != nullptr && _inodeManager != nullptr && _blockManager != nullptr
-        && _directoryManager != nullptr && _fileIO != nullptr;
+    return _blockDevice && _inodeManager && _blockManager && _directoryManager && _fileIO
+        && _superBlockManager;
 }
 
 std::expected<void, FsError> PpFS::init()
 {
     // Create superblock manager
-    _superBlockManager = std::make_unique<SuperBlockManager>(_disk);
+    _superBlockManagerStorage.emplace<SuperBlockManager>(_disk);
+    _superBlockManager = &std::get<SuperBlockManager>(_superBlockManagerStorage);
     auto sb_res = _superBlockManager->get();
     if (!sb_res.has_value()) {
         return std::unexpected(sb_res.error());
@@ -34,26 +35,31 @@ std::expected<void, FsError> PpFS::init()
     // Create block device with appropriate ECC
     switch (_superBlock.ecc_type) {
     case ECCType::None: {
-        _blockDevice = std::make_unique<RawBlockDevice>(block_size, _disk);
+        _blockDeviceStorage.emplace<RawBlockDevice>(block_size, _disk);
+        _blockDevice = &std::get<RawBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::Parity: {
-        _blockDevice = std::make_unique<ParityBlockDevice>(block_size, _disk);
+        _blockDeviceStorage.emplace<ParityBlockDevice>(block_size, _disk);
+        _blockDevice = &std::get<ParityBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::Crc: {
         auto crc_polynomial = CrcPolynomial::MsgExplicit(_superBlock.crc_polynomial);
-        _blockDevice = std::make_unique<CrcBlockDevice>(crc_polynomial, _disk, block_size);
+        _blockDeviceStorage.emplace<CrcBlockDevice>(crc_polynomial, _disk, block_size);
+        _blockDevice = &std::get<CrcBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::Hamming: {
-        _blockDevice = std::make_unique<HammingBlockDevice>(block_size, _disk);
+        _blockDeviceStorage.emplace<HammingBlockDevice>(block_size, _disk);
+        _blockDevice = &std::get<HammingBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::ReedSolomon: {
         auto rs_correctable_bytes = _superBlock.rs_correctable_bytes;
-        _blockDevice
-            = std::make_unique<ReedSolomonBlockDevice>(_disk, block_size, rs_correctable_bytes);
+        _blockDeviceStorage.emplace<ReedSolomonBlockDevice>(
+            _disk, block_size, rs_correctable_bytes);
+        _blockDevice = &std::get<ReedSolomonBlockDevice>(_blockDeviceStorage);
         break;
     }
     default:
@@ -61,18 +67,22 @@ std::expected<void, FsError> PpFS::init()
     }
 
     // Create inode manager
-    _inodeManager = std::make_unique<InodeManager>(*_blockDevice, _superBlock);
+    _inodeManagerStorage.emplace<InodeManager>(*_blockDevice, _superBlock);
+    _inodeManager = &std::get<InodeManager>(_inodeManagerStorage);
 
     // Create block manager
     auto first = _superBlock.first_data_blocks_address;
     auto last = _superBlock.last_data_block_address;
-    _blockManager = std::make_unique<BlockManager>(first, last - first + 1, *_blockDevice);
+    _blockManagerStorage.emplace<BlockManager>(first, last - first + 1, *_blockDevice);
+    _blockManager = &std::get<BlockManager>(_blockManagerStorage);
 
     // Create file IO
-    _fileIO = std::make_unique<FileIO>(*_blockDevice, *_blockManager, *_inodeManager);
+    _fileIOStorage.emplace<FileIO>(*_blockDevice, *_blockManager, *_inodeManager);
+    _fileIO = &std::get<FileIO>(_fileIOStorage);
 
     // Create directory manager
-    _directoryManager = std::make_unique<DirectoryManager>(*_blockDevice, *_inodeManager, *_fileIO);
+    _directoryManagerStorage.emplace<DirectoryManager>(*_blockDevice, *_inodeManager, *_fileIO);
+    _directoryManager = &std::get<DirectoryManager>(_directoryManagerStorage);
 
     return {};
 }
@@ -130,7 +140,8 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
         sb.rs_correctable_bytes = options.rs_correctable_bytes;
 
     // Write superblock to disk
-    _superBlockManager = std::make_unique<SuperBlockManager>(_disk);
+    _superBlockManagerStorage.emplace<SuperBlockManager>(_disk);
+    _superBlockManager = &std::get<SuperBlockManager>(_superBlockManagerStorage);
     auto put_res = _superBlockManager->put(sb);
     if (!put_res.has_value()) {
         return std::unexpected(put_res.error());
@@ -140,25 +151,30 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     // Create block device with appropriate ECC
     switch (options.ecc_type) {
     case ECCType::None: {
-        _blockDevice = std::make_unique<RawBlockDevice>(options.block_size, _disk);
+        _blockDeviceStorage.emplace<RawBlockDevice>(options.block_size, _disk);
+        _blockDevice = &std::get<RawBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::Parity: {
-        _blockDevice = std::make_unique<ParityBlockDevice>(options.block_size, _disk);
+        _blockDeviceStorage.emplace<ParityBlockDevice>(options.block_size, _disk);
+        _blockDevice = &std::get<ParityBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::Crc: {
-        _blockDevice
-            = std::make_unique<CrcBlockDevice>(options.crc_polynomial, _disk, options.block_size);
+        _blockDeviceStorage.emplace<CrcBlockDevice>(
+            options.crc_polynomial, _disk, options.block_size);
+        _blockDevice = &std::get<CrcBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::Hamming: {
-        _blockDevice = std::make_unique<HammingBlockDevice>(options.block_size, _disk);
+        _blockDeviceStorage.emplace<HammingBlockDevice>(options.block_size, _disk);
+        _blockDevice = &std::get<HammingBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::ReedSolomon: {
-        _blockDevice = std::make_unique<ReedSolomonBlockDevice>(
+        _blockDeviceStorage.emplace<ReedSolomonBlockDevice>(
             _disk, options.block_size, options.rs_correctable_bytes);
+        _blockDevice = &std::get<ReedSolomonBlockDevice>(_blockDeviceStorage);
         break;
     }
     default:
@@ -166,7 +182,8 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     }
 
     // Create and format inode manager
-    _inodeManager = std::make_unique<InodeManager>(*_blockDevice, _superBlock);
+    _inodeManagerStorage.emplace<InodeManager>(*_blockDevice, _superBlock);
+    _inodeManager = &std::get<InodeManager>(_inodeManagerStorage);
     auto format_inode_res = _inodeManager->format();
     if (!format_inode_res.has_value()) {
         return std::unexpected(format_inode_res.error());
@@ -175,17 +192,20 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     // Create and format block manager
     auto first = sb.first_data_blocks_address;
     auto last = sb.last_data_block_address;
-    _blockManager = std::make_unique<BlockManager>(first, last - first + 1, *_blockDevice);
+    _blockManagerStorage.emplace<BlockManager>(first, last - first + 1, *_blockDevice);
+    _blockManager = &std::get<BlockManager>(_blockManagerStorage);
     auto format_block_res = _blockManager->format();
     if (!format_block_res.has_value()) {
         return std::unexpected(format_block_res.error());
     }
 
     // Create file IO
-    _fileIO = std::make_unique<FileIO>(*_blockDevice, *_blockManager, *_inodeManager);
+    _fileIOStorage.emplace<FileIO>(*_blockDevice, *_blockManager, *_inodeManager);
+    _fileIO = &std::get<FileIO>(_fileIOStorage);
 
     // Create directory manager
-    _directoryManager = std::make_unique<DirectoryManager>(*_blockDevice, *_inodeManager, *_fileIO);
+    _directoryManagerStorage.emplace<DirectoryManager>(*_blockDevice, *_inodeManager, *_fileIO);
+    _directoryManager = &std::get<DirectoryManager>(_directoryManagerStorage);
 
     return {};
 }

@@ -2,11 +2,17 @@
 #include "common/ppfs_mutex.hpp"
 #include "filesystem/ifilesystem.hpp"
 #include "filesystem/open_files_table.hpp"
-#include <memory>
+
 #include <optional>
+#include <variant>
 
 #include "block_manager/block_manager.hpp"
+#include "blockdevice/crc_block_device.hpp"
+#include "blockdevice/hamming_block_device.hpp"
 #include "blockdevice/iblock_device.hpp"
+#include "blockdevice/parity_block_device.hpp"
+#include "blockdevice/raw_block_device.hpp"
+#include "blockdevice/rs_block_device.hpp"
 #include "directory_manager/directory_manager.hpp"
 #include "disk/idisk.hpp"
 #include "file_io/file_io.hpp"
@@ -17,12 +23,26 @@ static constexpr size_t MAX_OPEN_FILES = 32;
 
 class PpFS : public IFilesystem {
     IDisk& _disk;
-    std::unique_ptr<IBlockDevice> _blockDevice;
-    std::unique_ptr<ISuperBlockManager> _superBlockManager;
-    std::unique_ptr<IInodeManager> _inodeManager;
-    std::unique_ptr<IBlockManager> _blockManager;
-    std::unique_ptr<IDirectoryManager> _directoryManager;
-    std::unique_ptr<FileIO> _fileIO;
+
+    std::variant<std::monostate, RawBlockDevice, CrcBlockDevice, HammingBlockDevice,
+        ParityBlockDevice, ReedSolomonBlockDevice>
+        _blockDeviceStorage;
+    IBlockDevice* _blockDevice = nullptr;
+
+    std::variant<std::monostate, SuperBlockManager> _superBlockManagerStorage;
+    SuperBlockManager* _superBlockManager = nullptr;
+
+    std::variant<std::monostate, InodeManager> _inodeManagerStorage;
+    InodeManager* _inodeManager = nullptr;
+
+    std::variant<std::monostate, BlockManager> _blockManagerStorage;
+    BlockManager* _blockManager = nullptr;
+
+    std::variant<std::monostate, DirectoryManager> _directoryManagerStorage;
+    DirectoryManager* _directoryManager = nullptr;
+
+    std::variant<std::monostate, FileIO> _fileIOStorage;
+    FileIO* _fileIO = nullptr;
 
     inode_index_t _root = 0;
     SuperBlock _superBlock;
