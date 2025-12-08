@@ -80,7 +80,7 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
 std::expected<bool, FsError> Bitmap::getBit(unsigned int bit_index)
 {
     if (bit_index >= _bit_count) {
-        return std::unexpected(FsError::IndexOutOfRange);
+        return std::unexpected(FsError::Bitmap_IndexOutOfRange);
     }
     auto byte_ret = _getByte(bit_index);
     if (!byte_ret.has_value()) {
@@ -95,7 +95,7 @@ std::expected<bool, FsError> Bitmap::getBit(unsigned int bit_index)
 std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
 {
     if (bit_index >= _bit_count) {
-        return std::unexpected(FsError::IndexOutOfRange);
+        return std::unexpected(FsError::Bitmap_IndexOutOfRange);
     }
     auto byte_ret = _getByte(bit_index);
     if (!byte_ret.has_value()) {
@@ -144,14 +144,14 @@ std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
         for (int i = 0; i < _block_device.dataSize() * 8; i++) {
             if (block * _block_device.dataSize() + i >= _bit_count) {
                 // there is no more value in bitmap
-                return std::unexpected(FsError::NotFound);
+                return std::unexpected(FsError::Bitmap_NotFound);
             }
             if (BitHelpers::getBit(block_data, i) == value) {
                 return block * _block_device.dataSize() * 8 + i;
             }
         }
     }
-    return std::unexpected(FsError::NotFound);
+    return std::unexpected(FsError::Bitmap_NotFound);
 }
 
 std::expected<void, FsError> Bitmap::setAll(bool value)

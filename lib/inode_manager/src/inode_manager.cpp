@@ -45,7 +45,7 @@ std::expected<void, FsError> InodeManager::remove(inode_index_t inode)
         return std::unexpected(is_free.error());
     }
     if (is_free.value()) {
-        return std::unexpected(FsError::AlreadyFree);
+        return std::unexpected(FsError::InodeManager_AlreadyFree);
     }
     return _bitmap.setBit(inode, 1);
 }
@@ -57,7 +57,7 @@ std::expected<Inode, FsError> InodeManager::get(inode_index_t inode)
         return std::unexpected(is_free.error());
     }
     if (is_free.value()) {
-        return std::unexpected(FsError::NotFound);
+        return std::unexpected(FsError::InodeManager_NotFound);
     }
 
     auto result = _block_device.readBlock(_getInodeLocation(inode), sizeof(Inode));
@@ -77,7 +77,7 @@ std::expected<void, FsError> InodeManager::update(inode_index_t inode_index, con
         return std::unexpected(is_free.error());
     }
     if (is_free.value()) {
-        return std::unexpected(FsError::NotFound);
+        return std::unexpected(FsError::InodeManager_NotFound);
     }
 
     auto data = (std::uint8_t*)(&inode);
@@ -106,7 +106,7 @@ std::expected<void, FsError> InodeManager::_createRootInode()
         return std::unexpected(is_free.error());
     }
     if (!is_free.value()) {
-        return std::unexpected(FsError::AlreadyTaken);
+        return std::unexpected(FsError::InodeManager_AlreadyTaken);
     }
 
     Inode root { .file_size = 0, .type = InodeType::Directory };

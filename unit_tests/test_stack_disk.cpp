@@ -31,12 +31,12 @@ TEST(StackDisk, OutOfBounds)
     StackDisk stack_disk;
     auto res_read = stack_disk.read(stack_disk.size() - 1, 3);
     EXPECT_FALSE(res_read.has_value());
-    EXPECT_EQ(res_read.error(), FsError::OutOfBounds);
+    EXPECT_EQ(res_read.error(), FsError::Disk_OutOfBounds);
 
     auto res_write = stack_disk.write(
         stack_disk.size() - 1, { std::uint8_t { 1 }, std::uint8_t { 2 }, std::uint8_t { 3 } });
     EXPECT_FALSE(res_write.has_value());
-    EXPECT_EQ(res_write.error(), FsError::OutOfBounds);
+    EXPECT_EQ(res_write.error(), FsError::Disk_OutOfBounds);
 }
 
 TEST(StackDisk, ReadsAndWrites)

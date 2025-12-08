@@ -252,7 +252,7 @@ std::expected<void, FsError> PpFS::formatDisk()
 {
     unsigned int block_size = _block_device.dataSize();
     if (block_size < sizeof(SuperBlock)) {
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PPFS_FAT_InvalidRequest);
     }
     unsigned int num_blocks = _block_device.numOfBlocks();
     constexpr unsigned int fat_block_start = Layout::SUPERBLOCK_NUM_BLOCKS;
@@ -279,7 +279,7 @@ std::expected<void, FsError> PpFS::formatDisk()
     const auto ret3
         = _block_device.writeBlock(_root_dir.toBytes(), DataLocation(_root_dir_block, 0));
     if (!ret1.has_value() || !ret2.has_value() || !ret3.has_value()) {
-        return std::unexpected(FsError::IOError);
+        return std::unexpected(FsError::PPFS_FAT_IOError);
     }
 
     return {};
@@ -290,8 +290,8 @@ std::expected<void, FsError> PpFS::_createFile(const std::string& name)
     auto ret = _fat.findFreeBlock();
     if (!ret.has_value()) {
         if (ret.error() == FatError::OutOfDiskSpace)
-            return std::unexpected(FsError::OutOfMemory);
-        return std::unexpected(FsError::InternalError);
+            return std::unexpected(FsError::PPFS_FAT_OutOfMemory);
+        return std::unexpected(FsError::PPFS_FAT_InternalError);
     }
 
     block_index_t block_index = ret.value();
@@ -307,7 +307,7 @@ std::expected<void, FsError> PpFS::_removeFile(const DirectoryEntry& entry)
     auto ret = _fat.freeBlocksFrom(entry.start_block);
     if (!ret.has_value()) {
         std::cerr << "Error in _removeFile: couldn't free blocks" << std::endl;
-        return std::unexpected(FsError::InternalError);
+        return std::unexpected(FsError::PPFS_FAT_InternalError);
     }
     _root_dir.removeEntry(entry);
     return {};
@@ -333,7 +333,7 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::_readFile(
         // TODO: Add check for reading beyond file size
         if (file_location.block_index == FileAllocationTable::FREE_BLOCK) {
             std::cerr << "Error in _readFile: fat pointed to free block" << std::endl;
-            return std::unexpected(FsError::InternalError);
+            return std::unexpected(FsError::PPFS_FAT_InternalError);
         }
         auto bytes_ex = _block_device.readBlock(file_location, size - data.size());
         if (!bytes_ex.has_value()) {
@@ -402,7 +402,7 @@ std::expected<void, FsError> PpFS::_writeBytes(
     while (written < data.size()) {
         auto next_block_ex = _fat.findFreeBlock();
         if (!next_block_ex.has_value()) {
-            return std::unexpected(FsError::OutOfMemory);
+            return std::unexpected(FsError::PPFS_FAT_OutOfMemory);
         }
         _block_device.formatBlock(next_block_ex.value());
         auto next_block = next_block_ex.value();
@@ -428,10 +428,10 @@ std::expected<DataLocation, FsError> PpFS::_findFileOffset(
     while (i++ < num_blocks) {
         block_ind = _fat[block_ind];
         if (block_ind == FileAllocationTable::LAST_BLOCK) {
-            return std::unexpected(FsError::OutOfBounds);
+            return std::unexpected(FsError::PPFS_FAT_OutOfBounds);
         }
         if (block_ind == FileAllocationTable::FREE_BLOCK) {
-            return std::unexpected(FsError::InternalError);
+            return std::unexpected(FsError::PPFS_FAT_InternalError);
         }
     }
 
@@ -451,7 +451,7 @@ std::expected<void, FsError> PpFS::_truncateFile(DirectoryEntry& entry, size_t s
         && next_block != FileAllocationTable::FREE_BLOCK) {
         auto free_ret = _fat.freeBlocksFrom(next_block);
         if (!free_ret.has_value()) {
-            return std::unexpected(FsError::InternalError);
+            return std::unexpected(FsError::PPFS_FAT_InternalError);
         }
     }
     entry.file_size = size;

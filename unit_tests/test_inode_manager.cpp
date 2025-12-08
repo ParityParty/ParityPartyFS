@@ -96,7 +96,7 @@ TEST(InodeManager, CreatesAndRemovesInode)
 
     auto get_res = inode_manager.get(inode_index.value());
     ASSERT_FALSE(get_res.has_value());
-    ASSERT_EQ(get_res.error(), FsError::NotFound);
+    ASSERT_EQ(get_res.error(), FsError::InodeManager_NotFound);
 }
 
 TEST(InodeManager, UpdatesInode)

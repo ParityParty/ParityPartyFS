@@ -13,7 +13,7 @@ std::expected<std::vector<uint8_t>, FsError> FileIO::readFile(
     inode_index_t inode_index, Inode& inode, size_t offset, size_t bytes_to_read)
 {
     if (offset + bytes_to_read > inode.file_size)
-        return std::unexpected(FsError::OutOfBounds);
+        return std::unexpected(FsError::FileIO_OutOfBounds);
 
     size_t block_number = offset / _block_device.dataSize();
     size_t offset_in_block = offset % _block_device.dataSize();
@@ -95,7 +95,7 @@ std::expected<size_t, FsError> FileIO::writeFile(
         return written_bytes;
     }
 
-    return std::unexpected(FsError::InternalError);
+    return std::unexpected(FsError::FileIO_InternalError);
 }
 
 std::expected<void, FsError> FileIO::resizeFile(
@@ -194,7 +194,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
         _finished = true;
 
     if (_finished) {
-        return std::unexpected(FsError::OutOfBounds);
+        return std::unexpected(FsError::FileIO_OutOfBounds);
     }
     // direct blocks
     if (_index < 12) {
@@ -438,7 +438,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
     }
 
     _finished = true;
-    return std::unexpected(FsError::OutOfBounds);
+    return std::unexpected(FsError::FileIO_OutOfBounds);
 }
 
 std::expected<block_index_t, FsError> BlockIndexIterator::next()
@@ -481,7 +481,7 @@ std::expected<void, FsError> BlockIndexIterator::_writeIndexBlock(
     size_t indexes_per_block = _block_device.dataSize() / sizeof(block_index_t);
 
     if (indices.size() > indexes_per_block)
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::FileIO_InvalidRequest);
 
     std::vector<std::uint8_t> bytes;
     bytes.resize(indexes_per_block * sizeof(block_index_t));

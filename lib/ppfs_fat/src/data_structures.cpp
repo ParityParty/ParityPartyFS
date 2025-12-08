@@ -96,7 +96,7 @@ std::expected<void, FsError> FileAllocationTable::updateFat(
         std::memcpy(bytes.data(), &_fat[i], sizeof(int));
         auto ret = block_device.writeBlock(bytes, DataLocation(fat_start_block, i * sizeof(int)));
         if (!ret.has_value()) {
-            return std::unexpected(FsError::IOError);
+            return std::unexpected(FsError::PPFS_FAT_IOError);
         }
         _dirty_entries[i] = false;
     }

@@ -39,7 +39,7 @@ std::expected<void, FsError> BlockManager::reserve(block_index_t block)
     }
     auto prev_value = read_ret.value();
     if (prev_value == true) {
-        return std::unexpected(FsError::AlreadyTaken);
+        return std::unexpected(FsError::BlockManager_AlreadyTaken);
     }
     auto write_ret = _bitmap.setBit(block, true);
     if (!write_ret.has_value()) {
@@ -57,7 +57,7 @@ std::expected<void, FsError> BlockManager::free(block_index_t block)
     }
     auto prev_value = read_ret.value();
     if (prev_value == false) {
-        return std::unexpected(FsError::AlreadyFree);
+        return std::unexpected(FsError::BlockManager_AlreadyFree);
     }
     auto write_ret = _bitmap.setBit(block, false);
     if (!write_ret.has_value()) {
