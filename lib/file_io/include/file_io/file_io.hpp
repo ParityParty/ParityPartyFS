@@ -14,7 +14,7 @@ public:
     /**
      * Reads file with given inode. If read exceeds file size, returns FsError::OutOfBounds.
      */
-    std::expected<std::vector<uint8_t>, FsError> readFile(
+    [[nodiscard]] std::expected<std::vector<uint8_t>, FsError> readFile(
         inode_index_t inode_index, Inode& inode, size_t offset, size_t bytes_to_read);
 
     /**
@@ -23,13 +23,13 @@ public:
      * Inode is updated with inode manager to reflect new file size and inode blocks.
      */
 
-    std::expected<size_t, FsError> writeFile(inode_index_t inode_index, Inode& inode, size_t offset,
-        std::vector<uint8_t> bytes_to_write);
+    [[nodiscard]] std::expected<size_t, FsError> writeFile(inode_index_t inode_index, Inode& inode,
+        size_t offset, std::vector<uint8_t> bytes_to_write);
 
     /**
      * Resizes file to a given size
      */
-    std::expected<void, FsError> resizeFile(
+    [[nodiscard]] std::expected<void, FsError> resizeFile(
         inode_index_t inode_index, Inode& inode, size_t new_size);
 };
 
@@ -44,7 +44,7 @@ public:
      * If should_resize is set to true, updates inode and find new index block if necessary.
      * Does not update inode in inode maneger!!! File size is not updated either!!!
      */
-    std::expected<block_index_t, FsError> next();
+    [[nodiscard]] std::expected<block_index_t, FsError> next();
 
     /**
      * Returns the next data block index of the file. If this data block is the
@@ -54,7 +54,7 @@ public:
      * If should_resize is set to true, updates inode and find new index block if necessary.
      * Does not update inode in inode maneger!!! File size is not updated either!!!
      */
-    std::expected<std::tuple<block_index_t, std::vector<block_index_t>>, FsError>
+    [[nodiscard]] std::expected<std::tuple<block_index_t, std::vector<block_index_t>>, FsError>
     nextWithIndirectBlocksAdded();
 
 private:
@@ -69,9 +69,10 @@ private:
     bool _should_resize;
     size_t _occupied_blocks;
 
-    std::expected<std::vector<block_index_t>, FsError> _readIndexBlock(block_index_t index);
-    std::expected<void, FsError> _writeIndexBlock(
+    [[nodiscard]] std::expected<std::vector<block_index_t>, FsError> _readIndexBlock(
+        block_index_t index);
+    [[nodiscard]] std::expected<void, FsError> _writeIndexBlock(
         block_index_t index, const std::vector<block_index_t>& indices);
 
-    std::expected<block_index_t, FsError> _findAndReserveBlock();
+    [[nodiscard]] std::expected<block_index_t, FsError> _findAndReserveBlock();
 };

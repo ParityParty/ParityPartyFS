@@ -9,16 +9,16 @@ class InodeManager : public IInodeManager {
     Bitmap _bitmap;
 
     DataLocation _getInodeLocation(inode_index_t inode);
-    std::expected<void, FsError> _createRootInode();
+    [[nodiscard]] std::expected<void, FsError> _createRootInode();
 
 public:
     InodeManager(IBlockDevice& block_device, SuperBlock& superblock);
 
-    virtual std::expected<inode_index_t, FsError> create(Inode& inode) override;
-    virtual std::expected<void, FsError> remove(inode_index_t inode) override;
-    virtual std::expected<Inode, FsError> get(inode_index_t inode) override;
-    virtual std::expected<unsigned int, FsError> numFree() override;
-    virtual std::expected<void, FsError> update(
+    [[nodiscard]] virtual std::expected<inode_index_t, FsError> create(Inode& inode) override;
+    [[nodiscard]] virtual std::expected<void, FsError> remove(inode_index_t inode) override;
+    [[nodiscard]] virtual std::expected<Inode, FsError> get(inode_index_t inode) override;
+    [[nodiscard]] virtual std::expected<unsigned int, FsError> numFree() override;
+    [[nodiscard]] virtual std::expected<void, FsError> update(
         inode_index_t inode_index, const Inode& inode) override;
-    virtual std::expected<void, FsError> format() override;
+    [[nodiscard]] virtual std::expected<void, FsError> format() override;
 };

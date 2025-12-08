@@ -31,7 +31,7 @@ public:
      *
      * If size of data exceeds the data size per block, it will be truncated.
      */
-    std::expected<size_t, FsError> writeBlock(
+    [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
         const std::vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
@@ -43,27 +43,28 @@ public:
      * If size of requested bytes exceeds the data size available on the block, it will be
      * truncated.
      */
-    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
+    [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     /**
      * @brief Fills a specific block with zeros.
      */
-    std::expected<void, FsError> formatBlock(unsigned int block_index) override;
+    [[nodiscard]] virtual std::expected<void, FsError> formatBlock(
+        unsigned int block_index) override;
 
     /**
      * @brief Returns the total raw block size in bytes (including ECC bits).
      */
-    size_t rawBlockSize() const override;
+    virtual size_t rawBlockSize() const override;
 
     /**
      * @brief Returns the size in bytes of the actual data per block (without ECC bits).
      */
-    size_t dataSize() const override;
+    virtual size_t dataSize() const override;
     /**
      * @brief Returns the total number of blocks available on the underlying disk.
      */
-    size_t numOfBlocks() const override;
+    virtual size_t numOfBlocks() const override;
 
 private:
     size_t _block_size;
@@ -73,7 +74,8 @@ private:
     std::vector<std::uint8_t> _encodeData(const std::vector<std::uint8_t>& data);
     std::vector<std::uint8_t> _extractData(const std::vector<std::uint8_t>& encoded_data);
 
-    std::expected<std::vector<std::uint8_t>, FsError> _readAndFixBlock(int block_index);
+    [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _readAndFixBlock(
+        int block_index);
 };
 
 /**

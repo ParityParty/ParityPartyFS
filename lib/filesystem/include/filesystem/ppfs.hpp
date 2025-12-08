@@ -50,34 +50,38 @@ class PpFS : public IFilesystem {
     PpFSMutex _mutex;
     OpenFilesTable<MAX_OPEN_FILES> _openFilesTable;
 
-    std::expected<inode_index_t, FsError> _getParentInodeFromPath(std::string_view path);
-    std::expected<inode_index_t, FsError> _getInodeFromPath(std::string_view path);
-    std::expected<inode_index_t, FsError> _getInodeFromParent(
+    [[nodiscard]] std::expected<inode_index_t, FsError> _getParentInodeFromPath(
+        std::string_view path);
+    [[nodiscard]] std::expected<inode_index_t, FsError> _getInodeFromPath(std::string_view path);
+    [[nodiscard]] std::expected<inode_index_t, FsError> _getInodeFromParent(
         inode_index_t parent_inode, std::string_view path);
     bool _isPathValid(std::string_view path);
-    std::expected<void, FsError> _checkIfInUseRecursive(inode_index_t inode);
-    std::expected<void, FsError> _removeRecursive(inode_index_t parent, inode_index_t inode);
-    std::expected<void, FsError> _createAppropriateBlockDevice(size_t block_size);
+    [[nodiscard]] std::expected<void, FsError> _checkIfInUseRecursive(inode_index_t inode);
+    [[nodiscard]] std::expected<void, FsError> _removeRecursive(
+        inode_index_t parent, inode_index_t inode);
+    [[nodiscard]] std::expected<void, FsError> _createAppropriateBlockDevice(size_t block_size);
 
 public:
     PpFS(IDisk& disk);
 
-    virtual std::expected<void, FsError> init() override;
-    virtual std::expected<void, FsError> format(FsConfig options) override;
-    virtual std::expected<void, FsError> create(std::string_view path) override;
-    virtual std::expected<file_descriptor_t, FsError> open(
+    [[nodiscard]] virtual std::expected<void, FsError> init() override;
+    [[nodiscard]] virtual std::expected<void, FsError> format(FsConfig options) override;
+    [[nodiscard]] virtual std::expected<void, FsError> create(std::string_view path) override;
+    [[nodiscard]] virtual std::expected<file_descriptor_t, FsError> open(
         std::string_view path, OpenMode mode = OpenMode::Normal) override;
-    virtual std::expected<void, FsError> close(file_descriptor_t fd) override;
-    virtual std::expected<void, FsError> remove(
+    [[nodiscard]] virtual std::expected<void, FsError> close(file_descriptor_t fd) override;
+    [[nodiscard]] virtual std::expected<void, FsError> remove(
         std::string_view path, bool recursive = false) override;
-    virtual std::expected<std::vector<std::uint8_t>, FsError> read(
+    [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> read(
         file_descriptor_t fd, std::size_t bytes_to_read) override;
-    virtual std::expected<void, FsError> write(
+    [[nodiscard]] virtual std::expected<void, FsError> write(
         file_descriptor_t fd, std::vector<std::uint8_t> buffer) override;
-    virtual std::expected<void, FsError> seek(file_descriptor_t fd, size_t position) override;
-    virtual std::expected<void, FsError> createDirectory(std::string_view path) override;
-    virtual std::expected<std::vector<std::string>, FsError> readDirectory(
+    [[nodiscard]] virtual std::expected<void, FsError> seek(
+        file_descriptor_t fd, size_t position) override;
+    [[nodiscard]] virtual std::expected<void, FsError> createDirectory(
+        std::string_view path) override;
+    [[nodiscard]] virtual std::expected<std::vector<std::string>, FsError> readDirectory(
         std::string_view path) override;
     virtual bool isInitialized() const override;
-    virtual std::expected<std::size_t, FsError> getFileCount() const override;
+    [[nodiscard]] virtual std::expected<std::size_t, FsError> getFileCount() const override;
 };
