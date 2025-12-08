@@ -1,4 +1,4 @@
-#include "blockdevice/crc_polynomial.hpp"
+#include "ecc_helpers/crc_polynomial.hpp"
 #include "common/bit_helpers.hpp"
 
 unsigned int CrcPolynomial::_findDegree(unsigned long int coefficients)

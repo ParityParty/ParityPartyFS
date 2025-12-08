@@ -1,7 +1,7 @@
 #pragma once
-#include "blockdevice/crc_polynomial.hpp"
 #include "blockdevice/ecc_type.hpp"
 #include "common/types.hpp"
+#include "ecc_helpers/crc_polynomial.hpp"
 
 enum class OpenMode : std::uint8_t {
     // Cursor at the beginning of the file, moves as data is read/written.

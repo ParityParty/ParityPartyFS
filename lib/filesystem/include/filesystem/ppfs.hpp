@@ -59,6 +59,7 @@ class PpFS : public IFilesystem {
         inode_index_t dir_inode, std::string_view name);
     std::expected<void, FsError> _checkIfInUseRecursive(inode_index_t inode);
     std::expected<void, FsError> _removeRecursive(inode_index_t parent, inode_index_t inode);
+    std::expected<void, FsError> _createAppropriateBlockDevice(size_t block_size);
 
 public:
     PpFS(IDisk& disk);

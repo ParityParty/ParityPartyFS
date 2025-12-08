@@ -20,19 +20,8 @@ bool PpFS::isInitialized() const
         && _superBlockManager;
 }
 
-std::expected<void, FsError> PpFS::init()
+std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(size_t block_size)
 {
-    // Create superblock manager
-    _superBlockManagerStorage.emplace<SuperBlockManager>(_disk);
-    _superBlockManager = &std::get<SuperBlockManager>(_superBlockManagerStorage);
-    auto sb_res = _superBlockManager->get();
-    if (!sb_res.has_value()) {
-        return std::unexpected(sb_res.error());
-    }
-    _superBlock = sb_res.value();
-    auto block_size = _superBlock.block_size;
-
-    // Create block device with appropriate ECC
     switch (_superBlock.ecc_type) {
     case ECCType::None: {
         _blockDeviceStorage.emplace<RawBlockDevice>(block_size, _disk);
@@ -64,6 +53,26 @@ std::expected<void, FsError> PpFS::init()
     }
     default:
         return std::unexpected(FsError::InvalidRequest);
+    }
+    return {};
+}
+
+std::expected<void, FsError> PpFS::init()
+{
+    // Create superblock manager
+    _superBlockManagerStorage.emplace<SuperBlockManager>(_disk);
+    _superBlockManager = &std::get<SuperBlockManager>(_superBlockManagerStorage);
+    auto sb_res = _superBlockManager->get();
+    if (!sb_res.has_value()) {
+        return std::unexpected(sb_res.error());
+    }
+    _superBlock = sb_res.value();
+    auto block_size = _superBlock.block_size;
+
+    // Create block device with appropriate ECC
+    auto bd_res = _createAppropriateBlockDevice(block_size);
+    if (!bd_res.has_value()) {
+        return std::unexpected(bd_res.error());
     }
 
     // Create inode manager
@@ -149,36 +158,9 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     _superBlock = sb;
 
     // Create block device with appropriate ECC
-    switch (options.ecc_type) {
-    case ECCType::None: {
-        _blockDeviceStorage.emplace<RawBlockDevice>(options.block_size, _disk);
-        _blockDevice = &std::get<RawBlockDevice>(_blockDeviceStorage);
-        break;
-    }
-    case ECCType::Parity: {
-        _blockDeviceStorage.emplace<ParityBlockDevice>(options.block_size, _disk);
-        _blockDevice = &std::get<ParityBlockDevice>(_blockDeviceStorage);
-        break;
-    }
-    case ECCType::Crc: {
-        _blockDeviceStorage.emplace<CrcBlockDevice>(
-            options.crc_polynomial, _disk, options.block_size);
-        _blockDevice = &std::get<CrcBlockDevice>(_blockDeviceStorage);
-        break;
-    }
-    case ECCType::Hamming: {
-        _blockDeviceStorage.emplace<HammingBlockDevice>(options.block_size, _disk);
-        _blockDevice = &std::get<HammingBlockDevice>(_blockDeviceStorage);
-        break;
-    }
-    case ECCType::ReedSolomon: {
-        _blockDeviceStorage.emplace<ReedSolomonBlockDevice>(
-            _disk, options.block_size, options.rs_correctable_bytes);
-        _blockDevice = &std::get<ReedSolomonBlockDevice>(_blockDeviceStorage);
-        break;
-    }
-    default:
-        return std::unexpected(FsError::InvalidRequest);
+    auto bd_res = _createAppropriateBlockDevice(options.block_size);
+    if (!bd_res.has_value()) {
+        return std::unexpected(bd_res.error());
     }
 
     // Create and format inode manager
