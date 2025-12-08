@@ -1,6 +1,8 @@
 #include "filesystem/ppfs.hpp"
+#include "common/math_helpers.hpp"
 #include "common/ppfs_mutex.hpp"
 #include <cstring>
+#include <numeric>
 
 #include "blockdevice/crc_block_device.hpp"
 #include "blockdevice/hamming_block_device.hpp"
@@ -102,8 +104,8 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     if (options.total_size == 0 || options.block_size == 0 || options.average_file_size == 0) {
         return std::unexpected(FsError::InvalidRequest);
     }
-    // Ensure that block size can hold at least one inode and one superblock
-    if (options.block_size < sizeof(Inode) || options.block_size < sizeof(SuperBlock)) {
+    // Ensure that block size can hold at least one inode
+    if (options.block_size < sizeof(Inode)) {
         return std::unexpected(FsError::InvalidRequest);
     }
     // Check if total size is a multiple of block size
@@ -119,28 +121,24 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     SuperBlock sb {};
     sb.total_blocks = options.total_size / options.block_size;
     sb.total_inodes = options.total_size / options.average_file_size;
-    sb.inode_bitmap_address = sizeof(SuperBlock) * 2 > options.block_size ? 2 : 1;
+    if (sb.total_blocks == 0 || sb.total_inodes == 0) {
+        return std::unexpected(FsError::InvalidRequest);
+    }
 
-    sb.inode_table_address = sb.inode_bitmap_address;
-    sb.inode_table_address += sb.total_inodes / 8 / options.block_size;
-    if ((sb.total_inodes / 8) % options.block_size != 0)
-        sb.inode_table_address += 1;
+    sb.inode_bitmap_address = div_ceil(sizeof(SuperBlock) * 2, (size_t)options.block_size);
+    sb.inode_table_address
+        = sb.inode_bitmap_address + div_ceil((uint32_t)sb.total_inodes / 8, options.block_size);
 
     if (options.use_journal) {
         return std::unexpected(FsError::NotImplemented);
     }
 
-    sb.block_bitmap_address = sb.inode_table_address;
-    sb.block_bitmap_address += (sb.total_inodes * sizeof(Inode)) / options.block_size;
-    if ((sb.total_inodes * sizeof(Inode)) % options.block_size != 0)
-        sb.block_bitmap_address += 1;
-
-    sb.first_data_blocks_address = sb.block_bitmap_address;
-    sb.first_data_blocks_address += sb.total_blocks / 8 / options.block_size;
-    if ((sb.total_blocks / 8) % options.block_size != 0)
-        sb.first_data_blocks_address += 1;
-
-    sb.last_data_block_address = sb.total_blocks - 1;
+    sb.block_bitmap_address = sb.inode_table_address
+        + div_ceil((uint32_t)(sb.total_inodes * sizeof(Inode)), options.block_size);
+    sb.first_data_blocks_address
+        = sb.block_bitmap_address + div_ceil((uint32_t)(sb.total_blocks / 8), options.block_size);
+    sb.last_data_block_address
+        = sb.total_blocks - div_ceil(sizeof(SuperBlock), (size_t)options.block_size);
     sb.block_size = options.block_size;
     sb.ecc_type = options.ecc_type;
     if (sb.ecc_type == ECCType::Crc)
