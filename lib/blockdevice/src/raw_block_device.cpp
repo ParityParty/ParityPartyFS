@@ -1,4 +1,5 @@
 #include "blockdevice/raw_block_device.hpp"
+#include "static_vector.hpp"
 
 RawBlockDevice::RawBlockDevice(size_t block_size, IDisk& disk)
     : _block_size(block_size)
@@ -16,7 +17,8 @@ std::expected<size_t, FsError> RawBlockDevice::writeBlock(
     size_t to_write = std::min(data.size(), _block_size - data_location.offset);
 
     size_t address = data_location.block_index * _block_size + data_location.offset;
-    auto disk_result = _disk.write(address, { data.begin(), data.begin() + to_write });
+    static_vector<uint8_t, MAX_BLOCK_SIZE> temp(data.begin(), data.begin() + to_write);
+    auto disk_result = _disk.write(address, temp);
     if (!disk_result.has_value()) {
         return std::unexpected(disk_result.error());
     }
@@ -30,7 +32,7 @@ std::expected<void, FsError> RawBlockDevice::readBlock(
     size_t to_read = std::min(bytes_to_read, _block_size - data_location.offset);
 
     size_t address = data_location.block_index * _block_size + data_location.offset;
-    return _disk.read(address, to_read);
+    return _disk.read(address, to_read, data);
 }
 
 std::expected<void, FsError> RawBlockDevice::formatBlock(unsigned int block_index) { return {}; }
