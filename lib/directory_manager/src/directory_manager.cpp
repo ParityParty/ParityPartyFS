@@ -29,7 +29,7 @@ std::expected<Inode, FsError> DirectoryManager::checkNameUnique(
 
     int index = _findEntryIndexByName(entries, name);
     if (index != -1) {
-        return std::unexpected(FsError::NameTaken);
+        return std::unexpected(FsError::DirectoryManager_NameTaken);
     }
     return dir_inode;
 }
@@ -85,7 +85,7 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     std::vector<DirectoryEntry> entries = read_res.value();
     int index = _findEntryIndexByInode(entries, entry);
     if (index == -1) {
-        return std::unexpected(FsError::NotFound);
+        return std::unexpected(FsError::DirectoryManager_NotFound);
     }
 
     auto new_dir_size = dir_inode.file_size - sizeof(DirectoryEntry);
@@ -156,7 +156,7 @@ std::expected<Inode, FsError> DirectoryManager::_getDirectoryInode(inode_index_t
     }
 
     if (inode_result->type != InodeType::Directory)
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::DirectoryManager_InvalidRequest);
 
     return *inode_result;
 }

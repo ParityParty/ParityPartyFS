@@ -54,7 +54,7 @@ std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(size_t block_si
         break;
     }
     default:
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PpFS_InvalidRequest);
     }
     return {};
 }
@@ -102,19 +102,19 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
 {
     // Check if parameters were set
     if (options.total_size == 0 || options.block_size == 0 || options.average_file_size == 0) {
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PpFS_InvalidRequest);
     }
     // Ensure that block size can hold at least one inode
     if (options.block_size < sizeof(Inode)) {
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PpFS_InvalidRequest);
     }
     // Check if total size is a multiple of block size
     if (options.total_size % options.block_size != 0) {
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PpFS_InvalidRequest);
     }
     // Check if block size is a power of two
     if ((options.block_size & (options.block_size - 1)) != 0) {
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PpFS_InvalidRequest);
     }
 
     // Create superblock
@@ -144,13 +144,13 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
 
     // Validate superblock
     if (sb.total_blocks == 0 || sb.total_inodes == 0) {
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PpFS_InvalidRequest);
     }
     if (sb.first_data_blocks_address >= sb.last_data_block_address) {
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PpFS_InvalidRequest);
     }
     if (sb.last_data_block_address >= sb.total_blocks) {
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PpFS_InvalidRequest);
     }
 
     // Write superblock to disk
@@ -200,11 +200,11 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
 std::expected<void, FsError> PpFS::create(std::string_view path)
 {
     if (!isInitialized()) {
-        return std::unexpected(FsError::NotInitialized);
+        return std::unexpected(FsError::PpFS_NotInitialized);
     }
 
     if (!_isPathValid(path)) {
-        return std::unexpected(FsError::InvalidPath);
+        return std::unexpected(FsError::PpFS_InvalidPath);
     }
 
     // Get parent inode
@@ -282,7 +282,7 @@ std::expected<inode_index_t, FsError> PpFS::_getParentInodeFromPath(std::string_
         }
 
         if (!found) {
-            return std::unexpected(FsError::NotFound);
+            return std::unexpected(FsError::PpFS_NotFound);
         }
         path = path.substr(next_slash);
     }
@@ -305,7 +305,7 @@ std::expected<inode_index_t, FsError> PpFS::_getInodeFromParent(
             return entry.inode;
         }
     }
-    return std::unexpected(FsError::NotFound);
+    return std::unexpected(FsError::PpFS_NotFound);
 }
 
 std::expected<inode_index_t, FsError> PpFS::_getInodeFromPath(std::string_view path)
@@ -326,10 +326,10 @@ std::expected<inode_index_t, FsError> PpFS::_getInodeFromPath(std::string_view p
 std::expected<file_descriptor_t, FsError> PpFS::open(std::string_view path, OpenMode mode)
 {
     if (!isInitialized()) {
-        return std::unexpected(FsError::NotInitialized);
+        return std::unexpected(FsError::PpFS_NotInitialized);
     }
     if (!_isPathValid(path)) {
-        return std::unexpected(FsError::InvalidPath);
+        return std::unexpected(FsError::PpFS_InvalidPath);
     }
 
     auto inode_res = _getInodeFromPath(path);
@@ -349,7 +349,7 @@ std::expected<file_descriptor_t, FsError> PpFS::open(std::string_view path, Open
 std::expected<void, FsError> PpFS::close(file_descriptor_t fd)
 {
     if (!isInitialized()) {
-        return std::unexpected(FsError::NotInitialized);
+        return std::unexpected(FsError::PpFS_NotInitialized);
     }
     auto close_res = _openFilesTable.close(fd);
     if (!close_res.has_value()) {
@@ -368,7 +368,7 @@ std::expected<void, FsError> PpFS::_checkIfInUseRecursive(inode_index_t inode)
     if (inode_data.type != InodeType::Directory) {
         auto open_file_res = _openFilesTable.get(inode);
         if (open_file_res.has_value()) {
-            return std::unexpected(FsError::FileInUse);
+            return std::unexpected(FsError::PpFS_FileInUse);
         }
         return {};
     }
@@ -425,10 +425,10 @@ std::expected<void, FsError> PpFS::_removeRecursive(inode_index_t parent, inode_
 std::expected<void, FsError> PpFS::remove(std::string_view path, bool recursive)
 {
     if (!isInitialized()) {
-        return std::unexpected(FsError::NotInitialized);
+        return std::unexpected(FsError::PpFS_NotInitialized);
     }
     if (!_isPathValid(path)) {
-        return std::unexpected(FsError::InvalidPath);
+        return std::unexpected(FsError::PpFS_InvalidPath);
     }
 
     auto parent_inode_res = _getParentInodeFromPath(path);
@@ -451,7 +451,7 @@ std::expected<void, FsError> PpFS::remove(std::string_view path, bool recursive)
         }
         Inode inode_data = inode_data_res.value();
         if (inode_data.type == InodeType::Directory && inode_data.file_size > 0) {
-            return std::unexpected(FsError::DirectoryNotEmpty);
+            return std::unexpected(FsError::PpFS_DirectoryNotEmpty);
         }
     }
 
@@ -471,17 +471,17 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::read(
     file_descriptor_t fd, std::size_t bytes_to_read)
 {
     if (!isInitialized()) {
-        return std::unexpected(FsError::NotInitialized);
+        return std::unexpected(FsError::PpFS_NotInitialized);
     }
 
     auto open_table_res = _openFilesTable.get(fd);
     if (!open_table_res.has_value()) {
-        return std::unexpected(FsError::NotFound);
+        return std::unexpected(FsError::PpFS_NotFound);
     }
     OpenFile* open_file = open_table_res.value();
 
     if (open_file->mode & OpenMode::Append) {
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PpFS_InvalidRequest);
     }
 
     auto inode_res = _inodeManager->get(open_file->inode);
@@ -502,12 +502,12 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::read(
 std::expected<void, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
 {
     if (!isInitialized()) {
-        return std::unexpected(FsError::NotInitialized);
+        return std::unexpected(FsError::PpFS_NotInitialized);
     }
 
     auto open_table_res = _openFilesTable.get(fd);
     if (!open_table_res.has_value()) {
-        return std::unexpected(FsError::NotFound);
+        return std::unexpected(FsError::PpFS_NotFound);
     }
     OpenFile* open_file = open_table_res.value();
 
@@ -534,17 +534,17 @@ std::expected<void, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::
 std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
 {
     if (!isInitialized()) {
-        return std::unexpected(FsError::NotInitialized);
+        return std::unexpected(FsError::PpFS_NotInitialized);
     }
 
     auto open_table_res = _openFilesTable.get(fd);
     if (!open_table_res.has_value()) {
-        return std::unexpected(FsError::NotFound);
+        return std::unexpected(FsError::PpFS_NotFound);
     }
     OpenFile* open_file = open_table_res.value();
 
     if (open_file->mode & OpenMode::Append) {
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::PpFS_InvalidRequest);
     }
 
     auto inode_res = _inodeManager->get(open_file->inode);
@@ -554,7 +554,7 @@ std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
     Inode inode = inode_res.value();
 
     if (position > inode.file_size) {
-        return std::unexpected(FsError::OutOfBounds);
+        return std::unexpected(FsError::PpFS_OutOfBounds);
     }
 
     open_file->position = position;
@@ -565,11 +565,11 @@ std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
 std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
 {
     if (!isInitialized()) {
-        return std::unexpected(FsError::NotInitialized);
+        return std::unexpected(FsError::PpFS_NotInitialized);
     }
 
     if (!_isPathValid(path)) {
-        return std::unexpected(FsError::InvalidPath);
+        return std::unexpected(FsError::PpFS_InvalidPath);
     }
 
     // Get parent inode
@@ -609,10 +609,10 @@ std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
 std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(std::string_view path)
 {
     if (!isInitialized()) {
-        return std::unexpected(FsError::NotInitialized);
+        return std::unexpected(FsError::PpFS_NotInitialized);
     }
     if (!_isPathValid(path)) {
-        return std::unexpected(FsError::InvalidPath);
+        return std::unexpected(FsError::PpFS_InvalidPath);
     }
 
     auto dir_inode_res = _getInodeFromPath(path);
@@ -638,7 +638,7 @@ std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(std::string
 std::expected<std::size_t, FsError> PpFS::getFileCount() const
 {
     if (!isInitialized()) {
-        return std::unexpected(FsError::NotInitialized);
+        return std::unexpected(FsError::PpFS_NotInitialized);
     }
 
     auto free_res = _inodeManager->numFree();

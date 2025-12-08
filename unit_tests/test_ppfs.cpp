@@ -31,7 +31,7 @@ TEST(PpFS, Format_Fails_UnsetParameters)
     FsConfig config;
     auto res = fs.format(config);
     ASSERT_FALSE(res.has_value());
-    ASSERT_EQ(res.error(), FsError::InvalidRequest);
+    ASSERT_EQ(res.error(), FsError::PpFS_InvalidRequest);
     ASSERT_FALSE(fs.isInitialized());
 }
 
@@ -46,7 +46,7 @@ TEST(PpFS, Format_Fails_BlockTooSmall)
     config.average_file_size = 256;
     auto res = fs.format(config);
     ASSERT_FALSE(res.has_value());
-    ASSERT_EQ(res.error(), FsError::InvalidRequest);
+    ASSERT_EQ(res.error(), FsError::PpFS_InvalidRequest);
     ASSERT_FALSE(fs.isInitialized());
 }
 
@@ -61,7 +61,7 @@ TEST(PpFS, Format_Fails_TotalSizeNotMultipleOfBlockSize)
     config.average_file_size = 256;
     auto res = fs.format(config);
     ASSERT_FALSE(res.has_value());
-    ASSERT_EQ(res.error(), FsError::InvalidRequest);
+    ASSERT_EQ(res.error(), FsError::PpFS_InvalidRequest);
     ASSERT_FALSE(fs.isInitialized());
 }
 
@@ -76,7 +76,7 @@ TEST(PpFS, Format_Fails_BlockSizeNotPowerOfTwo)
     config.average_file_size = 256;
     auto res = fs.format(config);
     ASSERT_FALSE(res.has_value());
-    ASSERT_EQ(res.error(), FsError::InvalidRequest);
+    ASSERT_EQ(res.error(), FsError::PpFS_InvalidRequest);
     ASSERT_FALSE(fs.isInitialized());
 }
 
@@ -92,7 +92,7 @@ TEST(PpFS, Format_Fails_BadECCType)
     config.ecc_type = static_cast<ECCType>(999); // Invalid ECC type
     auto res = fs.format(config);
     ASSERT_FALSE(res.has_value());
-    ASSERT_EQ(res.error(), FsError::InvalidRequest);
+    ASSERT_EQ(res.error(), FsError::PpFS_InvalidRequest);
     ASSERT_FALSE(fs.isInitialized());
 }
 
@@ -103,7 +103,7 @@ TEST(PpFS, Init_Fails_NoFormat)
 
     auto init_res = fs.init();
     ASSERT_FALSE(init_res.has_value());
-    ASSERT_EQ(init_res.error(), FsError::DiskNotFormatted);
+    ASSERT_EQ(init_res.error(), FsError::PpFS_DiskNotFormatted);
     ASSERT_FALSE(fs.isInitialized());
 }
 
@@ -133,7 +133,7 @@ TEST(PpFS, Create_Fails_NotInitialized)
 
     auto create_res = fs.create("/file.txt");
     ASSERT_FALSE(create_res.has_value());
-    ASSERT_EQ(create_res.error(), FsError::NotInitialized);
+    ASSERT_EQ(create_res.error(), FsError::PpFS_NotInitialized);
 }
 
 TEST(PpFS, Create_Succeeds_AfterFormat)
@@ -171,7 +171,7 @@ TEST(PpFS, Create_Fails_DuplicateFile)
         << "First create failed: " << toString(create_res1.error());
 
     auto create_res2 = fs.create("/file.txt");
-    ASSERT_EQ(create_res2.error(), FsError::NameTaken);
+    ASSERT_EQ(create_res2.error(), FsError::DirectoryManager_NameTaken);
 }
 
 TEST(PpFS, Create_Fails_InvalidPath)
@@ -188,10 +188,10 @@ TEST(PpFS, Create_Fails_InvalidPath)
     ASSERT_TRUE(fs.isInitialized());
 
     auto create_res1 = fs.create("file.txt");
-    ASSERT_EQ(create_res1.error(), FsError::InvalidPath);
+    ASSERT_EQ(create_res1.error(), FsError::PpFS_InvalidPath);
 
     auto create_res2 = fs.create("/dir//file.txt");
-    ASSERT_EQ(create_res2.error(), FsError::InvalidPath);
+    ASSERT_EQ(create_res2.error(), FsError::PpFS_InvalidPath);
 }
 
 TEST(PpFS, Create_Fails_ParentDirectoryDoesNotExist)
@@ -208,7 +208,7 @@ TEST(PpFS, Create_Fails_ParentDirectoryDoesNotExist)
     ASSERT_TRUE(fs.isInitialized());
 
     auto create_res = fs.create("/nonexistent_dir/file.txt");
-    ASSERT_EQ(create_res.error(), FsError::NotFound);
+    ASSERT_EQ(create_res.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, CreateDirectory_Fails_NotInitialized)
@@ -218,7 +218,7 @@ TEST(PpFS, CreateDirectory_Fails_NotInitialized)
 
     auto create_res = fs.createDirectory("/mydir");
     ASSERT_FALSE(create_res.has_value());
-    ASSERT_EQ(create_res.error(), FsError::NotInitialized);
+    ASSERT_EQ(create_res.error(), FsError::PpFS_NotInitialized);
 }
 
 TEST(PpFS, CreateDirectory_Succeeds_AfterFormat)
@@ -257,7 +257,7 @@ TEST(PpFS, CreateDirectory_Fails_DuplicateDirectory)
         << "First CreateDirectory failed: " << toString(create_res1.error());
 
     auto create_res2 = fs.createDirectory("/mydir");
-    ASSERT_EQ(create_res2.error(), FsError::NameTaken);
+    ASSERT_EQ(create_res2.error(), FsError::DirectoryManager_NameTaken);
 }
 
 TEST(PpFS, CreateDirectory_Fails_InvalidPath)
@@ -274,10 +274,10 @@ TEST(PpFS, CreateDirectory_Fails_InvalidPath)
     ASSERT_TRUE(fs.isInitialized());
 
     auto create_res1 = fs.createDirectory("mydir");
-    ASSERT_EQ(create_res1.error(), FsError::InvalidPath);
+    ASSERT_EQ(create_res1.error(), FsError::PpFS_InvalidPath);
 
     auto create_res2 = fs.createDirectory("/dir//mydir");
-    ASSERT_EQ(create_res2.error(), FsError::InvalidPath);
+    ASSERT_EQ(create_res2.error(), FsError::PpFS_InvalidPath);
 }
 
 TEST(PpFS, CreateDirectory_Fails_ParentDirectoryDoesNotExist)
@@ -294,7 +294,7 @@ TEST(PpFS, CreateDirectory_Fails_ParentDirectoryDoesNotExist)
     ASSERT_TRUE(fs.isInitialized());
 
     auto create_res = fs.createDirectory("/nonexistent_dir/mydir");
-    ASSERT_EQ(create_res.error(), FsError::NotFound);
+    ASSERT_EQ(create_res.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, CreateFileInNewDirectory)
@@ -325,7 +325,7 @@ TEST(PpFS, ReadDirectory_Fails_NotInitialized)
 
     auto read_dir_res = fs.readDirectory("/");
     ASSERT_FALSE(read_dir_res.has_value());
-    ASSERT_EQ(read_dir_res.error(), FsError::NotInitialized);
+    ASSERT_EQ(read_dir_res.error(), FsError::PpFS_NotInitialized);
 }
 
 TEST(PpFS, ReadDirectory_Succeeds)
@@ -374,7 +374,7 @@ TEST(PpFS, ReadDirectory_Fails_DirectoryDoesNotExist)
 
     auto read_dir_res = fs.readDirectory("/nonexistent_dir");
     ASSERT_FALSE(read_dir_res.has_value());
-    ASSERT_EQ(read_dir_res.error(), FsError::NotFound);
+    ASSERT_EQ(read_dir_res.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, ReadDirectory_EmptyDirectory)
@@ -412,10 +412,10 @@ TEST(PpFS, ReadDirectory_Fails_InvalidPath)
     ASSERT_TRUE(fs.isInitialized());
 
     auto read_dir_res1 = fs.readDirectory("mydir");
-    ASSERT_EQ(read_dir_res1.error(), FsError::InvalidPath);
+    ASSERT_EQ(read_dir_res1.error(), FsError::PpFS_InvalidPath);
 
     auto read_dir_res2 = fs.readDirectory("/dir//mydir");
-    ASSERT_EQ(read_dir_res2.error(), FsError::InvalidPath);
+    ASSERT_EQ(read_dir_res2.error(), FsError::PpFS_InvalidPath);
 }
 
 TEST(PpFS, ReadDirectory_AfterCreatingSubdirectory)
@@ -459,7 +459,7 @@ TEST(PpFS, Open_Fails_NotInitialized)
 
     auto open_res = fs.open("/file.txt");
     ASSERT_FALSE(open_res.has_value());
-    ASSERT_EQ(open_res.error(), FsError::NotInitialized);
+    ASSERT_EQ(open_res.error(), FsError::PpFS_NotInitialized);
 }
 
 TEST(PpFS, Open_Fails_FileDoesNotExist)
@@ -477,7 +477,7 @@ TEST(PpFS, Open_Fails_FileDoesNotExist)
 
     auto open_res = fs.open("/nonexistent_file.txt");
     ASSERT_FALSE(open_res.has_value());
-    ASSERT_EQ(open_res.error(), FsError::NotFound);
+    ASSERT_EQ(open_res.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, Open_Fails_InvalidPath)
@@ -494,10 +494,10 @@ TEST(PpFS, Open_Fails_InvalidPath)
     ASSERT_TRUE(fs.isInitialized());
 
     auto open_res1 = fs.open("file.txt");
-    ASSERT_EQ(open_res1.error(), FsError::InvalidPath);
+    ASSERT_EQ(open_res1.error(), FsError::PpFS_InvalidPath);
 
     auto open_res2 = fs.open("/dir//file.txt");
-    ASSERT_EQ(open_res2.error(), FsError::InvalidPath);
+    ASSERT_EQ(open_res2.error(), FsError::PpFS_InvalidPath);
 }
 
 TEST(PpFS, Open_Succeeds_AfterCreatingFile)
@@ -577,7 +577,7 @@ TEST(PpFS, Open_Fails_TooManyOpenFiles)
     // Next open should fail
     auto open_res = fs.open("/file.txt");
     ASSERT_FALSE(open_res.has_value());
-    ASSERT_EQ(open_res.error(), FsError::OpenFilesTableFull);
+    ASSERT_EQ(open_res.error(), FsError::PpFS_OpenFilesTableFull);
 }
 
 TEST(PpFS, Open_Fails_ExclusiveAlreadyOpen)
@@ -601,7 +601,7 @@ TEST(PpFS, Open_Fails_ExclusiveAlreadyOpen)
 
     auto open_res2 = fs.open("/file.txt", OpenMode::Normal);
     ASSERT_FALSE(open_res2.has_value());
-    ASSERT_EQ(open_res2.error(), FsError::AlreadyOpen);
+    ASSERT_EQ(open_res2.error(), FsError::PpFS_AlreadyOpen);
 }
 
 TEST(PpFS, Close_Fails_NotInitialized)
@@ -611,7 +611,7 @@ TEST(PpFS, Close_Fails_NotInitialized)
 
     auto close_res = fs.close(0);
     ASSERT_FALSE(close_res.has_value());
-    ASSERT_EQ(close_res.error(), FsError::NotInitialized);
+    ASSERT_EQ(close_res.error(), FsError::PpFS_NotInitialized);
 }
 
 TEST(PpFS, Close_Fails_InvalidFileDescriptor)
@@ -629,7 +629,7 @@ TEST(PpFS, Close_Fails_InvalidFileDescriptor)
 
     auto close_res = fs.close(MAX_OPEN_FILES + 1); // Invalid FD
     ASSERT_FALSE(close_res.has_value());
-    ASSERT_EQ(close_res.error(), FsError::OutOfBounds);
+    ASSERT_EQ(close_res.error(), FsError::PpFS_OutOfBounds);
 }
 
 TEST(PpFS, Close_Fails_FileDescriptorNotOpen)
@@ -647,7 +647,7 @@ TEST(PpFS, Close_Fails_FileDescriptorNotOpen)
 
     auto close_res = fs.close(0); // FD 0 not opened yet
     ASSERT_FALSE(close_res.has_value());
-    ASSERT_EQ(close_res.error(), FsError::NotFound);
+    ASSERT_EQ(close_res.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, Close_Succeeds_AfterOpen)
@@ -699,7 +699,7 @@ TEST(PpFS, Close_Fails_TwiceOnSameFileDescriptor)
 
     auto close_res2 = fs.close(fd);
     ASSERT_FALSE(close_res2.has_value());
-    ASSERT_EQ(close_res2.error(), FsError::NotFound);
+    ASSERT_EQ(close_res2.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, Close_Succeeds_MultipleFileDescriptors)
@@ -739,7 +739,7 @@ TEST(PpFS, Remove_Fails_NotInitialized)
 
     auto remove_res = fs.remove("/file.txt");
     ASSERT_FALSE(remove_res.has_value());
-    ASSERT_EQ(remove_res.error(), FsError::NotInitialized);
+    ASSERT_EQ(remove_res.error(), FsError::PpFS_NotInitialized);
 }
 
 TEST(PpFS, Remove_Fails_FileDoesNotExist)
@@ -757,7 +757,7 @@ TEST(PpFS, Remove_Fails_FileDoesNotExist)
 
     auto remove_res = fs.remove("/nonexistent_file.txt");
     ASSERT_FALSE(remove_res.has_value());
-    ASSERT_EQ(remove_res.error(), FsError::NotFound);
+    ASSERT_EQ(remove_res.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, Remove_Succeeds_AfterCreatingFile)
@@ -800,10 +800,10 @@ TEST(PpFS, Remove_Fails_InvalidPath)
     ASSERT_TRUE(fs.isInitialized());
 
     auto remove_res1 = fs.remove("file.txt");
-    ASSERT_EQ(remove_res1.error(), FsError::InvalidPath);
+    ASSERT_EQ(remove_res1.error(), FsError::PpFS_InvalidPath);
 
     auto remove_res2 = fs.remove("/dir//file.txt");
-    ASSERT_EQ(remove_res2.error(), FsError::InvalidPath);
+    ASSERT_EQ(remove_res2.error(), FsError::PpFS_InvalidPath);
 }
 
 TEST(PpFS, Remove_Fails_ParentDirectoryDoesNotExist)
@@ -820,7 +820,7 @@ TEST(PpFS, Remove_Fails_ParentDirectoryDoesNotExist)
     ASSERT_TRUE(fs.isInitialized());
 
     auto remove_res = fs.remove("/nonexistent_dir/file.txt");
-    ASSERT_EQ(remove_res.error(), FsError::NotFound);
+    ASSERT_EQ(remove_res.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, Remove_Fails_FileOpen)
@@ -844,7 +844,7 @@ TEST(PpFS, Remove_Fails_FileOpen)
 
     auto remove_res = fs.remove("/file.txt");
     ASSERT_FALSE(remove_res.has_value());
-    ASSERT_EQ(remove_res.error(), FsError::FileInUse);
+    ASSERT_EQ(remove_res.error(), FsError::PpFS_FileInUse);
 
     auto close_res = fs.close(open_res.value());
     ASSERT_TRUE(close_res.has_value()) << "Close file failed: " << toString(close_res.error());
@@ -944,7 +944,7 @@ TEST(PpFS, Remove_Fails_NonRecursiveOnDirectory)
 
     auto remove_res = fs.remove("/dir"); // Non-recursive remove
     ASSERT_FALSE(remove_res.has_value());
-    ASSERT_EQ(remove_res.error(), FsError::DirectoryNotEmpty);
+    ASSERT_EQ(remove_res.error(), FsError::PpFS_DirectoryNotEmpty);
 }
 
 TEST(PpFS, GetFileCount_Succeeds)
@@ -984,7 +984,7 @@ TEST(PpFS, GetFileCount_Fails_NotInitialized)
 
     auto count_res = fs.getFileCount();
     ASSERT_FALSE(count_res.has_value());
-    ASSERT_EQ(count_res.error(), FsError::NotInitialized);
+    ASSERT_EQ(count_res.error(), FsError::PpFS_NotInitialized);
 }
 
 TEST(PpFS, Read_Fails_NotInitialized)
@@ -994,7 +994,7 @@ TEST(PpFS, Read_Fails_NotInitialized)
 
     auto read_res = fs.read(0, 0);
     ASSERT_FALSE(read_res.has_value());
-    ASSERT_EQ(read_res.error(), FsError::NotInitialized);
+    ASSERT_EQ(read_res.error(), FsError::PpFS_NotInitialized);
 }
 
 TEST(PpFS, Read_Fails_InvalidFileDescriptor)
@@ -1012,7 +1012,7 @@ TEST(PpFS, Read_Fails_InvalidFileDescriptor)
 
     auto read_res = fs.read(1, 0);
     ASSERT_FALSE(read_res.has_value());
-    ASSERT_EQ(read_res.error(), FsError::NotFound);
+    ASSERT_EQ(read_res.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, Read_Fails_AppendMode)
@@ -1036,7 +1036,7 @@ TEST(PpFS, Read_Fails_AppendMode)
 
     auto read_res = fs.read(fd, 10);
     ASSERT_FALSE(read_res.has_value());
-    ASSERT_EQ(read_res.error(), FsError::InvalidRequest);
+    ASSERT_EQ(read_res.error(), FsError::PpFS_InvalidRequest);
 
     auto close_res = fs.close(fd);
     ASSERT_TRUE(close_res.has_value()) << "Close file failed: " << toString(close_res.error());
@@ -1050,7 +1050,7 @@ TEST(PpFS, Write_Fails_NotInitialized)
     std::vector<uint8_t> data = { 1, 2, 3 };
     auto write_res = fs.write(0, data);
     ASSERT_FALSE(write_res.has_value());
-    ASSERT_EQ(write_res.error(), FsError::NotInitialized);
+    ASSERT_EQ(write_res.error(), FsError::PpFS_NotInitialized);
 }
 
 TEST(PpFS, Write_Fails_InvalidFileDescriptor)
@@ -1069,7 +1069,7 @@ TEST(PpFS, Write_Fails_InvalidFileDescriptor)
     std::vector<uint8_t> data = { 1, 2, 3 };
     auto write_res = fs.write(1, data);
     ASSERT_FALSE(write_res.has_value());
-    ASSERT_EQ(write_res.error(), FsError::NotFound);
+    ASSERT_EQ(write_res.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, Seek_Fails_NotInitialized)
@@ -1079,7 +1079,7 @@ TEST(PpFS, Seek_Fails_NotInitialized)
 
     auto seek_res = fs.seek(0, 0);
     ASSERT_FALSE(seek_res.has_value());
-    ASSERT_EQ(seek_res.error(), FsError::NotInitialized);
+    ASSERT_EQ(seek_res.error(), FsError::PpFS_NotInitialized);
 }
 
 TEST(PpFS, Seek_Fails_InvalidFileDescriptor)
@@ -1097,7 +1097,7 @@ TEST(PpFS, Seek_Fails_InvalidFileDescriptor)
 
     auto seek_res = fs.seek(1, 0);
     ASSERT_FALSE(seek_res.has_value());
-    ASSERT_EQ(seek_res.error(), FsError::NotFound);
+    ASSERT_EQ(seek_res.error(), FsError::PpFS_NotFound);
 }
 
 TEST(PpFS, Seek_Fails_OutOfBounds)
@@ -1121,7 +1121,7 @@ TEST(PpFS, Seek_Fails_OutOfBounds)
 
     auto seek_res = fs.seek(fd, 1000); // Out of bounds
     ASSERT_FALSE(seek_res.has_value());
-    ASSERT_EQ(seek_res.error(), FsError::OutOfBounds);
+    ASSERT_EQ(seek_res.error(), FsError::PpFS_OutOfBounds);
 
     auto close_res = fs.close(fd);
     ASSERT_TRUE(close_res.has_value()) << "Close file failed: " << toString(close_res.error());
@@ -1174,7 +1174,7 @@ TEST(PpFS, Seek_Fails_AppendMode)
 
     auto seek_res = fs.seek(fd, 0);
     ASSERT_FALSE(seek_res.has_value());
-    ASSERT_EQ(seek_res.error(), FsError::InvalidRequest);
+    ASSERT_EQ(seek_res.error(), FsError::PpFS_InvalidRequest);
 
     auto close_res = fs.close(fd);
     ASSERT_TRUE(close_res.has_value()) << "Close file failed: " << toString(close_res.error());

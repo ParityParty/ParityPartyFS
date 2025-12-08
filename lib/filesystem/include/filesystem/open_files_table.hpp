@@ -47,7 +47,7 @@ public:
             auto& entry = _table[i];
             if (entry.has_value() && entry->inode == inode) {
                 if (entry->mode & OpenMode::Exclusive || mode & OpenMode::Exclusive) {
-                    return std::unexpected(FsError::AlreadyOpen);
+                    return std::unexpected(FsError::PpFS_AlreadyOpen);
                 }
             } else if (!free_spot.has_value()) {
                 free_spot = i;
@@ -58,19 +58,19 @@ public:
             _table[free_spot.value()] = OpenFile { inode, 0, mode };
             return free_spot.value();
         }
-        return std::unexpected(FsError::OpenFilesTableFull);
+        return std::unexpected(FsError::PpFS_OpenFilesTableFull);
     }
 
     [[nodiscard]] std::expected<void, FsError> close(file_descriptor_t fd)
     {
         if (fd >= MAX) {
-            return std::unexpected(FsError::OutOfBounds);
+            return std::unexpected(FsError::PpFS_OutOfBounds);
         }
         auto& entry = _table[fd];
         if (entry.has_value()) {
             entry.reset();
             return {};
         }
-        return std::unexpected(FsError::NotFound);
+        return std::unexpected(FsError::PpFS_NotFound);
     }
 };

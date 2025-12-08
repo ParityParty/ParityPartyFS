@@ -45,7 +45,7 @@ std::expected<std::vector<std::uint8_t>, FsError> HammingBlockDevice::_readAndFi
         }
     } else {
         if (error_position != 0) {
-            return std::unexpected(FsError::CorrectionError);
+            return std::unexpected(FsError::BlockDevice_CorrectionError);
         }
     }
 
