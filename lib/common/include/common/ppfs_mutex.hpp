@@ -21,7 +21,7 @@ public:
 #endif
     }
 
-    ~PpFSMutex() { deinit(); }
+    ~PpFSMutex() { (void)deinit(); }
 
     [[nodiscard]] std::expected<void, FsError> init()
     {
@@ -44,7 +44,7 @@ public:
         return {};
     }
 
-    std::expected<void, FsError> deinit()
+    [[nodiscard]] std::expected<void, FsError> deinit()
     {
         if (!isInitialized_) {
             return std::unexpected(FsError::MutexNotInitialized);

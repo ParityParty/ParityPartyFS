@@ -22,10 +22,10 @@ public:
      */
     BlockManager(block_index_t blocks_start, block_index_t space_for_data_and_bitmap,
         IBlockDevice& block_device);
-    std::expected<void, FsError> format() override;
-    std::expected<void, FsError> reserve(block_index_t block) override;
-    std::expected<void, FsError> free(block_index_t block) override;
-    std::expected<block_index_t, FsError> getFree() override;
-    std::expected<std::uint32_t, FsError> numFree() override;
-    std::expected<std::uint32_t, FsError> numTotal() override;
+    [[nodiscard]] virtual std::expected<void, FsError> format() override;
+    [[nodiscard]] virtual std::expected<void, FsError> reserve(block_index_t block) override;
+    [[nodiscard]] virtual std::expected<void, FsError> free(block_index_t block) override;
+    [[nodiscard]] virtual std::expected<block_index_t, FsError> getFree() override;
+    [[nodiscard]] virtual std::expected<std::uint32_t, FsError> numFree() override;
+    [[nodiscard]] virtual std::expected<std::uint32_t, FsError> numTotal() override;
 };

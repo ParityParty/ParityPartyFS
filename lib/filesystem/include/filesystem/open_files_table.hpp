@@ -39,7 +39,7 @@ public:
         return {};
     }
 
-    std::expected<file_descriptor_t, FsError> open(inode_index_t inode, OpenMode mode)
+    [[nodiscard]] std::expected<file_descriptor_t, FsError> open(inode_index_t inode, OpenMode mode)
     {
         // Check if already open in exclusive mode and save a free spot
         std::optional<int> free_spot;
@@ -61,7 +61,7 @@ public:
         return std::unexpected(FsError::OpenFilesTableFull);
     }
 
-    std::expected<void, FsError> close(file_descriptor_t fd)
+    [[nodiscard]] std::expected<void, FsError> close(file_descriptor_t fd)
     {
         if (fd >= MAX) {
             return std::unexpected(FsError::OutOfBounds);

@@ -17,27 +17,27 @@ public:
      * Writes data with an appended parity byte.
      * If data corruption is detected, returns an error.
      */
-    std::expected<size_t, FsError> writeBlock(
+    [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
         const std::vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * Reads data and verifies parity to detect bit flips.
      * If data corruption is detected, returns an error.
      */
-    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
+    [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     /** Formats a block (fills it with zeros and valid parity). */
-    std::expected<void, FsError> formatBlock(unsigned int block_index) override;
-
+    [[nodiscard]] virtual std::expected<void, FsError> formatBlock(
+        unsigned int block_index) override;
     /** Returns the total raw block size including the parity byte. */
-    size_t rawBlockSize() const override;
+    virtual size_t rawBlockSize() const override;
 
     /** Returns the usable data size (excluding parity byte). */
-    size_t dataSize() const override;
+    virtual size_t dataSize() const override;
 
     /** Returns the number of available blocks on the disk. */
-    size_t numOfBlocks() const override;
+    virtual size_t numOfBlocks() const override;
 
 private:
     IDisk& _disk; /**< Reference to the underlying disk. */

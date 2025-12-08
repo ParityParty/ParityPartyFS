@@ -41,7 +41,8 @@ TEST(ReedSolomonBlockDevice, SingleByteError)
 
     // corrupt one byte completely
     bytes[120] = std::uint8_t { 0x00 };
-    disk.write(0, bytes);
+    auto write_ret = disk.write(0, bytes);
+    ASSERT_TRUE(write_ret.has_value());
 
     auto read_ret = rs.readBlock({ 0, 0 }, data_size);
     ASSERT_TRUE(read_ret.has_value());
@@ -70,7 +71,8 @@ TEST(ReedSolomonBlockDevice, DoubleByteError)
     // corrupt two bytes
     bytes[10] = std::uint8_t { 0xEE };
     bytes[200] = std::uint8_t { 0x44 };
-    disk.write(0, bytes);
+    auto write_ret = disk.write(0, bytes);
+    ASSERT_TRUE(write_ret.has_value());
 
     auto read_ret = rs.readBlock({ 0, 0 }, data_size);
     ASSERT_TRUE(read_ret.has_value());
@@ -100,7 +102,8 @@ TEST(ReedSolomonBlockDevice, TripleByteError)
     bytes[10] = std::uint8_t { 0xEE };
     bytes[100] = std::uint8_t { 0x61 };
     bytes[200] = std::uint8_t { 0x44 };
-    disk.write(0, bytes);
+    auto write_ret = disk.write(0, bytes);
+    ASSERT_TRUE(write_ret.has_value());
 
     auto read_ret = rs.readBlock({ 0, 0 }, data_size);
     ASSERT_TRUE(read_ret.has_value());

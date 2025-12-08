@@ -14,7 +14,7 @@ class Bitmap {
     std::optional<std::uint32_t> _ones_count;
 
     DataLocation _getByteLocation(unsigned int bit_index);
-    std::expected<unsigned char, FsError> _getByte(unsigned int bit_index);
+    [[nodiscard]] std::expected<unsigned char, FsError> _getByte(unsigned int bit_index);
 
 public:
     /**
@@ -24,11 +24,11 @@ public:
      * @param bit_count Number of bits stored in bitmap
      */
     Bitmap(IBlockDevice& block_device, block_index_t start_block, size_t bit_count);
-    std::expected<std::uint32_t, FsError> count(bool value);
-    std::expected<bool, FsError> getBit(unsigned int bit_index);
-    std::expected<void, FsError> setBit(unsigned int bit_index, bool value);
-    std::expected<unsigned int, FsError> getFirstEq(bool value);
-    std::expected<void, FsError> setAll(bool value);
+    [[nodiscard]] std::expected<std::uint32_t, FsError> count(bool value);
+    [[nodiscard]] std::expected<bool, FsError> getBit(unsigned int bit_index);
+    [[nodiscard]] std::expected<void, FsError> setBit(unsigned int bit_index, bool value);
+    [[nodiscard]] std::expected<unsigned int, FsError> getFirstEq(bool value);
+    [[nodiscard]] std::expected<void, FsError> setAll(bool value);
     int blocksSpanned() const;
-    std::expected<std::uint32_t, FsError> count(bool value) const;
+    [[nodiscard]] std::expected<std::uint32_t, FsError> count(bool value) const;
 };
