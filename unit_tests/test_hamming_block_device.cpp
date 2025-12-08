@@ -98,7 +98,7 @@ TEST(HammingBlockDevice, DoubleBitErrorTriggersFailure)
 
     auto read_res = hbd.readBlock(loc, data.size());
     ASSERT_FALSE(read_res.has_value());
-    EXPECT_EQ(read_res.error(), FsError::CorrectionError);
+    EXPECT_EQ(read_res.error(), FsError::BlockDevice_CorrectionError);
 }
 
 TEST(HammingBlockDevice, MultipleRandomSingleBitCorrections)

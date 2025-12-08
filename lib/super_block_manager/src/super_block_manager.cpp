@@ -63,7 +63,7 @@ std::expected<void, FsError> SuperBlockManager::_writeToDisk(bool writeAtBeginni
         return {};
 
     if (!_superBlock.has_value())
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::SuperBlockManager_InvalidRequest);
 
     // write at the beggining
 
@@ -123,7 +123,7 @@ std::expected<void, FsError> SuperBlockManager::_readFromDisk()
     }
 
     if (std::memcmp(sb.signature, "PPFS", 4) != 0) {
-        return std::unexpected(FsError::DiskNotFormatted);
+        return std::unexpected(FsError::PpFS_DiskNotFormatted);
     }
 
     _superBlock = sb;

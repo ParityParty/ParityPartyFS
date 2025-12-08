@@ -108,7 +108,7 @@ TEST(DirectoryManager, AddDuplicateNameFails)
     ASSERT_TRUE(dm.addEntry(dir, e1).has_value());
     auto res = dm.addEntry(dir, e2);
     ASSERT_FALSE(res.has_value());
-    ASSERT_EQ(res.error(), FsError::NameTaken);
+    ASSERT_EQ(res.error(), FsError::DirectoryManager_NameTaken);
 }
 
 TEST(DirectoryManager, RemoveNonexistentEntryFails)
@@ -134,5 +134,5 @@ TEST(DirectoryManager, RemoveNonexistentEntryFails)
 
     auto res = dm.removeEntry(dir, 999);
     ASSERT_FALSE(res.has_value());
-    ASSERT_EQ(res.error(), FsError::NotFound);
+    ASSERT_EQ(res.error(), FsError::DirectoryManager_NotFound);
 }

@@ -26,17 +26,17 @@ public:
     [[nodiscard]] std::expected<void, FsError> init()
     {
         if (isInitialized_) {
-            return std::unexpected(FsError::MutexAlreadyInitialized);
+            return std::unexpected(FsError::Mutex_AlreadyInitialized);
         }
 
 #ifdef PPFS_USE_FREERTOS
         mutexHandle_ = xSemaphoreCreateMutex();
         if (mutexHandle_ == nullptr) {
-            return std::unexpected(FsError::MutexInitFailed);
+            return std::unexpected(FsError::Mutex_InitFailed);
         }
 #else
         if (pthread_mutex_init(&mutexHandle_, nullptr) != 0) {
-            return std::unexpected(FsError::MutexInitFailed);
+            return std::unexpected(FsError::Mutex_InitFailed);
         }
 #endif
 
@@ -47,7 +47,7 @@ public:
     [[nodiscard]] std::expected<void, FsError> deinit()
     {
         if (!isInitialized_) {
-            return std::unexpected(FsError::MutexNotInitialized);
+            return std::unexpected(FsError::Mutex_NotInitialized);
         }
 
 #ifdef PPFS_USE_FREERTOS
@@ -57,7 +57,7 @@ public:
         }
 #else
         if (pthread_mutex_destroy(&mutexHandle_) != 0) {
-            return std::unexpected(FsError::InternalError);
+            return std::unexpected(FsError::Mutex_InternalError);
         }
 #endif
 
@@ -68,16 +68,16 @@ public:
     [[nodiscard]] std::expected<void, FsError> lock()
     {
         if (!isInitialized_) {
-            return std::unexpected(FsError::MutexNotInitialized);
+            return std::unexpected(FsError::Mutex_NotInitialized);
         }
 
 #ifdef PPFS_USE_FREERTOS
         if (xSemaphoreTake(mutexHandle_, portMAX_DELAY) != pdTRUE) {
-            return std::unexpected(FsError::MutexLockFailed);
+            return std::unexpected(FsError::Mutex_LockFailed);
         }
 #else
         if (pthread_mutex_lock(&mutexHandle_) != 0) {
-            return std::unexpected(FsError::MutexLockFailed);
+            return std::unexpected(FsError::Mutex_LockFailed);
         }
 #endif
         return {};
@@ -86,16 +86,16 @@ public:
     [[nodiscard]] std::expected<void, FsError> unlock()
     {
         if (!isInitialized_) {
-            return std::unexpected(FsError::MutexNotInitialized);
+            return std::unexpected(FsError::Mutex_NotInitialized);
         }
 
 #ifdef PPFS_USE_FREERTOS
         if (xSemaphoreGive(mutexHandle_) != pdTRUE) {
-            return std::unexpected(FsError::MutexUnlockFailed);
+            return std::unexpected(FsError::Mutex_UnlockFailed);
         }
 #else
         if (pthread_mutex_unlock(&mutexHandle_) != 0) {
-            return std::unexpected(FsError::MutexUnlockFailed);
+            return std::unexpected(FsError::Mutex_UnlockFailed);
         }
 #endif
         return {};

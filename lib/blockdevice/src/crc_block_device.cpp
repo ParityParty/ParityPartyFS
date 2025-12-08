@@ -23,7 +23,7 @@ std::expected<std::vector<std::uint8_t>, FsError> CrcBlockDevice::_readAndCheckR
 
     // reminder should be 0
     if (std::ranges::contains(remainder.begin(), remainder.end(), true)) {
-        return std::unexpected(FsError::CorrectionError);
+        return std::unexpected(FsError::BlockDevice_CorrectionError);
     }
     return block;
 }
