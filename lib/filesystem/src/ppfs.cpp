@@ -217,7 +217,7 @@ std::expected<void, FsError> PpFS::create(std::string_view path)
     // Check if parent inode does not already contain an entry with the same name
     size_t last_slash = path.find_last_of('/');
     std::string_view filename = path.substr(last_slash + 1);
-    auto unique_res = _isUniqueInDirectory(parent_inode, filename);
+    auto unique_res = _directoryManager->checkNameUnique(parent_inode, filename.data());
     if (!unique_res.has_value()) {
         return std::unexpected(unique_res.error());
     }
@@ -238,22 +238,6 @@ std::expected<void, FsError> PpFS::create(std::string_view path)
         return std::unexpected(add_entry_res.error());
     }
 
-    return {};
-}
-
-std::expected<void, FsError> PpFS::_isUniqueInDirectory(
-    inode_index_t dir_inode, std::string_view name)
-{
-    auto entries_res = _directoryManager->getEntries(dir_inode);
-    if (!entries_res.has_value()) {
-        return std::unexpected(entries_res.error());
-    }
-    const auto& entries = entries_res.value();
-    for (const auto& entry : entries) {
-        if (name == entry.name.data()) {
-            return std::unexpected(FsError::NameTaken);
-        }
-    }
     return {};
 }
 
@@ -605,7 +589,7 @@ std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
     // Check if parent inode does not already contain an entry with the same name
     size_t last_slash = path.find_last_of('/');
     std::string_view dirname = path.substr(last_slash + 1);
-    auto unique_res = _isUniqueInDirectory(parent_inode, dirname);
+    auto unique_res = _directoryManager->checkNameUnique(parent_inode, dirname.data());
     if (!unique_res.has_value()) {
         return std::unexpected(unique_res.error());
     }

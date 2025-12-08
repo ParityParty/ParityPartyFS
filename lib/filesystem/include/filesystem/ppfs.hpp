@@ -55,8 +55,6 @@ class PpFS : public IFilesystem {
     std::expected<inode_index_t, FsError> _getInodeFromParent(
         inode_index_t parent_inode, std::string_view path);
     bool _isPathValid(std::string_view path);
-    std::expected<void, FsError> _isUniqueInDirectory(
-        inode_index_t dir_inode, std::string_view name);
     std::expected<void, FsError> _checkIfInUseRecursive(inode_index_t inode);
     std::expected<void, FsError> _removeRecursive(inode_index_t parent, inode_index_t inode);
     std::expected<void, FsError> _createAppropriateBlockDevice(size_t block_size);
