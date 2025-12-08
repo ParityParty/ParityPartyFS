@@ -49,7 +49,6 @@ struct IFilesystem {
      *
      * @param path absolute path to file to be opened
      * @param mode mode in which to open the file
-     * @param exclusive if true, opening file that is already open will fail
      * @return file descriptor to be used with read, write, close operations on success,
      * error otherwise
      */
