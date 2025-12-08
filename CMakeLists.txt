@@ -4,6 +4,9 @@ project(MyFuseFS LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Option to enable FreeRTOS backend (OFF by default)
+option(ENABLE_FREERTOS "Build PpFSMutex using FreeRTOS primitives" OFF)
+
 # Enable top-level testing
 include(CTest)
 enable_testing()

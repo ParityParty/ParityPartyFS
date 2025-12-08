@@ -1,56 +1,7 @@
 #pragma once
 
 #include "blockdevice/iblock_device.hpp"
-#include "common/types.hpp"
-
-/**
- * Class representing polynomial used in crc error detection
- */
-class CrcPolynomial {
-    /**
-     * Coefficients with most significant bit first, with explicit +1
-     */
-    std::vector<bool> _coefficients;
-    unsigned int _n;
-
-    /**
-     *
-     * @param coefficients Polynomial with explicit +1
-     * @return Degree of the polynomial
-     */
-    static unsigned int _findDegree(unsigned long int coefficients);
-
-    CrcPolynomial(const std::vector<bool>& coefficients, unsigned int n);
-
-public:
-    CrcPolynomial() = delete;
-    /**
-     * Create polynomial
-     *
-     * @param polynomial polynomial with most significant bit first, with explicit +1
-     * @return Polynomial
-     */
-    static CrcPolynomial MsgExplicit(unsigned long int polynomial);
-
-    /**
-     * Create polynomial
-     *
-     * @param polynomial polynomial with most significant bit first, with implicit +1
-     * @return Polynomial
-     */
-    static CrcPolynomial MsgImplicit(unsigned long int polynomial);
-
-    /**
-     * Divide long polynomial by self
-     *
-     * @param other Coefficients of other polynomial
-     * @return remainder after division other/self
-     */
-    std::vector<bool> divide(const std::vector<bool>& other);
-
-    std::vector<bool> getCoefficients() const;
-    unsigned int getDegree() const;
-};
+#include "ecc_helpers/crc_polynomial.hpp"
 
 /**
  * Block device with customizable crc error detection
@@ -69,16 +20,17 @@ class CrcBlockDevice : public IBlockDevice {
      * will be changed
      * @return void if successful, error otherwise
      */
-    std::expected<void, FsError> _calculateAndWrite(
+    [[nodiscard]] std::expected<void, FsError> _calculateAndWrite(
         std::vector<std::uint8_t>& block, block_index_t block_index);
 
     /**
      * reads whole block with redundancy bits and checks integrity
      *
      * @param block index of a block to read
-     * @return block with redundancy bits on success, error othewise
+     * @return block with redundancy bits on success, error otherwise
      */
-    std::expected<std::vector<std::uint8_t>, FsError> _readAndCheckRaw(block_index_t block);
+    [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _readAndCheckRaw(
+        block_index_t block);
 
 public:
     /**
@@ -101,7 +53,7 @@ public:
      * @param data_location The target location (block index and offset) on the device.
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
-    std::expected<size_t, FsError> writeBlock(
+    [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
         const std::vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
@@ -113,14 +65,14 @@ public:
      * @param bytes_to_read Number of bytes to read starting from the specified location.
      * @return On success, returns the bytes read; otherwise returns a FsError.
      */
-    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
+    [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     /**
      * Returns the physical (raw) block size of the underlying device.
      * @return Size of one raw block in bytes.
      */
-    size_t rawBlockSize() const override;
+    virtual size_t rawBlockSize() const override;
 
     /**
      * Returns the usable data size within a block.
@@ -129,13 +81,13 @@ public:
      *
      * @return The size of usable (payload) data in a single block.
      */
-    size_t dataSize() const override;
+    virtual size_t dataSize() const override;
 
     /**
      * Returns the number of available blocks.
      * @return Number of blocks.
      */
-    size_t numOfBlocks() const override;
+    virtual size_t numOfBlocks() const override;
 
     /**
      * Formats a specific block on the device.
@@ -145,5 +97,6 @@ public:
      * After formatting, the block is set to a correct state (e.g., all zeros with valid redundancy
      * bits).
      */
-    std::expected<void, FsError> formatBlock(unsigned int block_index) override;
+    [[nodiscard]] virtual std::expected<void, FsError> formatBlock(
+        unsigned int block_index) override;
 };

@@ -1,3 +1,4 @@
+#pragma once
 #include "blockdevice/iblock_device.hpp"
 #include "disk/stack_disk.hpp"
 
@@ -32,7 +33,7 @@ public:
      * @param data_location The block index and offset specifying where to write the data.
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
-    std::expected<size_t, FsError> writeBlock(
+    [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
         const std::vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
@@ -42,29 +43,30 @@ public:
      * @param bytes_to_read The number of bytes requested to be read.
      * @return On success, returns a vector of bytes read; otherwise returns a FsError.
      */
-    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
+    [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read) override;
 
     /**
      * This function does nothing - every state is valid.
      */
-    std::expected<void, FsError> formatBlock(unsigned int block_index) override;
+    [[nodiscard]] virtual std::expected<void, FsError> formatBlock(
+        unsigned int block_index) override;
 
     /**
      * Returns the raw block size, all metadata included.
      * @return The size of one block in bytes.
      */
-    size_t rawBlockSize() const override;
+    virtual size_t rawBlockSize() const override;
 
     /**
      * Returns the data size per block.
      * @return The size of data that fits in a single block (equal to the block size here).
      */
-    size_t dataSize() const override;
+    virtual size_t dataSize() const override;
 
     /**
      * Returns the number of available blocks.
      * @return Number of blocks.
      */
-    size_t numOfBlocks() const override;
+    virtual size_t numOfBlocks() const override;
 };

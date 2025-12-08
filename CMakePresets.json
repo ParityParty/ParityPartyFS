@@ -23,6 +23,24 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "freertos_debug",
+      "displayName": "FreeRTOS Debug build",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/freertos_debug",
+      "cacheVariables": {
+        "ENABLE_FREERTOS": "ON"
+      }
+    },
+    {
+      "name": "freertos_release",
+      "displayName": "FreeRTOS Release build",
+      "inherits": "release",
+      "binaryDir": "${sourceDir}/build/freertos_release",
+      "cacheVariables": {
+        "ENABLE_FREERTOS": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -33,6 +51,14 @@
     {
       "name": "release",
       "configurePreset": "release"
+    },
+    {
+      "name": "freertos_debug",
+      "configurePreset": "freertos_debug"
+    },
+    {
+      "name": "freertos_release",
+      "configurePreset": "freertos_release"
     }
   ],
   "testPresets": [
@@ -55,7 +81,16 @@
       "environment": {
         "GTEST_COLOR": "1"
       }
+    },
+    {
+      "name": "freertos_debug",
+      "configurePreset": "freertos_debug",
+      "inherits": "debug"
+    },
+    {
+      "name": "freertos_release",
+      "configurePreset": "freertos_release",
+      "inherits": "release"
     }
   ]
 }
-

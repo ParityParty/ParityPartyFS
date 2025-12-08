@@ -1,3 +1,4 @@
+#pragma once
 #include "block_manager/iblock_manager.hpp"
 #include "blockdevice/iblock_device.hpp"
 #include "inode_manager/iinode_manager.hpp"
@@ -13,16 +14,23 @@ public:
     /**
      * Reads file with given inode. If read exceeds file size, returns FsError::OutOfBounds.
      */
-    std::expected<std::vector<uint8_t>, FsError> readFile(
-        Inode& inode, size_t offset, size_t bytes_to_read);
+    [[nodiscard]] std::expected<std::vector<uint8_t>, FsError> readFile(
+        inode_index_t inode_index, Inode& inode, size_t offset, size_t bytes_to_read);
 
     /**
      * Writes file with given inode. Resizes file if necessary and updates inode table.
      * If writing fails after some blocks were written, those blocks are not freed again.
      * Inode is updated with inode manager to reflect new file size and inode blocks.
      */
-    std::expected<size_t, FsError> writeFile(
-        Inode& inode, size_t offset, std::vector<uint8_t> bytes_to_write);
+
+    [[nodiscard]] std::expected<size_t, FsError> writeFile(inode_index_t inode_index, Inode& inode,
+        size_t offset, std::vector<uint8_t> bytes_to_write);
+
+    /**
+     * Resizes file to a given size
+     */
+    [[nodiscard]] std::expected<void, FsError> resizeFile(
+        inode_index_t inode_index, Inode& inode, size_t new_size);
 };
 
 class BlockIndexIterator {
@@ -31,10 +39,23 @@ public:
         IBlockManager& block_manager, bool should_resize);
 
     /**
+     * Returns the next data block index of the file.
+     *
      * If should_resize is set to true, updates inode and find new index block if necessary.
      * Does not update inode in inode maneger!!! File size is not updated either!!!
      */
-    std::expected<block_index_t, FsError> next();
+    [[nodiscard]] std::expected<block_index_t, FsError> next();
+
+    /**
+     * Returns the next data block index of the file. If this data block is the
+     * first one coming from a given indirect block, also returns the indices of
+     * the indirect blocks that were newly added.
+     *
+     * If should_resize is set to true, updates inode and find new index block if necessary.
+     * Does not update inode in inode maneger!!! File size is not updated either!!!
+     */
+    [[nodiscard]] std::expected<std::tuple<block_index_t, std::vector<block_index_t>>, FsError>
+    nextWithIndirectBlocksAdded();
 
 private:
     size_t _index;
@@ -48,9 +69,10 @@ private:
     bool _should_resize;
     size_t _occupied_blocks;
 
-    std::expected<std::vector<block_index_t>, FsError> _readIndexBlock(block_index_t index);
-    std::expected<void, FsError> _writeIndexBlock(
+    [[nodiscard]] std::expected<std::vector<block_index_t>, FsError> _readIndexBlock(
+        block_index_t index);
+    [[nodiscard]] std::expected<void, FsError> _writeIndexBlock(
         block_index_t index, const std::vector<block_index_t>& indices);
 
-    std::expected<block_index_t, FsError> _findAndReserveBlock();
+    [[nodiscard]] std::expected<block_index_t, FsError> _findAndReserveBlock();
 };

@@ -31,14 +31,14 @@ class SuperBlockManager : public ISuperBlockManager {
     IDisk& _disk; /**< Underlying disk */
 
 public:
-    SuperBlockManager(IDisk& block_device);
+    SuperBlockManager(IDisk& disk);
 
     /**
      * Returns the current superblock from disk or from cache if available.
      *
      * @return On success, the SuperBlock; on failure, FsError.
      */
-    std::expected<SuperBlock, FsError> get() override;
+    [[nodiscard]] virtual std::expected<SuperBlock, FsError> get() override;
 
     /**
      * Writes a new superblock to disk, creating a zero version.
@@ -47,13 +47,13 @@ public:
      * @param new_super_block SuperBlock to be written.
      * @return void on success; FsError on failure.
      */
-    std::expected<void, FsError> put(SuperBlock new_super_block) override;
+    [[nodiscard]] virtual std::expected<void, FsError> put(SuperBlock new_super_block) override;
 
     /**
      * Returns first and last block index that is not occupied by superblock.
      * Last block is exclusive (the first index occupied by suberblock).
      */
-    std::expected<BlockRange, FsError> getFreeBlocksIndexes() override;
+    [[nodiscard]] virtual std::expected<BlockRange, FsError> getFreeBlocksIndexes() override;
 
 private:
     std::optional<SuperBlock> _superBlock; /**< Cached copy of the superblock */
@@ -63,12 +63,12 @@ private:
     /**
      * Writes cached superblock to disk.
      */
-    std::expected<void, FsError> _writeToDisk(bool writeAtBeginning, bool writeAtEnd);
+    [[nodiscard]] std::expected<void, FsError> _writeToDisk(bool writeAtBeginning, bool writeAtEnd);
 
     /**
      * Reads superblock from disk and returns it.
      */
-    std::expected<void, FsError> _readFromDisk();
+    [[nodiscard]] std::expected<void, FsError> _readFromDisk();
 
     /**
      * Performs bit voting on multiple copies of superblock data.

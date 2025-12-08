@@ -11,7 +11,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(${NAME}
         test_ppfs.cpp
-        test_ppfs_fat.cpp
+        # test_ppfs_fat.cpp  Commented out because PpFS classes collide
         test_stack_disk.cpp
         test_ppfs_data_structures.cpp
         test_hamming_block_device.cpp

@@ -4,7 +4,7 @@
 #include <array>
 #include <cstdint>
 
-enum FileType {
+enum InodeType {
     File,
     Directory,
 };
@@ -13,11 +13,12 @@ enum FileType {
  * Structure representing one entry in inode table.
  *
  * Inode is assumed to have allocated enough data blocks to contain all data. All unoccupied block
- * pointers have undefied values. Time values are unix time in milliseconds.
+ * pointers have undefined values. Time values are unix time in milliseconds.
  */
 struct __attribute__((packed)) Inode {
     std::uint64_t time_creation;
     std::uint64_t time_modified;
+
     /**
      * First 12 block pointers are stored directly in the inode.
      */
@@ -35,6 +36,6 @@ struct __attribute__((packed)) Inode {
      */
     block_index_t trebly_indirect_block;
 
-    std::uint32_t file_size;
-    FileType type;
+    std::uint32_t file_size = 0;
+    InodeType type;
 };

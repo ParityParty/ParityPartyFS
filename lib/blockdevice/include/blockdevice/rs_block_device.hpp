@@ -1,3 +1,4 @@
+#pragma once
 #include "blockdevice/iblock_device.hpp"
 #include "ecc_helpers/polynomial_gf256.hpp"
 
@@ -30,24 +31,25 @@ public:
     ReedSolomonBlockDevice(IDisk& disk, size_t raw_block_size, size_t correctable_bytes);
 
     /** Writes data to a block at the specified location. */
-    virtual std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location);
+    [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
+        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /** Reads a block from the specified location, returning only the requested bytes. */
-    virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read);
+    [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read) override;
 
     /** Returns the size of a raw encoded block in bytes. */
-    virtual size_t rawBlockSize() const;
+    virtual size_t rawBlockSize() const override;
 
     /** Returns the usable data size of a block in bytes. */
-    virtual size_t dataSize() const;
+    virtual size_t dataSize() const override;
 
     /** Returns the total number of blocks on the underlying disk. */
-    virtual size_t numOfBlocks() const;
+    virtual size_t numOfBlocks() const override;
 
     /** Formats a block (zeroes it out) at the given index. */
-    virtual std::expected<void, FsError> formatBlock(unsigned int block_index);
+    [[nodiscard]] virtual std::expected<void, FsError> formatBlock(
+        unsigned int block_index) override;
 
 private:
     IDisk& _disk; /**< Reference to the underlying disk. */

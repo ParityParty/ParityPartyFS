@@ -93,7 +93,7 @@ std::expected<void, FsError> SuperBlockManager::_readFromDisk()
     std::vector<uint8_t> buffer;
     buffer.reserve(sizeof(SuperBlock) * 3);
 
-    // read from the beginninng
+    // read from the beginning
     auto read_res = _disk.read(0, 2 * sizeof(SuperBlock));
     if (!read_res.has_value())
         return std::unexpected(read_res.error());
@@ -117,7 +117,14 @@ std::expected<void, FsError> SuperBlockManager::_readFromDisk()
 
     std::memcpy(&sb, voting_res.finalData.data(), sizeof(SuperBlock));
 
-    _writeToDisk(voting_res.damaged1 || voting_res.damaged2, voting_res.damaged3);
+    auto write_res = _writeToDisk(voting_res.damaged1 || voting_res.damaged2, voting_res.damaged3);
+    if (!write_res.has_value()) {
+        return std::unexpected(write_res.error());
+    }
+
+    if (std::memcmp(sb.signature, "PPFS", 4) != 0) {
+        return std::unexpected(FsError::DiskNotFormatted);
+    }
 
     _superBlock = sb;
 
