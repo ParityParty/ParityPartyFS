@@ -25,6 +25,7 @@ add_executable(${NAME}
         test_crc_block_device.cpp
         test_bits.cpp
         test_file_io.cpp
+        test_helpers.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC
