@@ -1,5 +1,6 @@
 #include "bitmap/bitmap.hpp"
 #include "common/bit_helpers.hpp"
+#include "common/static_vector.hpp"
 
 #include <cmath>
 
@@ -14,11 +15,12 @@ DataLocation Bitmap::_getByteLocation(unsigned int bit_index)
 std::expected<unsigned char, FsError> Bitmap::_getByte(unsigned int bit_index)
 {
     auto location = _getByteLocation(bit_index);
-    auto read_ret = _block_device.readBlock(location, 1);
+    static_vector<uint8_t, 1> temp(1);
+    auto read_ret = _block_device.readBlock(location, 1, temp);
     if (!read_ret.has_value()) {
         return std::unexpected(read_ret.error());
     }
-    return static_cast<unsigned char>(read_ret.value().front());
+    return static_cast<unsigned char>(temp[0]);
 }
 int Bitmap::blocksSpanned() const
 {
@@ -44,6 +46,7 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
     std::uint32_t count = 0;
     auto blocks_spanned = blocksSpanned();
     for (int block = 0; block < blocks_spanned - 1; block++) {
+        static_vector<uint8_t, MAX_BLOCK_SIZE> temp(MAX_BLOCK_SIZE);
         auto block_data = _block_device.readBlock(
             DataLocation { _start_block + block, 0 }, _block_device.dataSize());
         if (!block_data.has_value()) {
