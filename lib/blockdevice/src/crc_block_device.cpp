@@ -5,70 +5,28 @@
 #include <cmath>
 #include <utility>
 
-unsigned int CrcPolynomial::_findDegree(unsigned long int coefficients)
+std::expected<std::vector<std::uint8_t>, FsError> CrcBlockDevice::_readAndCheckRaw(
+    block_index_t block_index)
 {
-    unsigned int counter = 0;
-    while (coefficients > 0) {
-        coefficients >>= 1;
-        counter++;
+    auto bytes_res = _disk.read(block_index * _block_size, _block_size);
+    if (!bytes_res.has_value()) {
+        return std::unexpected(bytes_res.error());
+    }
+    auto block = bytes_res.value();
+    auto block_bits = BitHelpers::blockToBits(block);
+    auto amount_unused_bits = (_block_size - dataSize()) * 8 - _polynomial.getDegree();
+    for (int i = 0; i < amount_unused_bits; i++) {
+        block_bits.pop_back();
     }
 
-    // Counter counts terms, so we need to subtract one to get degree
-    return counter - 1;
-}
+    auto remainder = _polynomial.divide(block_bits);
 
-CrcPolynomial::CrcPolynomial(const std::vector<bool>& coefficients, unsigned int n)
-    : _coefficients(coefficients)
-    , _n(n)
-{
-}
-
-CrcPolynomial CrcPolynomial::MsgExplicit(unsigned long int polynomial)
-{
-    auto n = _findDegree(polynomial);
-
-    auto poly_with_zeros = BitHelpers::ulongToBits(polynomial);
-    std::vector<bool> poly(poly_with_zeros.end() - n - 1, poly_with_zeros.end());
-
-    return { poly, n };
-}
-
-CrcPolynomial CrcPolynomial::MsgImplicit(unsigned long int polynomial)
-{
-    polynomial = (polynomial << 1) + 1;
-    auto n = _findDegree(polynomial);
-
-    auto poly_with_zeros = BitHelpers::ulongToBits(polynomial);
-    std::vector<bool> poly(poly_with_zeros.end() - n - 1, poly_with_zeros.end());
-
-    return { poly, n };
-}
-
-std::vector<bool> CrcPolynomial::divide(const std::vector<bool>& other)
-{
-    std::vector<bool> result(other.begin(), other.end());
-
-    for (int i = 0; i < other.size() - _coefficients.size(); i++) {
-        if (!result[i]) {
-            continue;
-        }
-        for (int j = 0; j < _coefficients.size(); j++) {
-            result[i + j] = result[i + j] ^ _coefficients[j];
-        }
+    // reminder should be 0
+    if (std::ranges::contains(remainder.begin(), remainder.end(), true)) {
+        return std::unexpected(FsError::CorrectionError);
     }
-
-    std::vector<bool> remainder(_n);
-    for (int i = 0; i < _n; i++) {
-        remainder[i] = result[result.size() - _n + i];
-    }
-    return remainder;
+    return block;
 }
-std::vector<bool> CrcPolynomial::getCoefficients() const
-{
-    return { _coefficients.begin(), _coefficients.end() };
-}
-
-unsigned int CrcPolynomial::getDegree() const { return _n; }
 
 std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
     std::vector<std::uint8_t>& block, block_index_t block_index)
@@ -93,28 +51,6 @@ std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
         return std::unexpected(disk_res.error());
     }
     return {};
-}
-std::expected<std::vector<std::uint8_t>, FsError> CrcBlockDevice::_readAndCheckRaw(
-    block_index_t block_index)
-{
-    auto bytes_res = _disk.read(block_index * _block_size, _block_size);
-    if (!bytes_res.has_value()) {
-        return std::unexpected(bytes_res.error());
-    }
-    auto block = bytes_res.value();
-    auto block_bits = BitHelpers::blockToBits(block);
-    auto amount_unused_bits = (_block_size - dataSize()) * 8 - _polynomial.getDegree();
-    for (int i = 0; i < amount_unused_bits; i++) {
-        block_bits.pop_back();
-    }
-
-    auto remainder = _polynomial.divide(block_bits);
-
-    // reminder should be 0
-    if (std::ranges::contains(remainder.begin(), remainder.end(), true)) {
-        return std::unexpected(FsError::CorrectionError);
-    }
-    return block;
 }
 
 CrcBlockDevice::CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t block_size)

@@ -15,7 +15,7 @@ class BlockManager : public IBlockManager {
     block_index_t _toAbsolute(block_index_t relative_block) const;
 
 public:
-    /**
+    /** TODO: CHANGE TO SUPERBLOCK PARAMETER
      * @param blocks_start Start of bitmap + data blocks region
      * @param space_for_data_and_bitmap number of blocks reserved for  bitmap + data blocks
      * @param block_device device for io

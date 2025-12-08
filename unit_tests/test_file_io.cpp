@@ -33,7 +33,7 @@ TEST(FileIO, WritesAndReadsDirectBlocks)
     RawBlockDevice block_device(128, disk);
     BlockManager block_manager(16, 1024, block_device);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
@@ -73,7 +73,7 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
     RawBlockDevice block_device(128, disk);
     BlockManager block_manager(16, 1024, block_device);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
@@ -115,7 +115,7 @@ TEST(FileIO, ReadAndWriteWithOffset)
     RawBlockDevice block_device(128, disk);
     BlockManager block_manager(16, 1024, block_device);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
@@ -161,7 +161,7 @@ TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
     RawBlockDevice block_device(128, disk);
     BlockManager block_manager(16, 2048, block_device);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
@@ -204,7 +204,7 @@ TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
     RawBlockDevice block_device(32, disk);
     BlockManager block_manager(16, 40000, block_device);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     FakeInodeManager inode_manager;
     FileIO file_io(block_device, block_manager, inode_manager);
@@ -242,7 +242,7 @@ TEST(FileIO, ResizeAndReadFile)
     RawBlockDevice block_device(128, disk);
     BlockManager block_manager(16, 2048, block_device);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
@@ -280,7 +280,7 @@ TEST(FileIO, TruncatePartOfBlock)
     RawBlockDevice block_device(128, disk);
     BlockManager block_manager(16, 2048, block_device);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
     };
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);

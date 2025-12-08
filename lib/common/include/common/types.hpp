@@ -6,6 +6,7 @@
 typedef int num_entries_t;
 typedef int block_index_t;
 typedef int inode_index_t;
+typedef unsigned int file_descriptor_t;
 
 enum class FsError {
     IOError,
@@ -20,6 +21,20 @@ enum class FsError {
     AlreadyFree,
     NameTaken,
     NotImplemented,
+    DiskNotFormatted,
+    NotInitialized,
+    InvalidPath,
+
+    MutexInitFailed,
+    MutexLockFailed,
+    MutexUnlockFailed,
+    MutexNotInitialized,
+    MutexAlreadyInitialized,
+
+    OpenFilesTableFull,
+    AlreadyOpen,
+    FileInUse,
+    DirectoryNotEmpty,
 };
 
 inline std::string_view toString(FsError err)
@@ -49,6 +64,33 @@ inline std::string_view toString(FsError err)
         return "NotImplemented";
     case FsError::NameTaken:
         return "NameTaken";
+    case FsError::DiskNotFormatted:
+        return "DiskNotFormatted";
+    case FsError::NotInitialized:
+        return "NotInitialized";
+    case FsError::InvalidPath:
+        return "InvalidPath";
+
+    case FsError::MutexInitFailed:
+        return "MutexInitFailed";
+    case FsError::MutexLockFailed:
+        return "MutexLockFailed";
+    case FsError::MutexUnlockFailed:
+        return "MutexUnlockFailed";
+    case FsError::MutexNotInitialized:
+        return "MutexNotInitialized";
+    case FsError::MutexAlreadyInitialized:
+        return "MutexAlreadyInitialized";
+
+    case FsError::OpenFilesTableFull:
+        return "OpenFilesTableFull";
+    case FsError::AlreadyOpen:
+        return "AlreadyOpen";
+    case FsError::FileInUse:
+        return "FileInUse";
+    case FsError::DirectoryNotEmpty:
+        return "DirectoryNotEmpty";
+
     default:
         return "UnknownError";
     }

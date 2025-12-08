@@ -10,6 +10,30 @@ DirectoryManager::DirectoryManager(
 {
 }
 
+std::expected<Inode, FsError> DirectoryManager::checkNameUnique(
+    inode_index_t directory, const char* name)
+{
+    auto inode_result = _getDirectoryInode(directory);
+    if (!inode_result.has_value()) {
+        return std::unexpected(inode_result.error());
+    }
+    Inode dir_inode = inode_result.value();
+
+    auto read_res = _readDirectoryData(directory, dir_inode);
+
+    if (!read_res.has_value()) {
+        return std::unexpected(read_res.error());
+    }
+
+    std::vector<DirectoryEntry> entries = read_res.value();
+
+    int index = _findEntryIndexByName(entries, name);
+    if (index != -1) {
+        return std::unexpected(FsError::NameTaken);
+    }
+    return dir_inode;
+}
+
 std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::getEntries(
     inode_index_t inode)
 {
@@ -26,24 +50,11 @@ std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::getEntries
 std::expected<void, FsError> DirectoryManager::addEntry(
     inode_index_t directory, DirectoryEntry entry)
 {
-    auto inode_result = _getDirectoryInode(directory);
+    auto inode_result = checkNameUnique(directory, entry.name.data());
     if (!inode_result.has_value()) {
         return std::unexpected(inode_result.error());
     }
     Inode dir_inode = inode_result.value();
-
-    auto read_res = _readDirectoryData(directory, dir_inode);
-
-    if (!read_res.has_value()) {
-        return std::unexpected(read_res.error());
-    }
-
-    std::vector<DirectoryEntry> entries = read_res.value();
-
-    int index = _findEntryIndexByName(entries, entry.name.data());
-    if (index != -1) {
-        return std::unexpected(FsError::NameTaken);
-    }
 
     auto write_res = _file_io.writeFile(directory, dir_inode, dir_inode.file_size,
         std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&entry),
@@ -144,7 +155,7 @@ std::expected<Inode, FsError> DirectoryManager::_getDirectoryInode(inode_index_t
         return std::unexpected(inode_result.error());
     }
 
-    if (inode_result->type != FileType::Directory)
+    if (inode_result->type != InodeType::Directory)
         return std::unexpected(FsError::InvalidRequest);
 
     return *inode_result;

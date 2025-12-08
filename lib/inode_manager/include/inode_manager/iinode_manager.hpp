@@ -53,7 +53,7 @@ struct IInodeManager {
     virtual std::expected<void, FsError> update(inode_index_t inode_index, const Inode& inode) = 0;
 
     /**
-     * Format inode table and bitmap
+     * Format inode table and bitmap. Creates root directory inode at index 0.
      *
      * @return void on success, error otherwise
      */

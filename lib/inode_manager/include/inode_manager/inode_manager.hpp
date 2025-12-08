@@ -9,6 +9,7 @@ class InodeManager : public IInodeManager {
     Bitmap _bitmap;
 
     DataLocation _getInodeLocation(inode_index_t inode);
+    std::expected<void, FsError> _createRootInode();
 
 public:
     InodeManager(IBlockDevice& block_device, SuperBlock& superblock);

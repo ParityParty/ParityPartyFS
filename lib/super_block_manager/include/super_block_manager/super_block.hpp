@@ -5,6 +5,7 @@
 #include <cstdint>
 
 struct __attribute__((packed)) SuperBlock {
+    std::uint8_t signature[4] = { 'P', 'P', 'F', 'S' };
     block_index_t total_blocks;
     block_index_t total_inodes;
     block_index_t block_bitmap_address;
