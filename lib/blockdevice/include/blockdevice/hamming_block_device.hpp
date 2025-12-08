@@ -1,6 +1,7 @@
 #include <optional>
 
 #include "iblock_device.hpp"
+#include "static_vector.hpp"
 
 /**
  * @brief Block device that applies Hamming code for error detection and correction.
@@ -69,10 +70,10 @@ private:
     size_t _data_size;
     IDisk& _disk;
 
-    std::vector<std::uint8_t> _encodeData(const std::vector<std::uint8_t>& data);
-    std::vector<std::uint8_t> _extractData(const std::vector<std::uint8_t>& encoded_data);
+    void _encodeData(const buffer<uint8_t>& data, buffer<uint8_t>& encoded_data);
+    void _extractData(const buffer<uint8_t>& encoded_data, buffer<uint8_t>& data);
 
-    std::expected<std::vector<std::uint8_t>, FsError> _readAndFixBlock(int block_index);
+    std::expected<void, FsError> _readAndFixBlock(int block_index, buffer<uint8_t>& data);
 };
 
 /**
