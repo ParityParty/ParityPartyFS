@@ -29,6 +29,6 @@ void SimpleBitFlipper::step()
         if (!_disk.write(pos, read_ret.value()).has_value()) {
             return;
         };
-        _logger.log(BitFlipEvent());
+        _logger.logEvent(BitFlipEvent());
     }
 }

@@ -52,8 +52,18 @@ std::string ErrorCorrectionEvent::toCsv() const { return ""; }
 std::string ErrorCorrectionEvent::fileName() const { return "correction"; }
 
 void Logger::step() { _step++; }
-void Logger::log(const IEvent& event)
+void Logger::logEvent(const IEvent& event)
 {
-    std::cout << "[INFO][" << std::setw(6) << std::setfill('0') << _step << "] "
+    std::cout << "[INFO ][" << std::setw(6) << std::setfill('0') << _step << "] "
               << event.prettyPrint() << std::endl;
+}
+void Logger::logError(std::string_view msg)
+{
+    std::cerr << "[ERROR][" << std::setw(6) << std::setfill('0') << _step << "] " << msg
+              << std::endl;
+}
+void Logger::logMsg(std::string_view msg)
+{
+    std::cout << "[INFO ][" << std::setw(6) << std::setfill('0') << _step << "] " << msg
+              << std::endl;
 }

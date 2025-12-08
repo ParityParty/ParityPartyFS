@@ -47,5 +47,7 @@ class Logger {
 
 public:
     void step();
-    void log(const IEvent& event);
+    void logEvent(const IEvent& event);
+    void logError(std::string_view msg);
+    void logMsg(std::string_view msg);
 };

@@ -26,7 +26,7 @@ public:
      *        The redundancy (parity) region will be twice this size (2 * correctable_bytes).
      *        If the requested value exceeds half of the block size, it will be
      *        automatically reduced to raw_block_size / 2 (hich effectively
-     *        makes the block unusable, so we really reccomend providing the right configuration.
+     *        makes the block unusable, so we really recommend providing the right configuration.
      */
     ReedSolomonBlockDevice(IDisk& disk, size_t raw_block_size, size_t correctable_bytes);
 
