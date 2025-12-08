@@ -121,10 +121,6 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     SuperBlock sb {};
     sb.total_blocks = options.total_size / options.block_size;
     sb.total_inodes = options.total_size / options.average_file_size;
-    if (sb.total_blocks == 0 || sb.total_inodes == 0) {
-        return std::unexpected(FsError::InvalidRequest);
-    }
-
     sb.inode_bitmap_address = div_ceil(sizeof(SuperBlock) * 2, (size_t)options.block_size);
     sb.inode_table_address
         = sb.inode_bitmap_address + div_ceil((uint32_t)sb.total_inodes / 8, options.block_size);
@@ -145,6 +141,17 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
         sb.crc_polynomial = options.crc_polynomial.getExplicitPolynomial();
     if (sb.ecc_type == ECCType::ReedSolomon)
         sb.rs_correctable_bytes = options.rs_correctable_bytes;
+
+    // Validate superblock
+    if (sb.total_blocks == 0 || sb.total_inodes == 0) {
+        return std::unexpected(FsError::InvalidRequest);
+    }
+    if (sb.first_data_blocks_address >= sb.last_data_block_address) {
+        return std::unexpected(FsError::InvalidRequest);
+    }
+    if (sb.last_data_block_address >= sb.total_blocks) {
+        return std::unexpected(FsError::InvalidRequest);
+    }
 
     // Write superblock to disk
     _superBlockManagerStorage.emplace<SuperBlockManager>(_disk);
