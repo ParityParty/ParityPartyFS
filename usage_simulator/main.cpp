@@ -13,8 +13,7 @@ int main()
                        .total_size = disk.size(),
                        .average_file_size = 2000,
                        .block_size = 512,
-                       .ecc_type = ECCType::ReedSolomon,
-                       .rs_correctable_bytes = 2,
+                       .ecc_type = ECCType::Hamming,
                        .use_journal = false,
                    })
             .has_value()) {
