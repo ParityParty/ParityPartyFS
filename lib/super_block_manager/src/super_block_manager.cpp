@@ -60,7 +60,7 @@ std::expected<BlockRange, FsError> SuperBlockManager::getFreeBlocksIndexes()
 std::expected<void, FsError> SuperBlockManager::_writeToDisk(bool writeAtBeginning, bool writeAtEnd)
 {
     if (!writeAtBeginning && !writeAtEnd)
-        return std::unexpected(FsError::InvalidRequest);
+        return {};
 
     if (!_superBlock.has_value())
         return std::unexpected(FsError::InvalidRequest);
