@@ -122,8 +122,8 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     sb.total_blocks = options.total_size / options.block_size;
     sb.total_inodes = options.total_size / options.average_file_size;
     sb.inode_bitmap_address = div_ceil(sizeof(SuperBlock) * 2, (size_t)options.block_size);
-    sb.inode_table_address
-        = sb.inode_bitmap_address + div_ceil((uint32_t)sb.total_inodes / 8, options.block_size);
+    sb.inode_table_address = sb.inode_bitmap_address
+        + div_ceil(div_ceil((uint32_t)(sb.total_inodes), 8U), options.block_size);
 
     if (options.use_journal) {
         return std::unexpected(FsError::NotImplemented);
@@ -131,8 +131,8 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
 
     sb.block_bitmap_address = sb.inode_table_address
         + div_ceil((uint32_t)(sb.total_inodes * sizeof(Inode)), options.block_size);
-    sb.first_data_blocks_address
-        = sb.block_bitmap_address + div_ceil((uint32_t)(sb.total_blocks / 8), options.block_size);
+    sb.first_data_blocks_address = sb.block_bitmap_address
+        + div_ceil(div_ceil((uint32_t)(sb.total_blocks), 8U), options.block_size);
     sb.last_data_block_address
         = sb.total_blocks - div_ceil(sizeof(SuperBlock), (size_t)options.block_size);
     sb.block_size = options.block_size;
