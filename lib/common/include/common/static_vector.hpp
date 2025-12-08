@@ -60,6 +60,12 @@ public:
         this->resize(initial_size);
     }
 
+    template <typename InputIt>
+    static_vector(InputIt first, InputIt last)
+        : static_vector(std::distance(first, last), first, last)
+    {
+    }
+
     T& operator[](size_t idx) override { return base_type::operator[](idx); }
     const T& operator[](size_t idx) const override { return base_type::operator[](idx); }
 

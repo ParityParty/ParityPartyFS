@@ -1,4 +1,5 @@
 #include "inode_manager/inode_manager.hpp"
+#include "static_vector.hpp"
 
 InodeManager::InodeManager(IBlockDevice& block_device, SuperBlock& superblock)
     : _block_device(block_device)
@@ -25,7 +26,7 @@ std::expected<inode_index_t, FsError> InodeManager::create(Inode& inode)
     auto node_id = result.value();
 
     auto data = (std::uint8_t*)(&inode);
-    std::vector<std::uint8_t> data_vector(data, data + sizeof(inode));
+    static_vector<std::uint8_t, sizeof(Inode)> data_vector(data, data + sizeof(inode));
     auto write_res = _block_device.writeBlock(data_vector, _getInodeLocation(node_id));
     if (!write_res.has_value()) {
         return std::unexpected(write_res.error());
@@ -59,13 +60,15 @@ std::expected<Inode, FsError> InodeManager::get(inode_index_t inode)
     if (is_free.value()) {
         return std::unexpected(FsError::NotFound);
     }
-
-    auto result = _block_device.readBlock(_getInodeLocation(inode), sizeof(Inode));
+    static_vector<uint8_t, sizeof(Inode)> buf(sizeof(Inode));
+    auto result = _block_device.readBlock(_getInodeLocation(inode), sizeof(Inode), buf);
     if (!result.has_value()) {
         return std::unexpected(result.error());
     }
 
-    return *(Inode*)(result.value().data());
+    Inode inode_result = *(Inode*)buf.data();
+
+    return inode_result;
 }
 
 std::expected<unsigned int, FsError> InodeManager::numFree() { return _bitmap.count(1); }
@@ -81,7 +84,7 @@ std::expected<void, FsError> InodeManager::update(inode_index_t inode_index, con
     }
 
     auto data = (std::uint8_t*)(&inode);
-    std::vector<std::uint8_t> data_vector(data, data + sizeof(inode));
+    static_vector<std::uint8_t, sizeof(Inode)> data_vector(data, data + sizeof(inode));
     auto write_res = _block_device.writeBlock(data_vector, _getInodeLocation(inode_index));
     if (!write_res.has_value()) {
         return std::unexpected(write_res.error());
@@ -112,7 +115,7 @@ std::expected<void, FsError> InodeManager::_createRootInode()
     Inode root { .file_size = 0, .type = InodeType::Directory };
 
     auto data = (std::uint8_t*)(&root);
-    std::vector<std::uint8_t> data_vector(data, data + sizeof(root));
+    static_vector<std::uint8_t, sizeof(Inode)> data_vector(data, data + sizeof(root));
     auto write_res = _block_device.writeBlock(data_vector, _getInodeLocation(0));
     if (!write_res.has_value()) {
         return std::unexpected(write_res.error());
