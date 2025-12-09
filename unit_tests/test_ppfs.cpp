@@ -1348,3 +1348,84 @@ TEST(PpFS, Format_Hamming)
     config.ecc_type = ECCType::Hamming;
     ASSERT_TRUE(fs.format(config));
 }
+
+
+TEST(PpFS, Open_Succeeds_Truncate)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.create("/file.txt");
+    ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
+
+    const std::vector<uint8_t> write_data = { 1, 2, 3, 4, 5 };
+    auto open_res1 = fs.open("/file.txt");
+    ASSERT_TRUE(open_res1.has_value()) << "First open failed: " << toString(open_res1.error());
+    file_descriptor_t fd1 = open_res1.value();
+    auto write_res = fs.write(fd1, write_data);
+    ASSERT_TRUE(write_res.has_value()) << "Write failed: " << toString(write_res.error());
+    auto close_res1 = fs.close(fd1);
+    ASSERT_TRUE(close_res1.has_value()) << "First close failed: " << toString(close_res1.error());
+
+    auto open_res2 = fs.open("/file.txt", OpenMode::Truncate);
+    ASSERT_TRUE(open_res2.has_value())
+        << "Second open (truncate) failed: " << toString(open_res2.error());
+    file_descriptor_t fd2 = open_res2.value();
+
+    auto read_res = fs.read(fd2, 5);
+    ASSERT_EQ(read_res.error(), FsError::FileIO_OutOfBounds);
+
+    auto close_res2 = fs.close(fd2);
+    ASSERT_TRUE(close_res2.has_value()) << "Second close failed: " << toString(close_res2.error());
+}
+
+TEST(PpFS, Read_Fails_TwoUsersTruncate)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.create("/file.txt");
+    ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
+    const std::vector<uint8_t> write_data = { 1, 2, 3, 4, 5 };
+    auto open_res1 = fs.open("/file.txt");
+    ASSERT_TRUE(open_res1.has_value()) << "First open failed: " << toString(open_res1.error());
+    file_descriptor_t fd1 = open_res1.value();
+    auto write_res = fs.write(fd1, write_data);
+    ASSERT_TRUE(write_res.has_value()) << "Write failed: " << toString(write_res.error());
+
+    auto open_res2 = fs.open("/file.txt", OpenMode::Truncate);
+    ASSERT_TRUE(open_res2.has_value()) << "First open failed: " << toString(open_res1.error());
+    file_descriptor_t fd2 = open_res2.value();
+
+    auto seek_res = fs.seek(fd1, 1);
+    ASSERT_EQ(seek_res.error(), FsError::PpFS_OutOfBounds);
+}
+
+TEST(PpFS, Format_Succeeds_Test2)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+    FsConfig config;
+    config.total_size = disk.size();
+    config.block_size = 128;
+    config.average_file_size = 1024;
+
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value()) << "Format failed: " << toString(format_res.error());
+}

@@ -126,7 +126,7 @@ std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
         }
     }
 
-    return {};
+    return { };
 }
 
 std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
@@ -159,27 +159,13 @@ std::expected<void, FsError> Bitmap::setAll(bool value)
     auto blocks_spanned = blocksSpanned();
     std::uint8_t value_byte = value ? 0xff : 0x00;
     auto block_data = std::vector<std::uint8_t>(_block_device.dataSize(), value_byte);
-    for (int block = 0; block < blocks_spanned - 1; block++) {
+    for (int block = 0; block < blocks_spanned; block++) {
         auto ret = _block_device.writeBlock(block_data, { _start_block + block, 0 });
         if (!ret.has_value()) {
             return std::unexpected(ret.error());
         }
     }
 
-    auto last_block_ret = _block_device.readBlock(
-        { _start_block + blocks_spanned - 1, 0 }, _block_device.dataSize());
-    if (!last_block_ret.has_value()) {
-        return std::unexpected(last_block_ret.error());
-    }
-    auto last_block = last_block_ret.value();
-    for (int bit_index = 0; bit_index < _bit_count % (_block_device.dataSize() * 8); bit_index++) {
-        BitHelpers::setBit(last_block, bit_index, value);
-    }
-
-    auto write_ret = _block_device.writeBlock(last_block, { _start_block + blocks_spanned - 1, 0 });
-    if (!write_ret.has_value()) {
-        return std::unexpected(write_ret.error());
-    }
     _ones_count = value * _bit_count;
-    return {};
+    return { };
 }
