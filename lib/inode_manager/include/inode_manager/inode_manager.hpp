@@ -9,6 +9,8 @@ class InodeManager : public IInodeManager {
     Bitmap _bitmap;
 
     DataLocation _getInodeLocation(inode_index_t inode);
+    [[nodiscard]] std::expected<void, FsError> _writeInode(inode_index_t index, const Inode& inode);
+    [[nodiscard]] std::expected<Inode, FsError> _readInode(inode_index_t index);
     [[nodiscard]] std::expected<void, FsError> _createRootInode();
 
 public:

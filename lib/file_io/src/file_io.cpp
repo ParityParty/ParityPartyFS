@@ -12,8 +12,11 @@ FileIO::FileIO(
 std::expected<std::vector<uint8_t>, FsError> FileIO::readFile(
     inode_index_t inode_index, Inode& inode, size_t offset, size_t bytes_to_read)
 {
-    if (offset + bytes_to_read > inode.file_size)
-        return std::unexpected(FsError::FileIO_OutOfBounds);
+    if (offset + bytes_to_read > inode.file_size) {
+        if (offset >= inode.file_size)
+            return std::unexpected(FsError::FileIO_OutOfBounds);
+        bytes_to_read = inode.file_size - offset;
+    }
 
     size_t block_number = offset / _block_device.dataSize();
     size_t offset_in_block = offset % _block_device.dataSize();
@@ -102,7 +105,7 @@ std::expected<void, FsError> FileIO::resizeFile(
     inode_index_t inode_index, Inode& inode, size_t new_size)
 {
     if (new_size == inode.file_size)
-        return {};
+        return { };
 
     if (new_size > inode.file_size) {
         BlockIndexIterator indexIterator(
@@ -146,7 +149,7 @@ std::expected<void, FsError> FileIO::resizeFile(
         auto inode_res = _inode_manager.update(inode_index, inode);
         if (!inode_res.has_value())
             return std::unexpected(inode_res.error());
-        return {};
+        return { };
     }
 
     BlockIndexIterator indexIterator(
@@ -173,7 +176,7 @@ std::expected<void, FsError> FileIO::resizeFile(
         }
         _block_manager.free(std::get<0>(next_block.value()));
     }
-    return {};
+    return { };
 }
 
 BlockIndexIterator::BlockIndexIterator(size_t index, Inode& inode, IBlockDevice& block_device,
@@ -206,7 +209,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
             _inode.direct_blocks[_index] = index_res.value();
         }
         return std::tuple<block_index_t, std::vector<block_index_t>>(
-            _inode.direct_blocks[_index++], {});
+            _inode.direct_blocks[_index++], { });
     }
 
     size_t indexes_per_block = _block_device.dataSize() / sizeof(block_index_t);
@@ -495,7 +498,7 @@ std::expected<void, FsError> BlockIndexIterator::_writeIndexBlock(
     if (!res.has_value())
         return std::unexpected(res.error());
 
-    return {};
+    return { };
 }
 
 std::expected<block_index_t, FsError> BlockIndexIterator::_findAndReserveBlock()

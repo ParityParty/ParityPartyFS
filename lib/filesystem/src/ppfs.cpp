@@ -343,6 +343,19 @@ std::expected<file_descriptor_t, FsError> PpFS::open(std::string_view path, Open
         return std::unexpected(open_res.error());
     }
 
+    if (mode & OpenMode::Truncate) {
+        auto inode_data_res = _inodeManager->get(inode);
+        if (!inode_data_res.has_value()) {
+            return std::unexpected(inode_data_res.error());
+        }
+        Inode inode_data = inode_data_res.value();
+
+        auto truncate_res = _fileIO->resizeFile(inode, inode_data, 0);
+        if (!truncate_res.has_value()) {
+            return std::unexpected(truncate_res.error());
+        }
+    }
+
     return open_res.value();
 }
 
