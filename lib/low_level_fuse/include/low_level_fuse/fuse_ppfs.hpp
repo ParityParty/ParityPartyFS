@@ -14,4 +14,7 @@ public:
 
     static void getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
     static void lookup(fuse_req_t req, fuse_ino_t parent, const char* name);
+    static void readdir(
+        fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info* fi);
+    static void mkdir(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode);
 };

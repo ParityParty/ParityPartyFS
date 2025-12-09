@@ -19,10 +19,10 @@ public:
      */
     std::expected<FileAttributes, FsError> getAttributes(inode_index_t inode_index);
 
-    std::expected<inode_index_t, FsError> lookup(inode_index_t parent_index, std::string_view name)
-    {
-        auto lookup_res = _getInodeFromParent(parent_index, name);
+    std::expected<inode_index_t, FsError> lookup(inode_index_t parent_index, std::string_view name);
 
-        return lookup_res;
-    }
+    std::expected<std::vector<DirectoryEntry>, FsError> getDirectoryEntries(inode_index_t inode);
+
+    std::expected<inode_index_t, FsError> createDirectoryByParent(
+        inode_index_t parent, std::string_view name);
 };

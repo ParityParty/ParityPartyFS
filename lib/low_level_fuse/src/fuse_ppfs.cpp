@@ -99,6 +99,93 @@ static void FusePpFS::lookup(fuse_req_t req, fuse_ino_t parent, const char* name
     fuse_reply_entry(req, &e);
 }
 
+static void FusePpFS::readdir(
+    fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info* fi)
+{
+    char* buf = (char*)malloc(size);
+    if (!buf) {
+        fuse_reply_err(req, ENOMEM);
+        return;
+    }
+
+    auto entries_res = g_fs_instance.getEntries(ino);
+
+    if (!entries_res.has_value()) {
+        int posix_err = g_fs_instance.map_fs_error_to_errno(entries_res.error());
+        fuse_reply_err(req, posix_err);
+        free(buf);
+        return;
+    }
+
+    std::vector<DirectoryEntry> entries = std::move(entries_res.value());
+
+    size_t total_size = 0;
+
+    size_t current_vector_index = (size_t)offset;
+
+    for (size_t i = current_vector_index; i < entries.size(); ++i) {
+        if (total_size >= size)
+            break;
+
+        DirectoryEntry& entry = entries[i];
+        struct stat entry_st;
+
+        if (g_fs_instance._get_stats(entry.inode, &entry_st) == -1) {
+            continue;
+        }
+
+        off_t next_offset = (off_t)i + 1;
+
+        size_t entry_size = fuse_add_direntry(
+            req, buf + total_size, size - total_size, entry.name.data(), &entry_st, next_offset);
+
+        if (entry_size > size - total_size) {
+            break;
+        }
+
+        total_size += entry_size;
+    }
+
+end:
+    fuse_reply_buf(req, buf, total_size);
+    free(buf);
+}
+
+static void FusePpFS::mkdir(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode)
+{
+    if (name == nullptr || name[0] == '\0') {
+        fuse_reply_err(req, EINVAL);
+        return;
+    }
+
+    auto create_res = ppfs.createDirectoryByParent(parent, name, mode);
+
+    if (!create_res.has_value()) {
+        int posix_err = _map_fs_error_to_errno(create_res.error());
+
+        fuse_reply_err(req, posix_err);
+        return;
+    }
+
+    fuse_ino_t new_ino = create_res.value();
+
+    struct fuse_entry_param e;
+    std::memset(&e, 0, sizeof(e));
+
+    e.ino = new_ino;
+    e.attr_timeout = 1.0;
+    e.entry_timeout = 1.0;
+
+    if (g_fs_instance._get_stats(e.ino, &e.attr) == -1) {
+        fuse_reply_err(req, EIO);
+        return;
+    }
+
+    e.attr.st_mode = (e.attr.st_mode & ~S_IFMT) | S_IFDIR;
+    e.attr.st_nlink = 2;
+    fuse_reply_entry(req, &e);
+}
+
 int FusePpFS::_get_stats(fuse_ino_t ino, struct stat* stbuf)
 {
     auto attr_res = PpFSLinux::getAttributes(ino);
