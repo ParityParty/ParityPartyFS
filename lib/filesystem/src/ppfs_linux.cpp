@@ -20,4 +20,5 @@ std::expected<FileAttributes, FsError> PpFSLinux::getAttributes(inode_index_t in
 std::expected<inode_index_t, FsError> PpFSLinux::lookup(
     inode_index_t parent_index, const char* name)
 {
+    _
 }

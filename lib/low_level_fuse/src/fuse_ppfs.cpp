@@ -66,7 +66,38 @@ static void FusePpFS::getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_i
         fuse_reply_attr(req, &stbuf, 1.0);
 }
 
-static void FusePpFS::lookup(fuse_req_t req, fuse_ino_t parent, const char* name) { }
+static void FusePpFS::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
+{
+    if (name == nullptr || name[0] == '\0') {
+        fuse_reply_err(req, EINVAL);
+        return;
+    }
+
+    auto lookup_res = g_fs_instance->lookup(parent, name);
+
+    if (!lookup_res.has_value()) {
+        int posix_err = _map_fs_error_to_errno(lookup_res.error());
+        fuse_reply_err(req, posix_err);
+        return;
+    }
+
+    fuse_ino_t found_ino = lookup_res.value();
+
+    struct fuse_entry_param e;
+    std::memset(&e, 0, sizeof(e));
+
+    e.ino = found_ino;
+
+    e.attr_timeout = 5.0;
+    e.entry_timeout = 5.0;
+
+    if (_get_stats(e.ino, &e.attr) == -1) {
+        fuse_reply_err(req, EIO);
+        return;
+    }
+
+    fuse_reply_entry(req, &e);
+}
 
 int FusePpFS::_get_stats(fuse_ino_t ino, struct stat* stbuf)
 {
@@ -108,4 +139,49 @@ int FusePpFS::_get_stats(fuse_ino_t ino, struct stat* stbuf)
     stbuf->st_blocks = (stbuf->st_size + attributes.block_size - 1) / attributes.block_size;
 
     return 0;
+}
+
+int FusePpFS _map_fs_error_to_errno(FsError err)
+{
+    switch (err) {
+    case FsError::Bitmap_NotFound:
+    case FsError::DirectoryManager_NotFound:
+    case FsError::PpFS_NotFound:
+    case FsError::InodeManager_NotFound:
+        return ENOENT; // No such file or directory
+
+    case FsError::BlockManager_AlreadyTaken:
+    case FsError::InodeManager_AlreadyTaken:
+    case FsError::DirectoryManager_NameTaken:
+    case FsError::PpFS_AlreadyOpen:
+        return EEXIST; // File exists
+
+    case FsError::PpFS_FileInUse:
+        return EBUSY; // Device or resource busy
+    case FsError::PpFS_DirectoryNotEmpty:
+        return ENOTEMPTY; // Directory not empty
+
+    case FsError::PPFS_FAT_InvalidRequest:
+    case FsError::DirectoryManager_InvalidRequest:
+    case FsError::FileIO_InvalidRequest:
+    case FsError::PpFS_InvalidRequest:
+    case FsError::SuperBlockManager_InvalidRequest:
+    case FsError::PpFS_InvalidPath:
+        return EINVAL; // Invalid argument
+
+    case FsError::PPFS_FAT_OutOfBounds:
+    case FsError::Bitmap_IndexOutOfRange:
+    case FsError::Disk_OutOfBounds:
+    case FsError::FileIO_OutOfBounds:
+    case FsError::PpFS_OutOfBounds:
+        return EFBIG; // File too large
+    case FsError::PpFS_OpenFilesTableFull:
+        return ENFILE; // File table overflow
+
+    case FsError::NotImplemented:
+        return ENOSYS; // Function not implemented
+
+    default:
+        return EIO; // Input/output error
+    }
 }
