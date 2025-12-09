@@ -2,76 +2,98 @@
  * @brief FUSE low-level wrapper class header file.
  * This file defines a template class `Fuse` that serves as a wrapper for
  * the low-level FUSE (Filesystem in Userspace) API, release 3.10.5.
- * 
+ *
  * To see documentation on what each function does, please refer to the
  * FUSE low-level header files, like fuse_lowlevel.h and fuse_common.h for 3.10.5.
- * 
+ *
  * The Run function is based on the hello_ll.c example from the FUSE repository.
  */
 
 #pragma once
 
 #ifndef FUSE_USE_VERSION
-#define FUSE_USE_VERSION 35
+#    define FUSE_USE_VERSION 35
 #endif
 
 #include <fuse_lowlevel.h>
 #include <iostream>
 
 namespace low_level_fuse {
-    typedef void (*t_init)(void *userdata, struct fuse_conn_info *conn);
-    typedef void (*t_destroy) (void *userdata);
-    typedef void (*t_lookup) (fuse_req_t req, fuse_ino_t parent, const char *name);
-    typedef void (*t_forget) (fuse_req_t req, fuse_ino_t ino, uint64_t nlookup);
-    typedef void (*t_getattr) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
-	typedef void (*t_setattr) (fuse_req_t req, fuse_ino_t ino, struct stat *attr, int to_set, struct fuse_file_info *fi);
-    typedef void (*t_readlink) (fuse_req_t req, fuse_ino_t ino);
-	typedef void (*t_mknod) (fuse_req_t req, fuse_ino_t parent, const char *name, mode_t mode, dev_t rdev);
-    typedef void (*t_mkdir) (fuse_req_t req, fuse_ino_t parent, const char *name, mode_t mode);
-	typedef void (*t_unlink) (fuse_req_t req, fuse_ino_t parent, const char *name);
-	typedef void (*t_rmdir) (fuse_req_t req, fuse_ino_t parent, const char *name);
-	typedef void (*t_symlink) (fuse_req_t req, const char *link, fuse_ino_t parent, const char *name);
-	typedef void (*t_rename) (fuse_req_t req, fuse_ino_t parent, const char *name, fuse_ino_t newparent, const char *newname, unsigned int flags);
-	typedef void (*t_link) (fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent, const char *newname);
-	typedef void (*t_open) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
-	typedef void (*t_read) (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info *fi);
-	typedef void (*t_write) (fuse_req_t req, fuse_ino_t ino, const char *buf, size_t size, off_t off, struct fuse_file_info *fi);
-	typedef void (*t_flush) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
-	typedef void (*t_release) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
-	typedef void (*t_fsync) (fuse_req_t req, fuse_ino_t ino, int datasync, struct fuse_file_info *fi);
-	typedef void (*t_opendir) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
-	typedef void (*t_readdir) (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info *fi);
-	typedef void (*t_releasedir) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi);
-	typedef void (*t_fsyncdir) (fuse_req_t req, fuse_ino_t ino, int datasync, struct fuse_file_info *fi);
-	typedef void (*t_statfs) (fuse_req_t req, fuse_ino_t ino);
-	typedef void (*t_setxattr) (fuse_req_t req, fuse_ino_t ino, const char *name, const char *value, size_t size, int flags);
-	typedef void (*t_getxattr) (fuse_req_t req, fuse_ino_t ino, const char *name, size_t size);
-	typedef void (*t_listxattr) (fuse_req_t req, fuse_ino_t ino, size_t size);
-	typedef void (*t_removexattr) (fuse_req_t req, fuse_ino_t ino, const char *name);
-	typedef void (*t_access) (fuse_req_t req, fuse_ino_t ino, int mask);
-	typedef void (*t_create) (fuse_req_t req, fuse_ino_t parent, const char *name, mode_t mode, struct fuse_file_info *fi);
-    typedef void (*t_getlk) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi, struct flock *lock);
-	typedef void (*t_setlk) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi, struct flock *lock, int sleep);
-	typedef void (*t_bmap) (fuse_req_t req, fuse_ino_t ino, size_t blocksize, uint64_t idx);
+typedef void (*t_init)(void* userdata, struct fuse_conn_info* conn);
+typedef void (*t_destroy)(void* userdata);
+typedef void (*t_lookup)(fuse_req_t req, fuse_ino_t parent, const char* name);
+typedef void (*t_forget)(fuse_req_t req, fuse_ino_t ino, uint64_t nlookup);
+typedef void (*t_getattr)(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
+typedef void (*t_setattr)(
+    fuse_req_t req, fuse_ino_t ino, struct stat* attr, int to_set, struct fuse_file_info* fi);
+typedef void (*t_readlink)(fuse_req_t req, fuse_ino_t ino);
+typedef void (*t_mknod)(
+    fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode, dev_t rdev);
+typedef void (*t_mkdir)(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode);
+typedef void (*t_unlink)(fuse_req_t req, fuse_ino_t parent, const char* name);
+typedef void (*t_rmdir)(fuse_req_t req, fuse_ino_t parent, const char* name);
+typedef void (*t_symlink)(fuse_req_t req, const char* link, fuse_ino_t parent, const char* name);
+typedef void (*t_rename)(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_ino_t newparent,
+    const char* newname, unsigned int flags);
+typedef void (*t_link)(fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent, const char* newname);
+typedef void (*t_open)(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
+typedef void (*t_read)(
+    fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info* fi);
+typedef void (*t_write)(fuse_req_t req, fuse_ino_t ino, const char* buf, size_t size, off_t off,
+    struct fuse_file_info* fi);
+typedef void (*t_flush)(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
+typedef void (*t_release)(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
+typedef void (*t_fsync)(fuse_req_t req, fuse_ino_t ino, int datasync, struct fuse_file_info* fi);
+typedef void (*t_opendir)(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
+typedef void (*t_readdir)(
+    fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info* fi);
+typedef void (*t_releasedir)(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
+typedef void (*t_fsyncdir)(fuse_req_t req, fuse_ino_t ino, int datasync, struct fuse_file_info* fi);
+typedef void (*t_statfs)(fuse_req_t req, fuse_ino_t ino);
+typedef void (*t_setxattr)(
+    fuse_req_t req, fuse_ino_t ino, const char* name, const char* value, size_t size, int flags);
+typedef void (*t_getxattr)(fuse_req_t req, fuse_ino_t ino, const char* name, size_t size);
+typedef void (*t_listxattr)(fuse_req_t req, fuse_ino_t ino, size_t size);
+typedef void (*t_removexattr)(fuse_req_t req, fuse_ino_t ino, const char* name);
+typedef void (*t_access)(fuse_req_t req, fuse_ino_t ino, int mask);
+typedef void (*t_create)(
+    fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode, struct fuse_file_info* fi);
+typedef void (*t_getlk)(
+    fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi, struct flock* lock);
+typedef void (*t_setlk)(
+    fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi, struct flock* lock, int sleep);
+typedef void (*t_bmap)(fuse_req_t req, fuse_ino_t ino, size_t blocksize, uint64_t idx);
 #if FUSE_USE_VERSION < 35
-	typedef void (*t_ioctl) (fuse_req_t req, fuse_ino_t ino, int cmd, void *arg, struct fuse_file_info *fi, unsigned flags, const void *in_buf, size_t in_bufsz, size_t out_bufsz);
+typedef void (*t_ioctl)(fuse_req_t req, fuse_ino_t ino, int cmd, void* arg,
+    struct fuse_file_info* fi, unsigned flags, const void* in_buf, size_t in_bufsz,
+    size_t out_bufsz);
 #else
-	typedef void (*t_ioctl) (fuse_req_t req, fuse_ino_t ino, unsigned int cmd, void *arg, struct fuse_file_info *fi, unsigned flags, const void *in_buf, size_t in_bufsz, size_t out_bufsz);
+typedef void (*t_ioctl)(fuse_req_t req, fuse_ino_t ino, unsigned int cmd, void* arg,
+    struct fuse_file_info* fi, unsigned flags, const void* in_buf, size_t in_bufsz,
+    size_t out_bufsz);
 #endif
-	typedef void (*t_poll) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi, struct fuse_pollhandle *ph);
-	typedef void (*t_write_buf) (fuse_req_t req, fuse_ino_t ino, struct fuse_bufvec *bufv, off_t off, struct fuse_file_info *fi);
-    typedef void (*t_retrieve_reply) (fuse_req_t req, void *cookie, fuse_ino_t ino, off_t offset, struct fuse_bufvec *bufv);
-	typedef void (*t_forget_multi) (fuse_req_t req, size_t count, struct fuse_forget_data *forgets);
-	typedef void (*t_flock) (fuse_req_t req, fuse_ino_t ino, struct fuse_file_info *fi, int op);
-	typedef void (*t_fallocate) (fuse_req_t req, fuse_ino_t ino, int mode, off_t offset, off_t length, struct fuse_file_info *fi);
-	typedef void (*t_readdirplus) (fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info *fi);
-	typedef void (*t_copy_file_range) (fuse_req_t req, fuse_ino_t ino_in, off_t off_in, struct fuse_file_info *fi_in, fuse_ino_t ino_out, off_t off_out, struct fuse_file_info *fi_out, size_t len, int flags);
-	typedef void (*t_lseek) (fuse_req_t req, fuse_ino_t ino, off_t off, int whence, struct fuse_file_info *fi);
+typedef void (*t_poll)(
+    fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi, struct fuse_pollhandle* ph);
+typedef void (*t_write_buf)(
+    fuse_req_t req, fuse_ino_t ino, struct fuse_bufvec* bufv, off_t off, struct fuse_file_info* fi);
+typedef void (*t_retrieve_reply)(
+    fuse_req_t req, void* cookie, fuse_ino_t ino, off_t offset, struct fuse_bufvec* bufv);
+typedef void (*t_forget_multi)(fuse_req_t req, size_t count, struct fuse_forget_data* forgets);
+typedef void (*t_flock)(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi, int op);
+typedef void (*t_fallocate)(fuse_req_t req, fuse_ino_t ino, int mode, off_t offset, off_t length,
+    struct fuse_file_info* fi);
+typedef void (*t_readdirplus)(
+    fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info* fi);
+typedef void (*t_copy_file_range)(fuse_req_t req, fuse_ino_t ino_in, off_t off_in,
+    struct fuse_file_info* fi_in, fuse_ino_t ino_out, off_t off_out, struct fuse_file_info* fi_out,
+    size_t len, int flags);
+typedef void (*t_lseek)(
+    fuse_req_t req, fuse_ino_t ino, off_t off, int whence, struct fuse_file_info* fi);
 
 template <class T> class Fuse {
 public:
-
-    Fuse() {
+    Fuse()
+    {
         memset(&T::_operations, 0, sizeof(struct fuse_lowlevel_ops));
         _load_operations();
     }
@@ -84,38 +106,37 @@ public:
 
     virtual ~Fuse() = default;
 
-    virtual int Run(int argc, char** argv) {
-    
+    virtual int Run(int argc, char** argv)
+    {
         struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
-        struct fuse_session *se;
+        struct fuse_session* se;
         struct fuse_cmdline_opts opts;
         struct fuse_loop_config config;
         int ret = -1;
 
         if (fuse_parse_cmdline(&args, &opts) != 0)
-        	return 1;
+            return 1;
         if (opts.show_help) {
-        	std::cout << "usage: " << argv[0] << " [options] <mountpoint>\n\n";
+            std::cout << "usage: " << argv[0] << " [options] <mountpoint>\n\n";
             fuse_cmdline_help();
             fuse_lowlevel_help();
-        	ret = 0;
+            ret = 0;
             goto err_out1;
         } else if (opts.show_version) {
             std::cout << "FUSE library version " << fuse_pkgversion() << std::endl;
-        	fuse_lowlevel_version();
+            fuse_lowlevel_version();
             ret = 0;
             goto err_out1;
         }
 
-        if(opts.mountpoint == NULL) {
+        if (opts.mountpoint == NULL) {
             std::cout << "usage: " << argv[0] << " [options] <mountpoint>\n";
-        	std::cout << "       " << argv[0] << " --help\n";
+            std::cout << "       " << argv[0] << " --help\n";
             ret = 1;
             goto err_out1;
         }
 
-        se = fuse_session_new(&args, &_operations,
-        		      sizeof(_operations), this);
+        se = fuse_session_new(&args, &_operations, sizeof(_operations), this);
         if (se == NULL)
             goto err_out1;
 

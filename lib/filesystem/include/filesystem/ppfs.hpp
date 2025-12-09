@@ -22,6 +22,7 @@
 static constexpr size_t MAX_OPEN_FILES = 32;
 
 class PpFS : public IFilesystem {
+protected:
     IDisk& _disk;
 
     std::variant<std::monostate, RawBlockDevice, CrcBlockDevice, HammingBlockDevice,
