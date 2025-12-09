@@ -1,7 +1,7 @@
 #pragma once
 #include <string_view>
 
-enum class ECCType {
+enum class ECCType : std::uint8_t {
     None,
     Crc,
     Hamming,

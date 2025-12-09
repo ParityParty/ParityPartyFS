@@ -67,8 +67,8 @@ std::expected<Inode, FsError> InodeManager::get(inode_index_t inode)
     if (!result.has_value()) {
         return std::unexpected(result.error());
     }
-
-    return *(Inode*)(result.value().data());
+    Inode inode_result = *reinterpret_cast<Inode*>(result.value().data());
+    return inode_result;
 }
 
 std::expected<unsigned int, FsError> InodeManager::numFree() { return _bitmap.count(1); }

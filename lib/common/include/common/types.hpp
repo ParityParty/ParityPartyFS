@@ -3,12 +3,12 @@
 
 #include <string_view>
 
-typedef int num_entries_t;
-typedef int block_index_t;
-typedef int inode_index_t;
-typedef unsigned int file_descriptor_t;
+typedef std::uint32_t num_entries_t;
+typedef std::uint32_t block_index_t;
+typedef std::uint32_t inode_index_t;
+typedef std::int32_t file_descriptor_t;
 
-enum class FsError {
+enum class FsError : uint8_t {
     // TODO: Old error, to be removed in the future
     PPFS_FAT_IOError,
     PPFS_FAT_InternalError,

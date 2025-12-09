@@ -4,7 +4,7 @@
 #include <array>
 #include <cstdint>
 
-enum InodeType {
+enum class InodeType : std::uint8_t {
     File,
     Directory,
 };
