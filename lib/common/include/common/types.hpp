@@ -9,13 +9,6 @@ typedef std::uint32_t inode_index_t;
 typedef std::int32_t file_descriptor_t;
 
 enum class FsError : uint8_t {
-    // TODO: Old error, to be removed in the future
-    PPFS_FAT_IOError,
-    PPFS_FAT_InternalError,
-    PPFS_FAT_OutOfMemory,
-    PPFS_FAT_OutOfBounds,
-    PPFS_FAT_InvalidRequest,
-
     // Bitmap errors
     Bitmap_IndexOutOfRange,
     Bitmap_NotFound,
