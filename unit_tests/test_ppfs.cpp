@@ -1321,6 +1321,35 @@ TEST(PpFS, Write_Succeeds_MultipleFD_AppendMode)
     ASSERT_EQ(read_data, expected_data);
 }
 
+TEST(PpFS, Create_TwoWrites_RS)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+    FsConfig config;
+    config.total_size = disk.size();
+    config.block_size = 256;
+    config.average_file_size = 2000;
+    config.rs_correctable_bytes = 2;
+    config.ecc_type = ECCType::ReedSolomon;
+    ASSERT_TRUE(fs.format(config));
+    ASSERT_TRUE(fs.createDirectory("/user0"));
+    ASSERT_TRUE(fs.create("/user0/0").has_value());
+    ASSERT_TRUE(fs.create("/user0/1").has_value());
+}
+
+TEST(PpFS, Format_Hamming)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+    FsConfig config;
+    config.total_size = disk.size();
+    config.block_size = 512;
+    config.average_file_size = 2000;
+    config.ecc_type = ECCType::Hamming;
+    ASSERT_TRUE(fs.format(config));
+}
+
+
 TEST(PpFS, Open_Succeeds_Truncate)
 {
     StackDisk disk;

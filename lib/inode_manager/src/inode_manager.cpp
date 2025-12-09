@@ -91,6 +91,9 @@ std::expected<inode_index_t, FsError> InodeManager::create(Inode& inode)
 {
     auto result = _bitmap.getFirstEq(1); // one means free
     if (!result.has_value()) {
+        if (result.error() == FsError::Bitmap_NotFound) {
+            return std::unexpected(FsError::InodeManager_NoMoreFreeInodes);
+        }
         return std::unexpected(result.error());
     }
     auto node_id = result.value();

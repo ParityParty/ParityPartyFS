@@ -19,6 +19,8 @@
 #include "inode_manager/inode_manager.hpp"
 #include "super_block_manager/super_block_manager.hpp"
 
+#include <functional>
+
 static constexpr size_t MAX_OPEN_FILES = 32;
 
 class PpFS : public IFilesystem {
@@ -61,6 +63,23 @@ class PpFS : public IFilesystem {
         inode_index_t parent, inode_index_t inode);
     [[nodiscard]] std::expected<void, FsError> _createAppropriateBlockDevice(size_t block_size);
 
+    [[nodiscard]] std::expected<void, FsError> _unprotectedCreate(std::string_view path);
+    [[nodiscard]] std::expected<file_descriptor_t, FsError> _unprotectedOpen(
+        std::string_view path, OpenMode mode = OpenMode::Normal);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedClose(file_descriptor_t fd);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedRemove(
+        std::string_view path, bool recursive = false);
+    [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _unprotectedRead(
+        file_descriptor_t fd, std::size_t bytes_to_read);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedWrite(
+        file_descriptor_t fd, std::vector<std::uint8_t> buffer);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedSeek(
+        file_descriptor_t fd, size_t position);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedCreateDirectory(std::string_view path);
+    [[nodiscard]] std::expected<std::vector<std::string>, FsError> _unprotectedReadDirectory(
+        std::string_view path);
+    [[nodiscard]] virtual std::expected<std::size_t, FsError> _unprotectedGetFileCount() const;
+
 public:
     PpFS(IDisk& disk);
 
@@ -83,5 +102,5 @@ public:
     [[nodiscard]] virtual std::expected<std::vector<std::string>, FsError> readDirectory(
         std::string_view path) override;
     virtual bool isInitialized() const override;
-    [[nodiscard]] virtual std::expected<std::size_t, FsError> getFileCount() const override;
+    [[nodiscard]] virtual std::expected<std::size_t, FsError> getFileCount() override;
 };

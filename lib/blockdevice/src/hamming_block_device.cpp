@@ -82,7 +82,7 @@ std::vector<std::uint8_t> HammingBlockDevice::_encodeData(const std::vector<std:
     }
 
     unsigned int parity_index = 1;
-    while (parity_index <= _block_size * 8) {
+    while (parity_index < _block_size * 8) {
         bool parity_bit_value = false;
         if (parity_xor & parity_index) {
             parity = !parity;

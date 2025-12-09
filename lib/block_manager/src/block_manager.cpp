@@ -71,6 +71,9 @@ std::expected<block_index_t, FsError> BlockManager::getFree()
 {
     auto get_ret = _bitmap.getFirstEq(false);
     if (!get_ret.has_value()) {
+        if (get_ret.error() == FsError::Bitmap_NotFound) {
+            return std::unexpected(FsError::BlockManager_NoMoreFreeBlocks);
+        }
         return std::unexpected(get_ret.error());
     }
     return _toAbsolute(get_ret.value());
