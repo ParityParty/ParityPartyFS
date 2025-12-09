@@ -3,19 +3,12 @@
 
 #include <string_view>
 
-typedef int num_entries_t;
-typedef int block_index_t;
-typedef int inode_index_t;
-typedef unsigned int file_descriptor_t;
+typedef std::uint32_t num_entries_t;
+typedef std::uint32_t block_index_t;
+typedef std::uint32_t inode_index_t;
+typedef std::int32_t file_descriptor_t;
 
-enum class FsError {
-    // TODO: Old error, to be removed in the future
-    PPFS_FAT_IOError,
-    PPFS_FAT_InternalError,
-    PPFS_FAT_OutOfMemory,
-    PPFS_FAT_OutOfBounds,
-    PPFS_FAT_InvalidRequest,
-
+enum class FsError : uint8_t {
     // Bitmap errors
     Bitmap_IndexOutOfRange,
     Bitmap_NotFound,
@@ -23,6 +16,7 @@ enum class FsError {
     // Block manager errors
     BlockManager_AlreadyTaken,
     BlockManager_AlreadyFree,
+    BlockManager_NoMoreFreeBlocks,
 
     // Block device errors
     BlockDevice_CorrectionError,
@@ -56,6 +50,7 @@ enum class FsError {
     InodeManager_AlreadyTaken,
     InodeManager_NotFound,
     InodeManager_AlreadyFree,
+    InodeManager_NoMoreFreeInodes,
 
     // Mutex errors
     Mutex_InitFailed,
@@ -84,6 +79,8 @@ inline std::string_view toString(FsError err)
         return "BlockManager_AlreadyTaken";
     case FsError::BlockManager_AlreadyFree:
         return "BlockManager_AlreadyFree";
+    case FsError::BlockManager_NoMoreFreeBlocks:
+        return "BlockManager_NoMoreFreeBlocks";
 
     case FsError::BlockDevice_CorrectionError:
         return "BlockDevice_CorrectionError";
@@ -132,6 +129,8 @@ inline std::string_view toString(FsError err)
         return "InodeManager_NotFound";
     case FsError::InodeManager_AlreadyFree:
         return "InodeManager_AlreadyFree";
+    case FsError::InodeManager_NoMoreFreeInodes:
+        return "InodeManager_NoMoreFreeInodes";
 
     case FsError::Mutex_InitFailed:
         return "Mutex_InitFailed";

@@ -11,15 +11,39 @@
 #include "blockdevice/raw_block_device.hpp"
 #include "blockdevice/rs_block_device.hpp"
 
+#include <mutex>
+
 PpFS::PpFS(IDisk& disk)
     : _disk(disk)
 {
 }
 
+template <typename T, typename Func>
+std::expected<T, FsError> mutex_wrapper(PpFSMutex& mutex, Func f)
+{
+    auto lock = mutex.lock();
+    if (!lock.has_value()) {
+        if (lock.error() == FsError::Mutex_NotInitialized) {
+            return std::unexpected(FsError::PpFS_NotInitialized);
+        }
+        return std::unexpected(lock.error());
+    }
+    auto ret = f();
+    auto unlock = mutex.unlock();
+    if (!unlock.has_value()) {
+        return std::unexpected(unlock.error());
+    }
+    return ret;
+};
+
 bool PpFS::isInitialized() const
 {
     return _blockDevice && _inodeManager && _blockManager && _directoryManager && _fileIO
-        && _superBlockManager;
+        && _superBlockManager && _mutex.isInitialized();
+}
+std::expected<std::size_t, FsError> PpFS::getFileCount()
+{
+    return mutex_wrapper<std::size_t>(_mutex, [&]() { return _unprotectedGetFileCount(); });
 }
 
 std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(size_t block_size)
@@ -56,7 +80,7 @@ std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(size_t block_si
     default:
         return std::unexpected(FsError::PpFS_InvalidRequest);
     }
-    return {};
+    return { };
 }
 
 std::expected<void, FsError> PpFS::init()
@@ -95,7 +119,12 @@ std::expected<void, FsError> PpFS::init()
     _directoryManagerStorage.emplace<DirectoryManager>(*_blockDevice, *_inodeManager, *_fileIO);
     _directoryManager = &std::get<DirectoryManager>(_directoryManagerStorage);
 
-    return {};
+    auto mutex_init = _mutex.init();
+    if (!mutex_init.has_value()) {
+        return mutex_init;
+    }
+
+    return { };
 }
 
 std::expected<void, FsError> PpFS::format(FsConfig options)
@@ -118,7 +147,7 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     }
 
     // Create superblock
-    SuperBlock sb {};
+    SuperBlock sb { };
     sb.total_blocks = options.total_size / options.block_size;
     sb.total_inodes = options.total_size / options.average_file_size;
     sb.inode_bitmap_address = divCeil(sizeof(SuperBlock) * 2, (size_t)options.block_size);
@@ -194,10 +223,54 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     _directoryManagerStorage.emplace<DirectoryManager>(*_blockDevice, *_inodeManager, *_fileIO);
     _directoryManager = &std::get<DirectoryManager>(_directoryManagerStorage);
 
-    return {};
+    auto mutex_init = _mutex.init();
+    if (!mutex_init.has_value()) {
+        return mutex_init;
+    }
+
+    return { };
+}
+std::expected<void, FsError> PpFS::create(std::string_view path)
+{
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedCreate(path); });
+}
+std::expected<file_descriptor_t, FsError> PpFS::open(std::string_view path, OpenMode mode)
+{
+    return mutex_wrapper<file_descriptor_t>(_mutex, [&]() { return _unprotectedOpen(path, mode); });
+}
+std::expected<void, FsError> PpFS::close(file_descriptor_t fd)
+{
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedClose(fd); });
+}
+std::expected<void, FsError> PpFS::remove(std::string_view path, bool recursive)
+{
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedRemove(path, recursive); });
+}
+std::expected<std::vector<std::uint8_t>, FsError> PpFS::read(
+    file_descriptor_t fd, std::size_t bytes_to_read)
+{
+    return mutex_wrapper<std::vector<std::uint8_t>>(
+        _mutex, [&]() { return _unprotectedRead(fd, bytes_to_read); });
+}
+std::expected<void, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+{
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedWrite(fd, buffer); });
+}
+std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
+{
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedSeek(fd, position); });
+}
+std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
+{
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedCreateDirectory(path); });
+}
+std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(std::string_view path)
+{
+    return mutex_wrapper<std::vector<std::string>>(
+        _mutex, [&]() { return _unprotectedReadDirectory(path); });
 }
 
-std::expected<void, FsError> PpFS::create(std::string_view path)
+std::expected<void, FsError> PpFS::_unprotectedCreate(std::string_view path)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -238,7 +311,7 @@ std::expected<void, FsError> PpFS::create(std::string_view path)
         return std::unexpected(add_entry_res.error());
     }
 
-    return {};
+    return { };
 }
 
 bool PpFS::_isPathValid(std::string_view path)
@@ -323,7 +396,8 @@ std::expected<inode_index_t, FsError> PpFS::_getInodeFromPath(std::string_view p
     return _getInodeFromParent(parent_inode, path);
 }
 
-std::expected<file_descriptor_t, FsError> PpFS::open(std::string_view path, OpenMode mode)
+std::expected<file_descriptor_t, FsError> PpFS::_unprotectedOpen(
+    std::string_view path, OpenMode mode)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -343,10 +417,23 @@ std::expected<file_descriptor_t, FsError> PpFS::open(std::string_view path, Open
         return std::unexpected(open_res.error());
     }
 
+    if (mode & OpenMode::Truncate) {
+        auto inode_data_res = _inodeManager->get(inode);
+        if (!inode_data_res.has_value()) {
+            return std::unexpected(inode_data_res.error());
+        }
+        Inode inode_data = inode_data_res.value();
+
+        auto truncate_res = _fileIO->resizeFile(inode, inode_data, 0);
+        if (!truncate_res.has_value()) {
+            return std::unexpected(truncate_res.error());
+        }
+    }
+
     return open_res.value();
 }
 
-std::expected<void, FsError> PpFS::close(file_descriptor_t fd)
+std::expected<void, FsError> PpFS::_unprotectedClose(file_descriptor_t fd)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -355,7 +442,7 @@ std::expected<void, FsError> PpFS::close(file_descriptor_t fd)
     if (!close_res.has_value()) {
         return std::unexpected(close_res.error());
     }
-    return {};
+    return { };
 }
 
 std::expected<void, FsError> PpFS::_checkIfInUseRecursive(inode_index_t inode)
@@ -370,7 +457,7 @@ std::expected<void, FsError> PpFS::_checkIfInUseRecursive(inode_index_t inode)
         if (open_file_res.has_value()) {
             return std::unexpected(FsError::PpFS_FileInUse);
         }
-        return {};
+        return { };
     }
 
     // If directory, check entries recursively
@@ -386,7 +473,7 @@ std::expected<void, FsError> PpFS::_checkIfInUseRecursive(inode_index_t inode)
         }
     }
 
-    return {};
+    return { };
 }
 
 std::expected<void, FsError> PpFS::_removeRecursive(inode_index_t parent, inode_index_t inode)
@@ -419,10 +506,10 @@ std::expected<void, FsError> PpFS::_removeRecursive(inode_index_t parent, inode_
     if (!remove_inode_res.has_value()) {
         return std::unexpected(remove_inode_res.error());
     }
-    return {};
+    return { };
 }
 
-std::expected<void, FsError> PpFS::remove(std::string_view path, bool recursive)
+std::expected<void, FsError> PpFS::_unprotectedRemove(std::string_view path, bool recursive)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -464,10 +551,10 @@ std::expected<void, FsError> PpFS::remove(std::string_view path, bool recursive)
     if (!remove_res.has_value()) {
         return std::unexpected(remove_res.error());
     }
-    return {};
+    return { };
 }
 
-std::expected<std::vector<std::uint8_t>, FsError> PpFS::read(
+std::expected<std::vector<std::uint8_t>, FsError> PpFS::_unprotectedRead(
     file_descriptor_t fd, std::size_t bytes_to_read)
 {
     if (!isInitialized()) {
@@ -499,7 +586,9 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::read(
     return read_res;
 }
 
-std::expected<size_t, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+std::expected<size_t, FsError> PpFS::_unprotectedWrite(
+    file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -528,10 +617,11 @@ std::expected<size_t, FsError> PpFS::write(file_descriptor_t fd, std::vector<std
     }
 
     open_file->position = offset + buffer.size();
+
     return write_res.value();
 }
 
-std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
+std::expected<void, FsError> PpFS::_unprotectedSeek(file_descriptor_t fd, size_t position)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -559,10 +649,10 @@ std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
 
     open_file->position = position;
 
-    return {};
+    return { };
 }
 
-std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
+std::expected<void, FsError> PpFS::_unprotectedCreateDirectory(std::string_view path)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -603,10 +693,11 @@ std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
         return std::unexpected(add_entry_res.error());
     }
 
-    return {};
+    return { };
 }
 
-std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(std::string_view path)
+std::expected<std::vector<std::string>, FsError> PpFS::_unprotectedReadDirectory(
+    std::string_view path)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -635,7 +726,7 @@ std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(std::string
     return names;
 }
 
-std::expected<std::size_t, FsError> PpFS::getFileCount() const
+std::expected<std::size_t, FsError> PpFS::_unprotectedGetFileCount() const
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
