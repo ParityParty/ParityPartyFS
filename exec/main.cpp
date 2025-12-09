@@ -1,6 +1,6 @@
 #include "blockdevice/hamming_block_device.hpp"
 #include "disk/stack_disk.hpp"
-#include "ppfs_fat/ppfs.hpp"
+#include "filesystem/ppfs_linux.hpp"
 #include <iostream>
 
 int main(int argc, char* argv[])

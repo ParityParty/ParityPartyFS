@@ -57,10 +57,12 @@ FusePpFS::~FusePpFS() { delete ppfs; }
 
 static void FusePpFS::getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
 {
+    const auto ptr = this_();
+
     struct stat stbuf;
     (void)fi;
     memset(&stbuf, 0, sizeof(stbuf));
-    if (_get_stats(ino, &stbuf) == -1)
+    if (ptr->_get_stats(ino, &stbuf) == -1)
         fuse_reply_err(req, errno);
     else
         fuse_reply_attr(req, &stbuf, 1.0);
@@ -68,6 +70,8 @@ static void FusePpFS::getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_i
 
 static void FusePpFS::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
 {
+    const auto ptr = this_();
+
     if (name == nullptr || name[0] == '\0') {
         fuse_reply_err(req, EINVAL);
         return;
@@ -76,7 +80,7 @@ static void FusePpFS::lookup(fuse_req_t req, fuse_ino_t parent, const char* name
     auto lookup_res = g_fs_instance->lookup(parent, name);
 
     if (!lookup_res.has_value()) {
-        int posix_err = _map_fs_error_to_errno(lookup_res.error());
+        int posix_err = ptr->_map_fs_error_to_errno(lookup_res.error());
         fuse_reply_err(req, posix_err);
         return;
     }
@@ -91,7 +95,7 @@ static void FusePpFS::lookup(fuse_req_t req, fuse_ino_t parent, const char* name
     e.attr_timeout = 5.0;
     e.entry_timeout = 5.0;
 
-    if (_get_stats(e.ino, &e.attr) == -1) {
+    if (ptr->_get_stats(e.ino, &e.attr) == -1) {
         fuse_reply_err(req, EIO);
         return;
     }
@@ -102,6 +106,8 @@ static void FusePpFS::lookup(fuse_req_t req, fuse_ino_t parent, const char* name
 static void FusePpFS::readdir(
     fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info* fi)
 {
+    const auto ptr = this_();
+
     char* buf = (char*)malloc(size);
     if (!buf) {
         fuse_reply_err(req, ENOMEM);
@@ -111,7 +117,7 @@ static void FusePpFS::readdir(
     auto entries_res = g_fs_instance.getEntries(ino);
 
     if (!entries_res.has_value()) {
-        int posix_err = g_fs_instance.map_fs_error_to_errno(entries_res.error());
+        int posix_err = ptr->ppfs.map_fs_error_to_errno(entries_res.error());
         fuse_reply_err(req, posix_err);
         free(buf);
         return;
@@ -130,7 +136,7 @@ static void FusePpFS::readdir(
         DirectoryEntry& entry = entries[i];
         struct stat entry_st;
 
-        if (g_fs_instance._get_stats(entry.inode, &entry_st) == -1) {
+        if (ptr->ppfs._get_stats(entry.inode, &entry_st) == -1) {
             continue;
         }
 
@@ -153,12 +159,14 @@ end:
 
 static void FusePpFS::mkdir(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode)
 {
+    const auto ptr = this_();
+
     if (name == nullptr || name[0] == '\0') {
         fuse_reply_err(req, EINVAL);
         return;
     }
 
-    auto create_res = ppfs.createDirectoryByParent(parent, name, mode);
+    auto create_res = ptr->ppfs.createDirectoryByParent(parent, name, mode);
 
     if (!create_res.has_value()) {
         int posix_err = _map_fs_error_to_errno(create_res.error());
@@ -228,7 +236,7 @@ int FusePpFS::_get_stats(fuse_ino_t ino, struct stat* stbuf)
     return 0;
 }
 
-int FusePpFS _map_fs_error_to_errno(FsError err)
+static int FusePpFS _map_fs_error_to_errno(FsError err)
 {
     switch (err) {
     case FsError::Bitmap_NotFound:

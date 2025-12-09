@@ -6,7 +6,7 @@ private:
     PpFS* ppfs = nullptr;
 
     int _get_stats(fuse_ino_t ino, struct stat* stbuf);
-    int _map_fs_error_to_errno(FsError err);
+    static int _map_fs_error_to_errno(FsError err);
 
 public:
     FusePpFS(IDisk& disk);
