@@ -53,8 +53,7 @@ struct IFilesystem {
      * error otherwise
      */
     virtual std::expected<file_descriptor_t, FsError> open(
-        std::string_view path, OpenMode mode = OpenMode::Normal)
-        = 0;
+        std::string_view path, OpenMode mode = OpenMode::Normal) = 0;
 
     /**
      * Close file
@@ -81,8 +80,7 @@ struct IFilesystem {
      * @return vector of bytes on success, error otherwise
      */
     virtual std::expected<std::vector<std::uint8_t>, FsError> read(
-        file_descriptor_t fd, std::size_t bytes_to_read)
-        = 0;
+        file_descriptor_t fd, std::size_t bytes_to_read) = 0;
 
     /**
      * Write data from buffer to file.
@@ -95,8 +93,7 @@ struct IFilesystem {
      * @return void on success, error otherwise
      */
     virtual std::expected<void, FsError> write(
-        file_descriptor_t fd, std::vector<std::uint8_t> buffer)
-        = 0;
+        file_descriptor_t fd, std::vector<std::uint8_t> buffer) = 0;
 
     /**
      * Seek to position in file
@@ -137,5 +134,5 @@ struct IFilesystem {
      *
      * @return number of files
      */
-    virtual std::expected<std::size_t, FsError> getFileCount() const = 0;
+    virtual std::expected<std::size_t, FsError> getFileCount() = 0;
 };

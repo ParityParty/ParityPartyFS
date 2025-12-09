@@ -90,6 +90,7 @@ void SingleDirMockUser::_readFromFile()
         _logger.logError(toString(close_ret.error()));
     }
 }
+
 void SingleDirMockUser::_deleteFile()
 {
     if (_root->children.size() <= 0) {

@@ -24,7 +24,7 @@ int main()
         std::cerr << "Failed to format disk" << std::endl;
         return 1;
     }
-    SimpleBitFlipper flipper(disk, 0.005, 1, logger);
+    SimpleBitFlipper flipper(disk, 0.5, 1, logger);
     std::vector<SingleDirMockUser> users;
     for (int i = 0; i < 200; i++) {
         auto dir = (std::stringstream() << "/user" << i).str();
@@ -33,7 +33,7 @@ int main()
             i));
     }
     int iteration = 0;
-    const int MAX_ITERATIONS = 1000;
+    constexpr int MAX_ITERATIONS = 10000;
     auto on_completion = [&]() noexcept {
         logger.step();
         flipper.step();

@@ -41,7 +41,7 @@ public:
 #endif
 
         isInitialized_ = true;
-        return {};
+        return { };
     }
 
     [[nodiscard]] std::expected<void, FsError> deinit()
@@ -62,7 +62,7 @@ public:
 #endif
 
         isInitialized_ = false;
-        return {};
+        return { };
     }
 
     [[nodiscard]] std::expected<void, FsError> lock()
@@ -80,7 +80,7 @@ public:
             return std::unexpected(FsError::Mutex_LockFailed);
         }
 #endif
-        return {};
+        return { };
     }
 
     [[nodiscard]] std::expected<void, FsError> unlock()
@@ -98,8 +98,10 @@ public:
             return std::unexpected(FsError::Mutex_UnlockFailed);
         }
 #endif
-        return {};
+        return { };
     }
+
+    bool isInitialized() const { return isInitialized_; }
 
     // Disable copying
     PpFSMutex(const PpFSMutex&) = delete;

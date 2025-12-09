@@ -19,13 +19,13 @@ public:
     std::optional<OpenFile*> get(file_descriptor_t fd)
     {
         if (fd >= MAX) {
-            return {};
+            return { };
         }
         auto& entry = _table[fd];
         if (entry.has_value()) {
             return &entry.value();
         }
-        return {};
+        return { };
     }
 
     std::optional<OpenFile*> get(inode_index_t inode)
@@ -36,7 +36,7 @@ public:
                 return &entry.value();
             }
         }
-        return {};
+        return { };
     }
 
     [[nodiscard]] std::expected<file_descriptor_t, FsError> open(inode_index_t inode, OpenMode mode)
@@ -49,7 +49,8 @@ public:
                 if (entry->mode & OpenMode::Exclusive || mode & OpenMode::Exclusive) {
                     return std::unexpected(FsError::PpFS_AlreadyOpen);
                 }
-            } else if (!free_spot.has_value()) {
+            }
+            if (!entry.has_value() && !free_spot.has_value()) {
                 free_spot = i;
             }
         }
@@ -69,7 +70,7 @@ public:
         auto& entry = _table[fd];
         if (entry.has_value()) {
             entry.reset();
-            return {};
+            return { };
         }
         return std::unexpected(FsError::PpFS_NotFound);
     }

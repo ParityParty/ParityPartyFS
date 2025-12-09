@@ -1,4 +1,3 @@
-add_subdirectory(ppfs_fat)
 add_subdirectory(fusepp)
 add_subdirectory(disk)
 add_subdirectory(blockdevice)
