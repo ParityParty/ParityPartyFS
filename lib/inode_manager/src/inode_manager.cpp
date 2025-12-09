@@ -67,8 +67,8 @@ std::expected<Inode, FsError> InodeManager::get(inode_index_t inode)
     if (!result.has_value()) {
         return std::unexpected(result.error());
     }
-    Inode inode_result = *reinterpret_cast<Inode*>(result.value().data());
-    return inode_result;
+
+    return *reinterpret_cast<Inode*>(result.value().data());
 }
 
 std::expected<unsigned int, FsError> InodeManager::numFree() { return _bitmap.count(1); }
@@ -90,7 +90,7 @@ std::expected<void, FsError> InodeManager::update(inode_index_t inode_index, con
         return std::unexpected(write_res.error());
     }
 
-    return {};
+    return { };
 }
 
 std::expected<void, FsError> InodeManager::format()
@@ -126,5 +126,5 @@ std::expected<void, FsError> InodeManager::_createRootInode()
         return std::unexpected(setbit_res.error());
     }
 
-    return {};
+    return { };
 }

@@ -1321,7 +1321,7 @@ TEST(PpFS, Write_Succeeds_MultipleFD_AppendMode)
     ASSERT_EQ(read_data, expected_data);
 }
 
-TEST(PpFS, Create_ToWrites_RS)
+TEST(PpFS, Create_TwoWrites_RS)
 {
     StackDisk disk;
     PpFS fs(disk);

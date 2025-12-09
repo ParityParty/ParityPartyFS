@@ -43,7 +43,7 @@ bool PpFS::isInitialized() const
 }
 std::expected<std::size_t, FsError> PpFS::getFileCount()
 {
-    return mutex_wrapper<std::size_t>(_mutex, [&]() { return _getFileCount(); });
+    return mutex_wrapper<std::size_t>(_mutex, [&]() { return _unprotectedGetFileCount(); });
 }
 
 std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(size_t block_size)
@@ -232,44 +232,45 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
 }
 std::expected<void, FsError> PpFS::create(std::string_view path)
 {
-    return mutex_wrapper<void>(_mutex, [&]() { return _create(path); });
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedCreate(path); });
 }
 std::expected<file_descriptor_t, FsError> PpFS::open(std::string_view path, OpenMode mode)
 {
-    return mutex_wrapper<file_descriptor_t>(_mutex, [&]() { return _open(path, mode); });
+    return mutex_wrapper<file_descriptor_t>(_mutex, [&]() { return _unprotectedOpen(path, mode); });
 }
 std::expected<void, FsError> PpFS::close(file_descriptor_t fd)
 {
-    return mutex_wrapper<void>(_mutex, [&]() { return _close(fd); });
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedClose(fd); });
 }
 std::expected<void, FsError> PpFS::remove(std::string_view path, bool recursive)
 {
-    return mutex_wrapper<void>(_mutex, [&]() { return _remove(path, recursive); });
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedRemove(path, recursive); });
 }
 std::expected<std::vector<std::uint8_t>, FsError> PpFS::read(
     file_descriptor_t fd, std::size_t bytes_to_read)
 {
     return mutex_wrapper<std::vector<std::uint8_t>>(
-        _mutex, [&]() { return _read(fd, bytes_to_read); });
+        _mutex, [&]() { return _unprotectedRead(fd, bytes_to_read); });
 }
 std::expected<void, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
 {
-    return mutex_wrapper<void>(_mutex, [&]() { return _write(fd, buffer); });
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedWrite(fd, buffer); });
 }
 std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
 {
-    return mutex_wrapper<void>(_mutex, [&]() { return _seek(fd, position); });
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedSeek(fd, position); });
 }
 std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
 {
-    return mutex_wrapper<void>(_mutex, [&]() { return _createDirectory(path); });
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedCreateDirectory(path); });
 }
 std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(std::string_view path)
 {
-    return mutex_wrapper<std::vector<std::string>>(_mutex, [&]() { return _readDirectory(path); });
+    return mutex_wrapper<std::vector<std::string>>(
+        _mutex, [&]() { return _unprotectedReadDirectory(path); });
 }
 
-std::expected<void, FsError> PpFS::_create(std::string_view path)
+std::expected<void, FsError> PpFS::_unprotectedCreate(std::string_view path)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -395,7 +396,8 @@ std::expected<inode_index_t, FsError> PpFS::_getInodeFromPath(std::string_view p
     return _getInodeFromParent(parent_inode, path);
 }
 
-std::expected<file_descriptor_t, FsError> PpFS::_open(std::string_view path, OpenMode mode)
+std::expected<file_descriptor_t, FsError> PpFS::_unprotectedOpen(
+    std::string_view path, OpenMode mode)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -418,7 +420,7 @@ std::expected<file_descriptor_t, FsError> PpFS::_open(std::string_view path, Ope
     return open_res.value();
 }
 
-std::expected<void, FsError> PpFS::_close(file_descriptor_t fd)
+std::expected<void, FsError> PpFS::_unprotectedClose(file_descriptor_t fd)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -494,7 +496,7 @@ std::expected<void, FsError> PpFS::_removeRecursive(inode_index_t parent, inode_
     return { };
 }
 
-std::expected<void, FsError> PpFS::_remove(std::string_view path, bool recursive)
+std::expected<void, FsError> PpFS::_unprotectedRemove(std::string_view path, bool recursive)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -539,7 +541,7 @@ std::expected<void, FsError> PpFS::_remove(std::string_view path, bool recursive
     return { };
 }
 
-std::expected<std::vector<std::uint8_t>, FsError> PpFS::_read(
+std::expected<std::vector<std::uint8_t>, FsError> PpFS::_unprotectedRead(
     file_descriptor_t fd, std::size_t bytes_to_read)
 {
     if (!isInitialized()) {
@@ -571,7 +573,8 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::_read(
     return read_res;
 }
 
-std::expected<void, FsError> PpFS::_write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+std::expected<void, FsError> PpFS::_unprotectedWrite(
+    file_descriptor_t fd, std::vector<std::uint8_t> buffer)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -603,7 +606,7 @@ std::expected<void, FsError> PpFS::_write(file_descriptor_t fd, std::vector<std:
     return { };
 }
 
-std::expected<void, FsError> PpFS::_seek(file_descriptor_t fd, size_t position)
+std::expected<void, FsError> PpFS::_unprotectedSeek(file_descriptor_t fd, size_t position)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -634,7 +637,7 @@ std::expected<void, FsError> PpFS::_seek(file_descriptor_t fd, size_t position)
     return { };
 }
 
-std::expected<void, FsError> PpFS::_createDirectory(std::string_view path)
+std::expected<void, FsError> PpFS::_unprotectedCreateDirectory(std::string_view path)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -678,7 +681,8 @@ std::expected<void, FsError> PpFS::_createDirectory(std::string_view path)
     return { };
 }
 
-std::expected<std::vector<std::string>, FsError> PpFS::_readDirectory(std::string_view path)
+std::expected<std::vector<std::string>, FsError> PpFS::_unprotectedReadDirectory(
+    std::string_view path)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -707,7 +711,7 @@ std::expected<std::vector<std::string>, FsError> PpFS::_readDirectory(std::strin
     return names;
 }
 
-std::expected<std::size_t, FsError> PpFS::_getFileCount() const
+std::expected<std::size_t, FsError> PpFS::_unprotectedGetFileCount() const
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);

@@ -63,21 +63,22 @@ class PpFS : public IFilesystem {
         inode_index_t parent, inode_index_t inode);
     [[nodiscard]] std::expected<void, FsError> _createAppropriateBlockDevice(size_t block_size);
 
-    [[nodiscard]] std::expected<void, FsError> _create(std::string_view path);
-    [[nodiscard]] std::expected<file_descriptor_t, FsError> _open(
+    [[nodiscard]] std::expected<void, FsError> _unprotectedCreate(std::string_view path);
+    [[nodiscard]] std::expected<file_descriptor_t, FsError> _unprotectedOpen(
         std::string_view path, OpenMode mode = OpenMode::Normal);
-    [[nodiscard]] std::expected<void, FsError> _close(file_descriptor_t fd);
-    [[nodiscard]] std::expected<void, FsError> _remove(
+    [[nodiscard]] std::expected<void, FsError> _unprotectedClose(file_descriptor_t fd);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedRemove(
         std::string_view path, bool recursive = false);
-    [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _read(
+    [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _unprotectedRead(
         file_descriptor_t fd, std::size_t bytes_to_read);
-    [[nodiscard]] std::expected<void, FsError> _write(
+    [[nodiscard]] std::expected<void, FsError> _unprotectedWrite(
         file_descriptor_t fd, std::vector<std::uint8_t> buffer);
-    [[nodiscard]] std::expected<void, FsError> _seek(file_descriptor_t fd, size_t position);
-    [[nodiscard]] std::expected<void, FsError> _createDirectory(std::string_view path);
-    [[nodiscard]] std::expected<std::vector<std::string>, FsError> _readDirectory(
+    [[nodiscard]] std::expected<void, FsError> _unprotectedSeek(
+        file_descriptor_t fd, size_t position);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedCreateDirectory(std::string_view path);
+    [[nodiscard]] std::expected<std::vector<std::string>, FsError> _unprotectedReadDirectory(
         std::string_view path);
-    [[nodiscard]] virtual std::expected<std::size_t, FsError> _getFileCount() const;
+    [[nodiscard]] virtual std::expected<std::size_t, FsError> _unprotectedGetFileCount() const;
 
 public:
     PpFS(IDisk& disk);
