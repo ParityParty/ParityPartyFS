@@ -1,3 +1,5 @@
+#pragma once
+
 #include "filesystem/ppfs.hpp"
 
 struct FileAttributes {
@@ -25,4 +27,6 @@ public:
 
     std::expected<inode_index_t, FsError> createDirectoryByParent(
         inode_index_t parent, std::string_view name);
+
+    std::expected<file_descriptor_t, FsError> openByInode(inode_index_t inode, OpenMode mode);
 };

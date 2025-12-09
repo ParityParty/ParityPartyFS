@@ -1320,3 +1320,21 @@ TEST(PpFS, Write_Succeeds_MultipleFD_AppendMode)
     ASSERT_EQ(read_data.size(), expected_data.size());
     ASSERT_EQ(read_data, expected_data);
 }
+
+TEST(PpFS, FormatAndReadRoot)
+{
+    StackDisk disk;
+    PpFS ppfs(disk);
+    FsConfig options { .total_size = 4096,
+        .average_file_size = 256,
+        .block_size = 128,
+        .ecc_type = ECCType::None,
+        .use_journal = false };
+    auto format_res = ppfs.format(options);
+
+    ASSERT_TRUE(format_res.has_value());
+
+    auto read_res = ppfs.readDirectory("/");
+    ASSERT_TRUE(read_res.has_value());
+    ASSERT_EQ(read_res.value().size(), 0);
+}

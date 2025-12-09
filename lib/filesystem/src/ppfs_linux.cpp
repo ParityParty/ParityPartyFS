@@ -9,19 +9,28 @@ PpFSLinux::PpFSLinux(IDisk& disk)
 
 std::expected<FileAttributes, FsError> PpFSLinux::getAttributes(inode_index_t inode_index)
 {
-    if (!isInitialized())
+    std::cout << "Getattrs for inode: " << inode_index << std::endl;
+    if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
+    }
 
     auto inode_res = _inodeManager->get(inode_index);
+
     if (!inode_res.has_value())
         return std::unexpected(inode_res.error());
 
-    return FileAttributes { .size = inode_res.value().file_size, .type = inode_res.value().type };
+    return FileAttributes {
+        .size = inode_res.value().file_size,
+        .block_size = _blockDevice->dataSize(),
+        .type = inode_res.value().type,
+    };
 }
 
 std::expected<inode_index_t, FsError> PpFSLinux::lookup(
     inode_index_t parent_index, std::string_view name)
 {
+    std::cout << "Lookup for inode: " << parent_index << std::endl;
+    std::cout << "Name : " << name << std::endl;
     if (!isInitialized())
         return std::unexpected(FsError::PpFS_NotInitialized);
     auto lookup_res = _getInodeFromParent(parent_index, name);
@@ -32,6 +41,7 @@ std::expected<inode_index_t, FsError> PpFSLinux::lookup(
 std::expected<inode_index_t, FsError> PpFSLinux::createDirectoryByParent(
     inode_index_t parent, std::string_view name)
 {
+    std::cout << "Trying to create file named: " << name << " in parent: " << parent << std::endl;
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
     }
@@ -50,6 +60,29 @@ std::expected<inode_index_t, FsError> PpFSLinux::createDirectoryByParent(
     if (!add_entry_res.has_value()) {
         return std::unexpected(add_entry_res.error());
     }
+    std::cout << "Great success" << std::endl;
+    return new_inode_index;
+}
 
-    return {};
+std::expected<std::vector<DirectoryEntry>, FsError> PpFSLinux::getDirectoryEntries(
+    inode_index_t inode)
+{
+    if (!isInitialized()) {
+        return std::unexpected(FsError::PpFS_NotInitialized);
+    }
+
+    return _directoryManager->getEntries(inode);
+}
+
+std::expected<file_descriptor_t, FsError> PpFSLinux::openByInode(inode_index_t inode, OpenMode mode)
+{
+    if (!isInitialized()) {
+        return std::unexpected(FsError::PpFS_NotInitialized);
+    }
+    auto open_res = _openFilesTable.open(inode, mode);
+    if (!open_res.has_value()) {
+        return std::unexpected(open_res.error());
+    }
+
+    return open_res.value();
 }

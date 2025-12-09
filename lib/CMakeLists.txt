@@ -11,4 +11,4 @@ add_subdirectory(filesystem)
 add_subdirectory(directory_manager)
 add_subdirectory(ecc_helpers)
 add_subdirectory(file_io)
-
+add_subdirectory(low_level_fuse)

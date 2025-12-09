@@ -1,3 +1,5 @@
+#pragma once
+
 /**
  * @brief FUSE low-level wrapper class header file.
  * This file defines a template class `Fuse` that serves as a wrapper for
@@ -90,23 +92,23 @@ typedef void (*t_copy_file_range)(fuse_req_t req, fuse_ino_t ino_in, off_t off_i
 typedef void (*t_lseek)(
     fuse_req_t req, fuse_ino_t ino, off_t off, int whence, struct fuse_file_info* fi);
 
-template <class T> class Fuse {
+template <class T> class FuseWrapper {
 public:
-    Fuse()
+    FuseWrapper()
     {
         memset(&T::_operations, 0, sizeof(struct fuse_lowlevel_ops));
         _load_operations();
     }
 
     // no copy
-    Fuse(const Fuse&) = delete;
-    Fuse(Fuse&&) = delete;
-    Fuse& operator=(const Fuse&) = delete;
-    Fuse& operator=(Fuse&&) = delete;
+    FuseWrapper(const FuseWrapper&) = delete;
+    FuseWrapper(FuseWrapper&&) = delete;
+    FuseWrapper& operator=(const FuseWrapper&) = delete;
+    FuseWrapper& operator=(FuseWrapper&&) = delete;
 
-    virtual ~Fuse() = default;
+    virtual ~FuseWrapper() = default;
 
-    virtual int Run(int argc, char** argv)
+    virtual int run(int argc, char** argv)
     {
         struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
         struct fuse_session* se;
