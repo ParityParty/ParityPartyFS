@@ -86,3 +86,34 @@ std::expected<file_descriptor_t, FsError> PpFSLinux::openByInode(inode_index_t i
 
     return open_res.value();
 }
+
+std::expected<inode_index_t, FsError> PpFSLinux::createWithParentInode(
+    std::string_view name, inode_index_t parent)
+{
+    if (!isInitialized()) {
+        return std::unexpected(FsError::PpFS_NotInitialized);
+    }
+
+    auto unique_res = _directoryManager->checkNameUnique(parent, name.data());
+    if (!unique_res.has_value()) {
+        return std::unexpected(unique_res.error());
+    }
+
+    // Create new inode
+    Inode new_inode { .type = InodeType::File };
+    auto create_inode_res = _inodeManager->create(new_inode);
+    if (!create_inode_res.has_value()) {
+        return std::unexpected(create_inode_res.error());
+    }
+    inode_index_t new_inode_index = create_inode_res.value();
+
+    // Add entry to parent directory
+    DirectoryEntry new_entry { .inode = new_inode_index };
+    std::strncpy(new_entry.name.data(), name.data(), new_entry.name.size() - 1);
+    auto add_entry_res = _directoryManager->addEntry(parent, new_entry);
+    if (!add_entry_res.has_value()) {
+        return std::unexpected(add_entry_res.error());
+    }
+
+    return new_inode_index;
+}

@@ -75,7 +75,7 @@ public:
         std::string_view path, bool recursive = false) override;
     [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> read(
         file_descriptor_t fd, std::size_t bytes_to_read) override;
-    [[nodiscard]] virtual std::expected<void, FsError> write(
+    [[nodiscard]] virtual std::expected<size_t, FsError> write(
         file_descriptor_t fd, std::vector<std::uint8_t> buffer) override;
     [[nodiscard]] virtual std::expected<void, FsError> seek(
         file_descriptor_t fd, size_t position) override;

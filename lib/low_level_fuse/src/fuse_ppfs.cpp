@@ -144,7 +144,7 @@ void FusePpFS::readdir(
         DirectoryEntry& entry = entries[i];
         struct stat entry_st;
 
-        if (ptr->_get_stats(entry.inode, &entry_st) == -1) {
+        if (ptr->_get_stats(entry.inode + 1, &entry_st) == -1) {
             continue;
         }
 
@@ -221,8 +221,6 @@ void FusePpFS::open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
 
     OpenMode mode = OpenMode::Normal;
 
-    OpenMode mode = OpenMode::Normal;
-
     if (fi->flags & O_APPEND) {
         mode = static_cast<OpenMode>(
             static_cast<std::uint8_t>(mode) | static_cast<std::uint8_t>(OpenMode::Append));
@@ -258,8 +256,96 @@ void FusePpFS::write(fuse_req_t req, fuse_ino_t ino, const char* buf, size_t siz
         }
     }
     std::vector<uint8_t> to_write(size);
-    std::memcpy(size.data(), buf, size);
-    auto write_res = ptr->_ppfs.write(fi->fh, )
+    std::memcpy(to_write.data(), buf, size);
+    auto write_res = ptr->_ppfs.write(fi->fh, to_write);
+    if (!write_res.has_value()) {
+        int posix_err = _map_fs_error_to_errno(write_res.error());
+        fuse_reply_err(req, posix_err);
+        return;
+    }
+
+    fuse_reply_write(req, write_res.value());
+}
+
+void FusePpFS::read(
+    fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info* fi)
+{
+    std::cerr << "Requested to read file with size: " << size << " adn offset: " << off
+              << std::endl;
+
+    const auto ptr = this_(req);
+
+    auto seek_res = ptr->_ppfs.seek(fi->fh, off);
+    if (!seek_res.has_value()) {
+        int posix_err = _map_fs_error_to_errno(seek_res.error());
+        fuse_reply_err(req, posix_err);
+        return;
+    }
+
+    auto read_res = ptr->_ppfs.read(fi->fh, size);
+    if (!read_res.has_value()) {
+        int posix_err = _map_fs_error_to_errno(read_res.error());
+        fuse_reply_err(req, posix_err);
+        return;
+    }
+
+    auto buffer = read_res.value();
+
+    fuse_reply_buf(req, reinterpret_cast<const char*>(buffer.data()), buffer.size());
+}
+
+void FusePpFS::release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
+{
+    const auto ptr = this_(req);
+
+    auto close_res = ptr->_ppfs.close(fi->fh);
+    if (!close_res.has_value()) {
+        int posix_err = _map_fs_error_to_errno(close_res.error());
+        fuse_reply_err(req, posix_err);
+        return;
+    }
+
+    fuse_reply_err(req, 0);
+}
+
+void FusePpFS::mknod(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode, dev_t rdev)
+{
+    const auto ptr = this_(req);
+
+    if (name == nullptr || name[0] == '\0') {
+        fuse_reply_err(req, EINVAL);
+        return;
+    }
+    inode_index_t ppfs_parent = parent - 1;
+
+    // We only have regular files in ppfs
+    if ((mode & S_IFMT) != S_IFREG) {
+        fuse_reply_err(req, ENOTSUP);
+        return;
+    }
+    auto create_res = ptr->_ppfs.createWithParentInode(name, ppfs_parent);
+
+    if (!create_res.has_value()) {
+        int posix_err = _map_fs_error_to_errno(create_res.error());
+        fuse_reply_err(req, posix_err);
+        return;
+    }
+
+    fuse_ino_t new_ino = create_res.value() + 1;
+
+    struct fuse_entry_param e;
+    std::memset(&e, 0, sizeof(e));
+
+    e.ino = new_ino;
+    e.attr_timeout = 1.0;
+    e.entry_timeout = 1.0;
+
+    if (ptr->_get_stats(e.ino, &e.attr) == -1) {
+        fuse_reply_err(req, EIO);
+        return;
+    }
+
+    fuse_reply_entry(req, &e);
 }
 
 int FusePpFS::_get_stats(fuse_ino_t ino, struct stat* stbuf)

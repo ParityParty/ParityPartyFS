@@ -29,4 +29,7 @@ public:
         inode_index_t parent, std::string_view name);
 
     std::expected<file_descriptor_t, FsError> openByInode(inode_index_t inode, OpenMode mode);
+
+    std::expected<inode_index_t, FsError> createWithParentInode(
+        std::string_view name, inode_index_t parent);
 };

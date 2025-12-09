@@ -12,8 +12,7 @@ FileIO::FileIO(
 std::expected<std::vector<uint8_t>, FsError> FileIO::readFile(
     inode_index_t inode_index, Inode& inode, size_t offset, size_t bytes_to_read)
 {
-    if (offset + bytes_to_read > inode.file_size)
-        return std::unexpected(FsError::FileIO_OutOfBounds);
+    bytes_to_read = std::min(bytes_to_read, inode.file_size - offset);
 
     size_t block_number = offset / _block_device.dataSize();
     size_t offset_in_block = offset % _block_device.dataSize();

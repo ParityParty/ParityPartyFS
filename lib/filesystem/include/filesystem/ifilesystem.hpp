@@ -92,9 +92,9 @@ struct IFilesystem {
      *
      * @param fd file descriptor of file to write to
      * @param buffer data to write
-     * @return void on success, error otherwise
+     * @return number of written bytes, error otherwise
      */
-    virtual std::expected<void, FsError> write(
+    virtual std::expected<size_t, FsError> write(
         file_descriptor_t fd, std::vector<std::uint8_t> buffer)
         = 0;
 

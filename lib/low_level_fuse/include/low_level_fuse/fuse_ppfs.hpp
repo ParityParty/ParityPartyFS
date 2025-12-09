@@ -17,6 +17,8 @@ public:
     ~FusePpFS() = default;
 
     static void getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
+    static void read(
+        fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info* fi);
     static void lookup(fuse_req_t req, fuse_ino_t parent, const char* name);
     static void readdir(
         fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info* fi);
@@ -24,4 +26,6 @@ public:
     static void open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
     static void write(fuse_req_t req, fuse_ino_t ino, const char* buf, size_t size, off_t off,
         struct fuse_file_info* fi);
+    static void release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
+    static void mknod(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode, dev_t rdev);
 };

@@ -499,7 +499,7 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::read(
     return read_res;
 }
 
-std::expected<void, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+std::expected<size_t, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -528,7 +528,7 @@ std::expected<void, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::
     }
 
     open_file->position = offset + buffer.size();
-    return {};
+    return write_res.value();
 }
 
 std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
