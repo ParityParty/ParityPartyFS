@@ -4,7 +4,8 @@
 #include "simulation/bit_flipper.hpp"
 #include "simulation/mock_user.hpp"
 
-#include <execution>
+#include <barrier>
+#include <thread>
 
 int main()
 {
@@ -25,21 +26,38 @@ int main()
     }
     SimpleBitFlipper flipper(disk, 0.005, 1, logger);
     std::vector<SingleDirMockUser> users;
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 200; i++) {
         auto dir = (std::stringstream() << "/user" << i).str();
         users.push_back(SingleDirMockUser(fs, logger,
-            { .max_write_size = 500, .max_read_size = 500, .avg_steps_between_ops = 50 }, i, dir,
+            { .max_write_size = 500, .max_read_size = 500, .avg_steps_between_ops = 90 }, i, dir,
             i));
     }
-
-    for (int i = 0; i < 100000; i++) {
+    int iteration = 0;
+    const int MAX_ITERATIONS = 1000;
+    auto on_completion = [&]() noexcept {
         logger.step();
-        //        flipper.step();
-        // std::for_each(
-        //     std::execution::par, users.begin(), users.end(), [](auto& user) { user.step(); });
-        for (auto& user : users) {
-            user.step();
+        flipper.step();
+        iteration++;
+    };
+
+    std::barrier barrier(users.size(), on_completion);
+    auto work = [&](int id) {
+        while (iteration < MAX_ITERATIONS) {
+            users[id].step();
+            barrier.arrive_and_wait();
         }
+    };
+
+    logger.step();
+    flipper.step();
+
+    std::vector<std::jthread> threads;
+    threads.reserve(std::size(users));
+    for (auto const& user : users)
+        threads.emplace_back(work, user.id);
+
+    for (auto& thread : threads) {
+        thread.join();
     }
     return 0;
 }

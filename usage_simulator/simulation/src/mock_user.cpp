@@ -14,7 +14,7 @@ void SingleDirMockUser::_createFile()
     } else {
         _root->children.push_back(fn);
         _logger.logMsg((std::stringstream()
-            << "User " << static_cast<int>(_id) << " Created file number: " << _file_id - 1)
+            << "User " << static_cast<int>(id) << " Created file number: " << _file_id - 1)
                 .str());
     }
 }
@@ -35,7 +35,7 @@ void SingleDirMockUser::_writeToFile()
         return;
     }
     auto start = std::chrono::high_resolution_clock::now();
-    auto write_ret = _fs.write(open_ret.value(), std::vector<uint8_t>(write_size, _id));
+    auto write_ret = _fs.write(open_ret.value(), std::vector<uint8_t>(write_size, id));
     if (!write_ret.has_value()) {
         _logger.logError(toString(write_ret.error()));
         return;
@@ -80,7 +80,7 @@ void SingleDirMockUser::_readFromFile()
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     _logger.logEvent(ReadEvent(read_size, duration));
     for (auto b : read_ret.value()) {
-        if (b != _id) {
+        if (b != id) {
             _logger.logError("Data contains an error");
             break;
         }
@@ -113,7 +113,7 @@ SingleDirMockUser::SingleDirMockUser(IFilesystem& fs, Logger& logger, UserBehavi
     : _fs(fs)
     , _logger(logger)
     , _behaviour(behaviour)
-    , _id(id)
+    , id(id)
     , _dir(dir)
     , _root(new FileNode {
           .name = std::string(_dir),

@@ -21,7 +21,6 @@ class SingleDirMockUser {
     IFilesystem& _fs;
     Logger& _logger;
     UserBehaviour _behaviour;
-    const std::uint8_t _id;
 
     std::string _dir;
     FileNode* _root = nullptr;
@@ -35,6 +34,7 @@ class SingleDirMockUser {
     void _deleteFile();
 
 public:
+    const std::uint8_t id;
     SingleDirMockUser(IFilesystem& fs, Logger& logger, UserBehaviour behaviour, std::uint8_t id,
         std::string_view dir, unsigned int seed);
     void step();
