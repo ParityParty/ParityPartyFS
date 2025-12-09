@@ -28,4 +28,6 @@ public:
         struct fuse_file_info* fi);
     static void release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
     static void mknod(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode, dev_t rdev);
+    static void unlink(fuse_req_t req, fuse_ino_t parent, const char* name);
+    static void rmdir(fuse_req_t req, fuse_ino_t parent, const char* name);
 };

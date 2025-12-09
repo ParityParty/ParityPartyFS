@@ -27,6 +27,9 @@ public:
     [[nodiscard]] virtual std::expected<inode_index_t, FsError> createWithParentInode(
         std::string_view name, inode_index_t parent) override;
 
+    [[nodiscard]] virtual std::expected<void, FsError> removeByNameAndParent(
+        inode_index_t inode, std::string_view name, bool recursive = false) override;
+
 private:
     [[nodiscard]] std::expected<FileAttributes, FsError> _unprotectedGetAttributes(
         inode_index_t inode_index);
@@ -45,4 +48,7 @@ private:
 
     [[nodiscard]] std::expected<inode_index_t, FsError> _unprotectedCreateWithParentInode(
         std::string_view name, inode_index_t parent);
+
+    [[nodiscard]] std::expected<void, FsError> _unprotectedRemoveByNameAndParent(
+        inode_index_t inode, std::string_view name, bool recursive);
 };

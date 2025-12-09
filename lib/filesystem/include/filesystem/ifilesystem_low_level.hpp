@@ -80,4 +80,16 @@ public:
     virtual std::expected<inode_index_t, FsError> createWithParentInode(
         std::string_view name, inode_index_t parent)
         = 0;
+
+    /**
+     * Remove a file or directory by name
+     *
+     * @param inode inode of the parent directory
+     * @param name name of the entry to remove
+     * @param recursive whether to remove directories recursively
+     * @return success value on success, error otherwise
+     */
+    virtual std::expected<void, FsError> removeByNameAndParent(
+        inode_index_t inode, std::string_view name, bool recursive = false)
+        = 0;
 };

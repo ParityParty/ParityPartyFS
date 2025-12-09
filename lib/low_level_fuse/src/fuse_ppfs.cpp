@@ -348,6 +348,48 @@ void FusePpFS::mknod(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t
     fuse_reply_entry(req, &e);
 }
 
+void FusePpFS::unlink(fuse_req_t req, fuse_ino_t parent, const char* name)
+{
+    const auto ptr = this_(req);
+
+    if (name == nullptr || name[0] == '\0') {
+        fuse_reply_err(req, EINVAL);
+        return;
+    }
+    inode_index_t ppfs_parent = parent - 1;
+
+    auto remove_res = ptr->_ppfs.removeByNameAndParent(ppfs_parent, name);
+
+    if (!remove_res.has_value()) {
+        int posix_err = _map_fs_error_to_errno(unlink_res.error());
+        fuse_reply_err(req, posix_err);
+        return;
+    }
+
+    fuse_reply_err(req, 0);
+}
+
+void FusePpFS::rmdir(fuse_req_t req, fuse_ino_t parent, const char* name)
+{
+    const auto ptr = this_(req);
+
+    if (name == nullptr || name[0] == '\0') {
+        fuse_reply_err(req, EINVAL);
+        return;
+    }
+    inode_index_t ppfs_parent = parent - 1;
+
+    auto remove_res = ptr->_ppfs.removeByNameAndParent(ppfs_parent, name);
+
+    if (!remove_res.has_value()) {
+        int posix_err = _map_fs_error_to_errno(unlink_res.error());
+        fuse_reply_err(req, posix_err);
+        return;
+    }
+
+    fuse_reply_err(req, 0);
+}
+
 int FusePpFS::_get_stats(fuse_ino_t ino, struct stat* stbuf)
 {
     inode_index_t ppfs_inode = ino - 1;
