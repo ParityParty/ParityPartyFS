@@ -19,35 +19,39 @@ public:
      * This method returns attribues of a file
      * specified by a given inode.
      */
-    std::expected<FileAttributes, FsError> getAttributes(inode_index_t inode_index);
+    [[nodiscard]] std::expected<FileAttributes, FsError> getAttributes(inode_index_t inode_index);
 
-    std::expected<inode_index_t, FsError> lookup(inode_index_t parent_index, std::string_view name);
+    [[nodiscard]] std::expected<inode_index_t, FsError> lookup(
+        inode_index_t parent_index, std::string_view name);
 
-    std::expected<std::vector<DirectoryEntry>, FsError> getDirectoryEntries(inode_index_t inode);
+    [[nodiscard]] std::expected<std::vector<DirectoryEntry>, FsError> getDirectoryEntries(
+        inode_index_t inode);
 
-    std::expected<inode_index_t, FsError> createDirectoryByParent(
+    [[nodiscard]] std::expected<inode_index_t, FsError> createDirectoryByParent(
         inode_index_t parent, std::string_view name);
 
-    std::expected<file_descriptor_t, FsError> openByInode(inode_index_t inode, OpenMode mode);
+    [[nodiscard]] std::expected<file_descriptor_t, FsError> openByInode(
+        inode_index_t inode, OpenMode mode);
 
-    std::expected<inode_index_t, FsError> createWithParentInode(
+    [[nodiscard]] std::expected<inode_index_t, FsError> createWithParentInode(
         std::string_view name, inode_index_t parent);
 
 private:
-    std::expected<FileAttributes, FsError> _unprotectedGetAttributes(inode_index_t inode_index);
+    [[nodiscard]] std::expected<FileAttributes, FsError> _unprotectedGetAttributes(
+        inode_index_t inode_index);
 
-    std::expected<inode_index_t, FsError> _unprotectedLookup(
+    [[nodiscard]] std::expected<inode_index_t, FsError> _unprotectedLookup(
         inode_index_t parent_index, std::string_view name);
 
-    std::expected<std::vector<DirectoryEntry>, FsError> _unprotectedGetDirectoryEntries(
-        inode_index_t inode);
+    [[nodiscard]] std::expected<std::vector<DirectoryEntry>, FsError>
+    _unprotectedGetDirectoryEntries(inode_index_t inode);
 
-    std::expected<inode_index_t, FsError> _unprotectedCreateDirectoryByParent(
+    [[nodiscard]] std::expected<inode_index_t, FsError> _unprotectedCreateDirectoryByParent(
         inode_index_t parent, std::string_view name);
 
-    std::expected<file_descriptor_t, FsError> _unprotectedOpenByInode(
+    [[nodiscard]] std::expected<file_descriptor_t, FsError> _unprotectedOpenByInode(
         inode_index_t inode, OpenMode mode);
 
-    std::expected<inode_index_t, FsError> _unprotectedCreateWithParentInode(
+    [[nodiscard]] std::expected<inode_index_t, FsError> _unprotectedCreateWithParentInode(
         std::string_view name, inode_index_t parent);
 };
