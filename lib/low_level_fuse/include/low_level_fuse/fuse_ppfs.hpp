@@ -9,7 +9,7 @@ class FusePpFS : public FuseWrapper<FusePpFS> {
 private:
     PpFSLowLevel& _ppfs;
 
-    int _get_stats(fuse_ino_t ino, struct stat* stbuf);
+    std::expected<void, FsError> _get_stats(fuse_ino_t ino, struct stat* stbuf);
     static int _map_fs_error_to_errno(FsError err);
 
 public:
@@ -30,4 +30,5 @@ public:
     static void mknod(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode, dev_t rdev);
     static void unlink(fuse_req_t req, fuse_ino_t parent, const char* name);
     static void rmdir(fuse_req_t req, fuse_ino_t parent, const char* name);
+    static void truncate(fuse_req_t req, fuse_ino_t ino, off_t size, struct fuse_file_info* fi);
 };

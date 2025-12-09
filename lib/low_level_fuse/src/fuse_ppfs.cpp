@@ -3,6 +3,15 @@
 #include <cstring>
 #include <iostream>
 
+#define HANDLE_EXPECTED_ERROR(req, result_expr)                                                    \
+    do {                                                                                           \
+        if (!(result_expr).has_value()) {                                                          \
+            int _err = _map_fs_error_to_errno((result_expr).error());                              \
+            fuse_reply_err((req), _err);                                                           \
+            return;                                                                                \
+        }                                                                                          \
+    } while (0)
+
 template <class T> low_level_fuse::t_init low_level_fuse::FuseWrapper<T>::init = nullptr;
 template <class T> low_level_fuse::t_destroy low_level_fuse::FuseWrapper<T>::destroy = nullptr;
 template <class T> low_level_fuse::t_lookup low_level_fuse::FuseWrapper<T>::lookup = nullptr;
@@ -68,10 +77,10 @@ void FusePpFS::getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi
     struct stat stbuf;
     (void)fi;
     std::memset(&stbuf, 0, sizeof(stbuf));
-    if (ptr->_get_stats(ino, &stbuf) == -1)
-        fuse_reply_err(req, errno);
-    else
-        fuse_reply_attr(req, &stbuf, 1.0);
+    auto stats_res = ptr->_get_stats(ino, &stbuf);
+    HANDLE_EXPECTED_ERROR(req, stats_res);
+
+    fuse_reply_attr(req, &stbuf, 1.0);
 }
 
 void FusePpFS::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
@@ -85,12 +94,7 @@ void FusePpFS::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
 
     inode_index_t ppfs_inode = parent - 1;
     auto lookup_res = ptr->_ppfs.lookup(ppfs_inode, name);
-
-    if (!lookup_res.has_value()) {
-        int posix_err = ptr->_map_fs_error_to_errno(lookup_res.error());
-        fuse_reply_err(req, posix_err);
-        return;
-    }
+    HANDLE_EXPECTED_ERROR(req, lookup_res);
 
     fuse_ino_t found_ino = lookup_res.value();
 
@@ -102,10 +106,8 @@ void FusePpFS::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
     e.attr_timeout = 5.0;
     e.entry_timeout = 5.0;
 
-    if (ptr->_get_stats(e.ino, &e.attr) == -1) {
-        fuse_reply_err(req, EIO);
-        return;
-    }
+    auto stats_res = ptr->_get_stats(e.ino, &e.attr);
+    HANDLE_EXPECTED_ERROR(req, stats_res);
 
     fuse_reply_entry(req, &e);
 }
@@ -123,13 +125,7 @@ void FusePpFS::readdir(
 
     inode_index_t ppfs_inode = ino - 1;
     auto entries_res = ptr->_ppfs.getDirectoryEntries(ppfs_inode);
-
-    if (!entries_res.has_value()) {
-        int posix_err = _map_fs_error_to_errno(entries_res.error());
-        fuse_reply_err(req, posix_err);
-        free(buf);
-        return;
-    }
+    HANDLE_EXPECTED_ERROR(req, entries_res);
 
     std::vector<DirectoryEntry> entries = std::move(entries_res.value());
 
@@ -144,7 +140,7 @@ void FusePpFS::readdir(
         DirectoryEntry& entry = entries[i];
         struct stat entry_st;
 
-        if (ptr->_get_stats(entry.inode + 1, &entry_st) == -1) {
+        if (!(ptr->_get_stats(entry.inode + 1, &entry_st)).has_value()) {
             continue;
         }
 
@@ -194,23 +190,11 @@ void FusePpFS::mkdir(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t
     e.attr_timeout = 1.0;
     e.entry_timeout = 1.0;
 
-    if (ptr->_get_stats(e.ino, &e.attr) == -1) {
-        std::cout << "Error here" << std::endl;
-        fuse_reply_err(req, EIO);
-        return;
-    }
-    std::cout << "No error here" << std::endl;
+    auto stats_res = ptr->_get_stats(e.ino, &e.attr);
+    HANDLE_EXPECTED_ERROR(req, stats_res);
 
     e.attr.st_mode = (e.attr.st_mode & ~S_IFMT) | S_IFDIR;
     e.attr.st_nlink = 2;
-
-    std::cerr << "--- MKDIR REPLY DEBUG ---" << std::endl;
-    std::cerr << "FUSE ino (e.ino): " << e.ino << std::endl;
-    std::cerr << "Attr ino (e.attr.st_ino): " << e.attr.st_ino << std::endl;
-    std::cerr << "st_mode: " << std::oct << e.attr.st_mode << std::dec << std::endl;
-    std::cerr << "st_nlink: " << e.attr.st_nlink << std::endl;
-    std::cerr << "st_size: " << e.attr.st_size << std::endl;
-    std::cerr << "-------------------------" << std::endl;
 
     fuse_reply_entry(req, &e);
 }
@@ -232,11 +216,7 @@ void FusePpFS::open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
     }
 
     auto open_res = ptr->_ppfs.openByInode(ino - 1, mode);
-    if (!open_res.has_value()) {
-        int posix_err = _map_fs_error_to_errno(open_res.error());
-        fuse_reply_err(req, posix_err);
-        return;
-    }
+    HANDLE_EXPECTED_ERROR(req, open_res);
 
     fi->fh = open_res.value();
     fuse_reply_open(req, fi);
@@ -249,20 +229,12 @@ void FusePpFS::write(fuse_req_t req, fuse_ino_t ino, const char* buf, size_t siz
 
     if (!(fi->flags & O_APPEND)) {
         auto seek_res = ptr->_ppfs.seek(fi->fh, off);
-        if (!seek_res.has_value()) {
-            int posix_err = _map_fs_error_to_errno(seek_res.error());
-            fuse_reply_err(req, posix_err);
-            return;
-        }
+        HANDLE_EXPECTED_ERROR(req, seek_res);
     }
     std::vector<uint8_t> to_write(size);
     std::memcpy(to_write.data(), buf, size);
     auto write_res = ptr->_ppfs.write(fi->fh, to_write);
-    if (!write_res.has_value()) {
-        int posix_err = _map_fs_error_to_errno(write_res.error());
-        fuse_reply_err(req, posix_err);
-        return;
-    }
+    HANDLE_EXPECTED_ERROR(req, write_res);
 
     fuse_reply_write(req, write_res.value());
 }
@@ -276,18 +248,10 @@ void FusePpFS::read(
     const auto ptr = this_(req);
 
     auto seek_res = ptr->_ppfs.seek(fi->fh, off);
-    if (!seek_res.has_value()) {
-        int posix_err = _map_fs_error_to_errno(seek_res.error());
-        fuse_reply_err(req, posix_err);
-        return;
-    }
+    HANDLE_EXPECTED_ERROR(req, seek_res);
 
     auto read_res = ptr->_ppfs.read(fi->fh, size);
-    if (!read_res.has_value()) {
-        int posix_err = _map_fs_error_to_errno(read_res.error());
-        fuse_reply_err(req, posix_err);
-        return;
-    }
+    HANDLE_EXPECTED_ERROR(req, read_res);
 
     auto buffer = read_res.value();
 
@@ -299,11 +263,7 @@ void FusePpFS::release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi
     const auto ptr = this_(req);
 
     auto close_res = ptr->_ppfs.close(fi->fh);
-    if (!close_res.has_value()) {
-        int posix_err = _map_fs_error_to_errno(close_res.error());
-        fuse_reply_err(req, posix_err);
-        return;
-    }
+    HANDLE_EXPECTED_ERROR(req, close_res);
 
     fuse_reply_err(req, 0);
 }
@@ -340,10 +300,8 @@ void FusePpFS::mknod(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t
     e.attr_timeout = 1.0;
     e.entry_timeout = 1.0;
 
-    if (ptr->_get_stats(e.ino, &e.attr) == -1) {
-        fuse_reply_err(req, EIO);
-        return;
-    }
+    auto stats_res = ptr->_get_stats(e.ino, &e.attr);
+    HANDLE_EXPECTED_ERROR(req, stats_res);
 
     fuse_reply_entry(req, &e);
 }
@@ -359,12 +317,7 @@ void FusePpFS::unlink(fuse_req_t req, fuse_ino_t parent, const char* name)
     inode_index_t ppfs_parent = parent - 1;
 
     auto remove_res = ptr->_ppfs.removeByNameAndParent(ppfs_parent, name);
-
-    if (!remove_res.has_value()) {
-        int posix_err = _map_fs_error_to_errno(unlink_res.error());
-        fuse_reply_err(req, posix_err);
-        return;
-    }
+    HANDLE_EXPECTED_ERROR(req, remove_res);
 
     fuse_reply_err(req, 0);
 }
@@ -381,32 +334,36 @@ void FusePpFS::rmdir(fuse_req_t req, fuse_ino_t parent, const char* name)
 
     auto remove_res = ptr->_ppfs.removeByNameAndParent(ppfs_parent, name);
 
-    if (!remove_res.has_value()) {
-        int posix_err = _map_fs_error_to_errno(unlink_res.error());
-        fuse_reply_err(req, posix_err);
-        return;
-    }
+    HANDLE_EXPECTED_ERROR(req, remove_res);
 
     fuse_reply_err(req, 0);
 }
 
-int FusePpFS::_get_stats(fuse_ino_t ino, struct stat* stbuf)
+void FusePpFS::truncate(fuse_req_t req, fuse_ino_t ino, off_t new_size, struct fuse_file_info* fi)
+{
+    const auto ptr = this_(req);
+
+    inode_index_t ppfs_ino = ino - 1;
+    /*
+        auto truncate_res = ptr->_ppfs.truncateFile(internal_ino, new_size);
+
+        if (!truncate_res.has_value()) {
+            int posix_err = _map_fs_error_to_errno(truncate_res.error());
+            fuse_reply_err(req, posix_err);
+            return;
+        }
+    */
+
+    fuse_reply_err(req, 0);
+}
+
+std::expected<void, FsError> FusePpFS::_get_stats(fuse_ino_t ino, struct stat* stbuf)
 {
     inode_index_t ppfs_inode = ino - 1;
     auto attr_res = _ppfs.getAttributes(ppfs_inode);
 
-    if (!attr_res.has_value()) {
-        FsError err = attr_res.error();
-
-        switch (err) {
-        case FsError::InodeManager_NotFound:
-            errno = ENOENT;
-            break;
-        default:
-            errno = EIO;
-        }
-        return -1;
-    }
+    if (!attr_res.has_value())
+        return std::unexpected(attr_res.error());
 
     const auto& attributes = attr_res.value();
     stbuf->st_size = attributes.size;
@@ -427,7 +384,7 @@ int FusePpFS::_get_stats(fuse_ino_t ino, struct stat* stbuf)
     stbuf->st_mode = mode;
     stbuf->st_blksize = attributes.block_size;
     stbuf->st_blocks = (stbuf->st_size + attributes.block_size - 1) / attributes.block_size;
-    return 0;
+    return {};
 }
 
 int FusePpFS::_map_fs_error_to_errno(FsError err)
