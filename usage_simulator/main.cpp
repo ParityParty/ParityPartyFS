@@ -25,17 +25,16 @@ int main()
     }
     SimpleBitFlipper flipper(disk, 0.005, 1, logger);
     std::vector<SingleDirMockUser> users;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
         auto dir = (std::stringstream() << "/user" << i).str();
         users.push_back(SingleDirMockUser(fs, logger,
-            { .max_write_size = 100, .max_read_size = 100, .avg_steps_between_ops = 10 }, i, dir,
+            { .max_write_size = 500, .max_read_size = 500, .avg_steps_between_ops = 50 }, i, dir,
             i));
     }
 
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 100000; i++) {
         logger.step();
-        flipper.step();
-
+        //        flipper.step();
         // std::for_each(
         //     std::execution::par, users.begin(), users.end(), [](auto& user) { user.step(); });
         for (auto& user : users) {

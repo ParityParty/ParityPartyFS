@@ -23,6 +23,7 @@ enum class FsError {
     // Block manager errors
     BlockManager_AlreadyTaken,
     BlockManager_AlreadyFree,
+    BlockManager_NoMoreFreeBlocks,
 
     // Block device errors
     BlockDevice_CorrectionError,
@@ -56,6 +57,7 @@ enum class FsError {
     InodeManager_AlreadyTaken,
     InodeManager_NotFound,
     InodeManager_AlreadyFree,
+    InodeManager_NoMoreFreeInodes,
 
     // Mutex errors
     Mutex_InitFailed,
@@ -84,6 +86,8 @@ inline std::string_view toString(FsError err)
         return "BlockManager_AlreadyTaken";
     case FsError::BlockManager_AlreadyFree:
         return "BlockManager_AlreadyFree";
+    case FsError::BlockManager_NoMoreFreeBlocks:
+        return "BlockManager_NoMoreFreeBlocks";
 
     case FsError::BlockDevice_CorrectionError:
         return "BlockDevice_CorrectionError";
@@ -132,6 +136,8 @@ inline std::string_view toString(FsError err)
         return "InodeManager_NotFound";
     case FsError::InodeManager_AlreadyFree:
         return "InodeManager_AlreadyFree";
+    case FsError::InodeManager_NoMoreFreeInodes:
+        return "InodeManager_NoMoreFreeInodes";
 
     case FsError::Mutex_InitFailed:
         return "Mutex_InitFailed";

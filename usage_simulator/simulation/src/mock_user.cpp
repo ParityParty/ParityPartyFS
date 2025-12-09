@@ -13,7 +13,9 @@ void SingleDirMockUser::_createFile()
         _logger.logError(toString(ret.error()));
     } else {
         _root->children.push_back(fn);
-        _logger.logMsg((std::stringstream() << "Created file number: " << _file_id - 1).str());
+        _logger.logMsg((std::stringstream()
+            << "User " << static_cast<int>(_id) << " Created file number: " << _file_id - 1)
+                .str());
     }
 }
 void SingleDirMockUser::_writeToFile()
@@ -88,6 +90,24 @@ void SingleDirMockUser::_readFromFile()
         _logger.logError(toString(close_ret.error()));
     }
 }
+void SingleDirMockUser::_deleteFile()
+{
+    if (_root->children.size() <= 0) {
+        return;
+    }
+    std::uniform_int_distribution<int> file_distribution(0, _root->children.size() - 1);
+    auto index = file_distribution(_rng);
+    auto file = _root->children.at(index);
+    auto ret = _fs.remove(file->name);
+    if (!ret.has_value()) {
+        _logger.logError(toString(ret.error()));
+    } else {
+        _root->children.erase(_root->children.begin() + index);
+        _logger.logMsg((std::stringstream()
+            << "User " << static_cast<int>(index) << " deleted file: " << file->name)
+                .str());
+    }
+}
 SingleDirMockUser::SingleDirMockUser(IFilesystem& fs, Logger& logger, UserBehaviour behaviour,
     std::uint8_t id, std::string_view dir, unsigned int seed)
     : _fs(fs)
@@ -118,7 +138,7 @@ void SingleDirMockUser::step()
     std::uniform_int_distribution<int> next_op_dist(1, 2 * _behaviour.avg_steps_between_ops);
     _to_next_op = next_op_dist(_rng);
 
-    std::discrete_distribution<int> op_dist({ 2, 10, 9 });
+    std::discrete_distribution<int> op_dist({ 2, 10, 9, 2 });
 
     switch (op_dist(_rng)) {
     case 0: {
@@ -134,7 +154,8 @@ void SingleDirMockUser::step()
         break;
     }
     case 3: {
-        // deletes file
+        _deleteFile();
+        break;
     }
     }
 }

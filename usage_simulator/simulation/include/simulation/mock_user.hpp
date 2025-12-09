@@ -32,6 +32,7 @@ class SingleDirMockUser {
     void _createFile();
     void _writeToFile();
     void _readFromFile();
+    void _deleteFile();
 
 public:
     SingleDirMockUser(IFilesystem& fs, Logger& logger, UserBehaviour behaviour, std::uint8_t id,
