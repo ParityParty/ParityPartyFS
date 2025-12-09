@@ -1,6 +1,7 @@
 #include "filesystem/ppfs.hpp"
 #include "common/math_helpers.hpp"
 #include "common/ppfs_mutex.hpp"
+#include "filesystem/mutex_wrapper.hpp"
 #include <cstring>
 #include <numeric>
 
@@ -17,24 +18,6 @@ PpFS::PpFS(IDisk& disk)
     : _disk(disk)
 {
 }
-
-template <typename T, typename Func>
-std::expected<T, FsError> mutex_wrapper(PpFSMutex& mutex, Func f)
-{
-    auto lock = mutex.lock();
-    if (!lock.has_value()) {
-        if (lock.error() == FsError::Mutex_NotInitialized) {
-            return std::unexpected(FsError::PpFS_NotInitialized);
-        }
-        return std::unexpected(lock.error());
-    }
-    auto ret = f();
-    auto unlock = mutex.unlock();
-    if (!unlock.has_value()) {
-        return std::unexpected(unlock.error());
-    }
-    return ret;
-};
 
 bool PpFS::isInitialized() const
 {
@@ -80,7 +63,7 @@ std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(size_t block_si
     default:
         return std::unexpected(FsError::PpFS_InvalidRequest);
     }
-    return { };
+    return {};
 }
 
 std::expected<void, FsError> PpFS::init()
@@ -124,7 +107,7 @@ std::expected<void, FsError> PpFS::init()
         return mutex_init;
     }
 
-    return { };
+    return {};
 }
 
 std::expected<void, FsError> PpFS::format(FsConfig options)
@@ -147,7 +130,7 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     }
 
     // Create superblock
-    SuperBlock sb { };
+    SuperBlock sb {};
     sb.total_blocks = options.total_size / options.block_size;
     sb.total_inodes = options.total_size / options.average_file_size;
     sb.inode_bitmap_address = divCeil(sizeof(SuperBlock) * 2, (size_t)options.block_size);
@@ -228,7 +211,7 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
         return mutex_init;
     }
 
-    return { };
+    return {};
 }
 std::expected<void, FsError> PpFS::create(std::string_view path)
 {
@@ -252,9 +235,9 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::read(
     return mutex_wrapper<std::vector<std::uint8_t>>(
         _mutex, [&]() { return _unprotectedRead(fd, bytes_to_read); });
 }
-std::expected<void, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+std::expected<size_t, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
 {
-    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedWrite(fd, buffer); });
+    return mutex_wrapper<size_t>(_mutex, [&]() { return _unprotectedWrite(fd, buffer); });
 }
 std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
 {
@@ -311,7 +294,7 @@ std::expected<void, FsError> PpFS::_unprotectedCreate(std::string_view path)
         return std::unexpected(add_entry_res.error());
     }
 
-    return { };
+    return {};
 }
 
 bool PpFS::_isPathValid(std::string_view path)
@@ -442,7 +425,7 @@ std::expected<void, FsError> PpFS::_unprotectedClose(file_descriptor_t fd)
     if (!close_res.has_value()) {
         return std::unexpected(close_res.error());
     }
-    return { };
+    return {};
 }
 
 std::expected<void, FsError> PpFS::_checkIfInUseRecursive(inode_index_t inode)
@@ -457,7 +440,7 @@ std::expected<void, FsError> PpFS::_checkIfInUseRecursive(inode_index_t inode)
         if (open_file_res.has_value()) {
             return std::unexpected(FsError::PpFS_FileInUse);
         }
-        return { };
+        return {};
     }
 
     // If directory, check entries recursively
@@ -473,7 +456,7 @@ std::expected<void, FsError> PpFS::_checkIfInUseRecursive(inode_index_t inode)
         }
     }
 
-    return { };
+    return {};
 }
 
 std::expected<void, FsError> PpFS::_removeRecursive(inode_index_t parent, inode_index_t inode)
@@ -506,7 +489,7 @@ std::expected<void, FsError> PpFS::_removeRecursive(inode_index_t parent, inode_
     if (!remove_inode_res.has_value()) {
         return std::unexpected(remove_inode_res.error());
     }
-    return { };
+    return {};
 }
 
 std::expected<void, FsError> PpFS::_unprotectedRemove(std::string_view path, bool recursive)
@@ -551,7 +534,7 @@ std::expected<void, FsError> PpFS::_unprotectedRemove(std::string_view path, boo
     if (!remove_res.has_value()) {
         return std::unexpected(remove_res.error());
     }
-    return { };
+    return {};
 }
 
 std::expected<std::vector<std::uint8_t>, FsError> PpFS::_unprotectedRead(
@@ -649,7 +632,7 @@ std::expected<void, FsError> PpFS::_unprotectedSeek(file_descriptor_t fd, size_t
 
     open_file->position = position;
 
-    return { };
+    return {};
 }
 
 std::expected<void, FsError> PpFS::_unprotectedCreateDirectory(std::string_view path)
@@ -693,7 +676,7 @@ std::expected<void, FsError> PpFS::_unprotectedCreateDirectory(std::string_view 
         return std::unexpected(add_entry_res.error());
     }
 
-    return { };
+    return {};
 }
 
 std::expected<std::vector<std::string>, FsError> PpFS::_unprotectedReadDirectory(
