@@ -2,6 +2,7 @@
 
 #include <expected>
 
+#include "common/ppfs_mutex.hpp"
 #include "common/types.hpp"
 
 template <typename T, typename Func>

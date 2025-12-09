@@ -56,7 +56,7 @@ template <class T> low_level_fuse::t_lseek low_level_fuse::FuseWrapper<T>::_lsee
 
 template <class T> struct fuse_lowlevel_ops low_level_fuse::FuseWrapper<T>::_operations;
 
-FusePpFS::FusePpFS(PpFSLinux& ppfs)
+FusePpFS::FusePpFS(PpFSLowLevel& ppfs)
     : _ppfs(ppfs)
 {
 }
@@ -408,7 +408,6 @@ int FusePpFS::_map_fs_error_to_errno(FsError err)
     case FsError::PpFS_DirectoryNotEmpty:
         return ENOTEMPTY; // Directory not empty
 
-    case FsError::PPFS_FAT_InvalidRequest:
     case FsError::DirectoryManager_InvalidRequest:
     case FsError::FileIO_InvalidRequest:
     case FsError::PpFS_InvalidRequest:
@@ -416,7 +415,6 @@ int FusePpFS::_map_fs_error_to_errno(FsError err)
     case FsError::PpFS_InvalidPath:
         return EINVAL; // Invalid argument
 
-    case FsError::PPFS_FAT_OutOfBounds:
     case FsError::Bitmap_IndexOutOfRange:
     case FsError::Disk_OutOfBounds:
     case FsError::FileIO_OutOfBounds:

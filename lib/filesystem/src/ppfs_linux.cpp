@@ -1,54 +1,55 @@
-#include "filesystem/ppfs_linux.hpp"
-#include "mutex_wrapper.hpp"
+#include "filesystem/mutex_wrapper.hpp"
+#include "filesystem/ppfs_low_level.hpp"
 
 #include <cstring>
 
-PpFSLinux::PpFSLinux(IDisk& disk)
+PpFSLowLevel::PpFSLowLevel(IDisk& disk)
     : PpFS(disk)
 {
 }
 
-std::expected<FileAttributes, FsError> PpFSLinux::getAttributes(inode_index_t inode_index)
+std::expected<FileAttributes, FsError> PpFSLowLevel::getAttributes(inode_index_t inode_index)
 {
     return mutex_wrapper<FileAttributes>(
         _mutex, [&]() { return _unprotectedGetAttributes(inode_index); });
 }
 
-std::expected<inode_index_t, FsError> PpFSLinux::lookup(
+std::expected<inode_index_t, FsError> PpFSLowLevel::lookup(
     inode_index_t parent_index, std::string_view name)
 {
     return mutex_wrapper<inode_index_t>(
         _mutex, [&]() { return _unprotectedLookup(parent_index, name); });
 }
 
-std::expected<std::vector<DirectoryEntry>, FsError> PpFSLinux::getDirectoryEntries(
+std::expected<std::vector<DirectoryEntry>, FsError> PpFSLowLevel::getDirectoryEntries(
     inode_index_t inode)
 {
     return mutex_wrapper<std::vector<DirectoryEntry>>(
         _mutex, [&]() { return _unprotectedGetDirectoryEntries(inode); });
 }
 
-std::expected<inode_index_t, FsError> PpFSLinux::createDirectoryByParent(
+std::expected<inode_index_t, FsError> PpFSLowLevel::createDirectoryByParent(
     inode_index_t parent, std::string_view name)
 {
     return mutex_wrapper<inode_index_t>(
         _mutex, [&]() { return _unprotectedCreateDirectoryByParent(parent, name); });
 }
 
-std::expected<file_descriptor_t, FsError> PpFSLinux::openByInode(inode_index_t inode, OpenMode mode)
+std::expected<file_descriptor_t, FsError> PpFSLowLevel::openByInode(
+    inode_index_t inode, OpenMode mode)
 {
     return mutex_wrapper<file_descriptor_t>(
         _mutex, [&]() { return _unprotectedOpenByInode(inode, mode); });
 }
 
-std::expected<inode_index_t, FsError> PpFSLinux::createWithParentInode(
+std::expected<inode_index_t, FsError> PpFSLowLevel::createWithParentInode(
     std::string_view name, inode_index_t parent)
 {
     return mutex_wrapper<file_descriptor_t>(
         _mutex, [&]() { return _unprotectedCreateWithParentInode(name, parent); });
 }
 
-std::expected<FileAttributes, FsError> PpFSLinux::_unprotectedGetAttributes(
+std::expected<FileAttributes, FsError> PpFSLowLevel::_unprotectedGetAttributes(
     inode_index_t inode_index)
 {
     std::cout << "Getattrs for inode: " << inode_index << std::endl;
@@ -68,7 +69,7 @@ std::expected<FileAttributes, FsError> PpFSLinux::_unprotectedGetAttributes(
     };
 }
 
-std::expected<inode_index_t, FsError> PpFSLinux::_unprotectedLookup(
+std::expected<inode_index_t, FsError> PpFSLowLevel::_unprotectedLookup(
     inode_index_t parent_index, std::string_view name)
 {
     std::cout << "Lookup for inode: " << parent_index << std::endl;
@@ -80,7 +81,7 @@ std::expected<inode_index_t, FsError> PpFSLinux::_unprotectedLookup(
     return lookup_res;
 }
 
-std::expected<inode_index_t, FsError> PpFSLinux::_unprotectedCreateDirectoryByParent(
+std::expected<inode_index_t, FsError> PpFSLowLevel::_unprotectedCreateDirectoryByParent(
     inode_index_t parent, std::string_view name)
 {
     std::cout << "Trying to create file named: " << name << " in parent: " << parent << std::endl;
@@ -106,7 +107,7 @@ std::expected<inode_index_t, FsError> PpFSLinux::_unprotectedCreateDirectoryByPa
     return new_inode_index;
 }
 
-std::expected<std::vector<DirectoryEntry>, FsError> PpFSLinux::_unprotectedGetDirectoryEntries(
+std::expected<std::vector<DirectoryEntry>, FsError> PpFSLowLevel::_unprotectedGetDirectoryEntries(
     inode_index_t inode)
 {
     if (!isInitialized()) {
@@ -116,7 +117,7 @@ std::expected<std::vector<DirectoryEntry>, FsError> PpFSLinux::_unprotectedGetDi
     return _directoryManager->getEntries(inode);
 }
 
-std::expected<file_descriptor_t, FsError> PpFSLinux::_unprotectedOpenByInode(
+std::expected<file_descriptor_t, FsError> PpFSLowLevel::_unprotectedOpenByInode(
     inode_index_t inode, OpenMode mode)
 {
     if (!isInitialized()) {
@@ -130,7 +131,7 @@ std::expected<file_descriptor_t, FsError> PpFSLinux::_unprotectedOpenByInode(
     return open_res.value();
 }
 
-std::expected<inode_index_t, FsError> PpFSLinux::_unprotectedCreateWithParentInode(
+std::expected<inode_index_t, FsError> PpFSLowLevel::_unprotectedCreateWithParentInode(
     std::string_view name, inode_index_t parent)
 {
     if (!isInitialized()) {

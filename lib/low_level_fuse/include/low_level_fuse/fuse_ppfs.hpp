@@ -1,19 +1,19 @@
 #pragma once
 
-#include "filesystem/ppfs_linux.hpp"
+#include "filesystem/ppfs_low_level.hpp"
 #include "low_level_fuse/fuse_wrapper.hpp"
 
 using namespace low_level_fuse;
 
 class FusePpFS : public FuseWrapper<FusePpFS> {
 private:
-    PpFSLinux& _ppfs;
+    PpFSLowLevel& _ppfs;
 
     int _get_stats(fuse_ino_t ino, struct stat* stbuf);
     static int _map_fs_error_to_errno(FsError err);
 
 public:
-    FusePpFS(PpFSLinux& ppfs);
+    FusePpFS(PpFSLowLevel& ppfs);
     ~FusePpFS() = default;
 
     static void getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
