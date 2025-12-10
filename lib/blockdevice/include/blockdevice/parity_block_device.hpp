@@ -1,6 +1,9 @@
 #pragma once
 
 #include "blockdevice/iblock_device.hpp"
+#include <memory>
+
+class Logger;
 
 /**
  * Simple parity-based block device for error detection.
@@ -11,7 +14,7 @@
 class ParityBlockDevice : public IBlockDevice {
 public:
     /** Constructs a parity-protected block device of given block size. */
-    ParityBlockDevice(int block_size, IDisk& disk);
+    ParityBlockDevice(int block_size, IDisk& disk, std::shared_ptr<Logger> logger = nullptr);
 
     /**
      * Writes data with an appended parity byte.
@@ -43,6 +46,7 @@ private:
     IDisk& _disk; /**< Reference to the underlying disk. */
     const int _raw_block_size; /**< Total block size including parity. */
     const int _data_size; /**< Usable data size without parity. */
+    std::shared_ptr<Logger> _logger; /**< Optional logger for error detection. */
 
     /** Calculates overall parity of the block (used to detect bit flips). */
     bool _checkParity(std::vector<std::uint8_t> data);

@@ -26,6 +26,7 @@ static constexpr size_t MAX_OPEN_FILES = 32;
 class PpFS : public virtual IFilesystem {
 protected:
     IDisk& _disk;
+    std::shared_ptr<Logger> _logger;
 
     std::variant<std::monostate, RawBlockDevice, CrcBlockDevice, HammingBlockDevice,
         ParityBlockDevice, ReedSolomonBlockDevice>
@@ -83,7 +84,7 @@ protected:
     [[nodiscard]] virtual std::expected<std::size_t, FsError> _unprotectedGetFileCount() const;
 
 public:
-    PpFS(IDisk& disk);
+    PpFS(IDisk& disk, std::shared_ptr<Logger> logger = nullptr);
 
     [[nodiscard]] virtual std::expected<void, FsError> init() override;
     [[nodiscard]] virtual std::expected<void, FsError> format(FsConfig options) override;

@@ -19,7 +19,7 @@ struct FileNode {
 
 class SingleDirMockUser {
     IFilesystem& _fs;
-    Logger& _logger;
+    std::shared_ptr<Logger> _logger;
     UserBehaviour _behaviour;
 
     std::string _dir;
@@ -35,7 +35,7 @@ class SingleDirMockUser {
 
 public:
     const std::uint8_t id;
-    SingleDirMockUser(IFilesystem& fs, Logger& logger, UserBehaviour behaviour, std::uint8_t id,
-        std::string_view dir, unsigned int seed);
+    SingleDirMockUser(IFilesystem& fs, std::shared_ptr<Logger> logger, UserBehaviour behaviour,
+        std::uint8_t id, std::string_view dir, unsigned int seed);
     void step();
 };

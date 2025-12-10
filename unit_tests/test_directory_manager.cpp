@@ -9,7 +9,7 @@ TEST(DirectoryManager, compiles)
 {
     StackDisk disk;
     RawBlockDevice dev(64, disk);
-    BlockManager bm(0, 1024, dev);
+    BlockManager bm(SuperBlock { }, dev);
     InodeManager im(dev, *(new SuperBlock()));
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
@@ -20,10 +20,17 @@ TEST(DirectoryManager, AddAndReadEntries)
     StackDisk disk;
     RawBlockDevice dev(1024, disk);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 1024
+        .total_inodes = 1,
+        .block_bitmap_address = 2,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 3,
+        .last_data_block_address = 1024,
+        .block_size = 1024,
     };
     InodeManager im(dev, superblock);
-    BlockManager bm(2, 1024, dev);
+
+    BlockManager bm(superblock, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
 
@@ -48,10 +55,16 @@ TEST(DirectoryManager, RemoveFirstOfMultipleEntries)
     StackDisk disk;
     RawBlockDevice dev(1024, disk);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 1024
+        .total_inodes = 1,
+        .block_bitmap_address = 2,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 3,
+        .last_data_block_address = 1024,
+        .block_size = 1024,
     };
     InodeManager im(dev, superblock);
-    BlockManager bm(2, 1024, dev);
+    BlockManager bm(superblock, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
 
@@ -87,10 +100,16 @@ TEST(DirectoryManager, AddDuplicateNameFails)
     StackDisk disk;
     RawBlockDevice dev(1024, disk);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 1024
+        .total_inodes = 1,
+        .block_bitmap_address = 2,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 3,
+        .last_data_block_address = 1024,
+        .block_size = 1024,
     };
     InodeManager im(dev, superblock);
-    BlockManager bm(2, 1024, dev);
+    BlockManager bm(superblock, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
 
@@ -116,10 +135,16 @@ TEST(DirectoryManager, RemoveNonexistentEntryFails)
     StackDisk disk;
     RawBlockDevice dev(1024, disk);
     SuperBlock superblock {
-        .total_inodes = 1, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 1024
+        .total_inodes = 1,
+        .block_bitmap_address = 2,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 3,
+        .last_data_block_address = 1024,
+        .block_size = 1024,
     };
     InodeManager im(dev, superblock);
-    BlockManager bm(2, 1024, dev);
+    BlockManager bm(superblock, dev);
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
 

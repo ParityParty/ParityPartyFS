@@ -14,8 +14,9 @@
 
 #include <mutex>
 
-PpFS::PpFS(IDisk& disk)
+PpFS::PpFS(IDisk& disk, std::shared_ptr<Logger> logger)
     : _disk(disk)
+    , _logger(logger)
 {
 }
 
@@ -39,23 +40,24 @@ std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(
         break;
     }
     case ECCType::Parity: {
-        _blockDeviceStorage.emplace<ParityBlockDevice>(block_size, _disk);
+        _blockDeviceStorage.emplace<ParityBlockDevice>(block_size, _disk, _logger);
         _blockDevice = &std::get<ParityBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::Crc: {
         auto crc_polynomial = CrcPolynomial::MsgExplicit(polynomial);
-        _blockDeviceStorage.emplace<CrcBlockDevice>(crc_polynomial, _disk, block_size);
+        _blockDeviceStorage.emplace<CrcBlockDevice>(crc_polynomial, _disk, block_size, _logger);
         _blockDevice = &std::get<CrcBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::Hamming: {
-        _blockDeviceStorage.emplace<HammingBlockDevice>(binLog(block_size), _disk);
+        _blockDeviceStorage.emplace<HammingBlockDevice>(binLog(block_size), _disk, _logger);
         _blockDevice = &std::get<HammingBlockDevice>(_blockDeviceStorage);
         break;
     }
     case ECCType::ReedSolomon: {
-        _blockDeviceStorage.emplace<ReedSolomonBlockDevice>(_disk, block_size, correctable_bytes);
+        _blockDeviceStorage.emplace<ReedSolomonBlockDevice>(
+            _disk, block_size, correctable_bytes, _logger);
         _blockDevice = &std::get<ReedSolomonBlockDevice>(_blockDeviceStorage);
         break;
     }
@@ -89,9 +91,7 @@ std::expected<void, FsError> PpFS::init()
     _inodeManager = &std::get<InodeManager>(_inodeManagerStorage);
 
     // Create block manager
-    auto first = _superBlock.first_data_blocks_address;
-    auto last = _superBlock.last_data_block_address;
-    _blockManagerStorage.emplace<BlockManager>(first, last - first + 1, *_blockDevice);
+    _blockManagerStorage.emplace<BlockManager>(_superBlock, *_blockDevice);
     _blockManager = &std::get<BlockManager>(_blockManagerStorage);
 
     // Create file IO
@@ -186,9 +186,7 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     }
 
     // Create and format block manager
-    auto first = sb.first_data_blocks_address;
-    auto last = sb.last_data_block_address;
-    _blockManagerStorage.emplace<BlockManager>(first, last - first + 1, *_blockDevice);
+    _blockManagerStorage.emplace<BlockManager>(_superBlock, *_blockDevice);
     _blockManager = &std::get<BlockManager>(_blockManagerStorage);
     auto format_block_res = _blockManager->format();
     if (!format_block_res.has_value()) {
@@ -599,6 +597,7 @@ std::expected<size_t, FsError> PpFS::_unprotectedWrite(
     open_file->position = offset + buffer.size();
 
     return write_res.value();
+
 }
 
 std::expected<void, FsError> PpFS::_unprotectedSeek(file_descriptor_t fd, size_t position)

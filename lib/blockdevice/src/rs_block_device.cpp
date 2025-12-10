@@ -1,16 +1,9 @@
 #include "blockdevice/rs_block_device.hpp"
+
+#include "data_collection/data_colection.hpp"
 #include "ecc_helpers/gf256_utils.hpp"
 
 #include <iostream>
-
-ReedSolomonBlockDevice::ReedSolomonBlockDevice(
-    IDisk& disk, size_t raw_block_size, size_t correctable_bytes)
-    : _disk(disk)
-{
-    _raw_block_size = std::min(raw_block_size, static_cast<size_t>(MAX_BLOCK_SIZE));
-    _correctable_bytes = std::min(correctable_bytes, _raw_block_size / 2);
-    _generator = _calculateGenerator();
-}
 
 size_t ReedSolomonBlockDevice::numOfBlocks() const { return _disk.size() / _raw_block_size; }
 
@@ -35,12 +28,21 @@ std::expected<std::vector<std::uint8_t>, FsError> ReedSolomonBlockDevice::readBl
         return std::unexpected(raw_block.error());
     }
 
-    auto decoded_data = _fixBlockAndExtract(raw_block.value());
+    auto decoded_data = _fixBlockAndExtract(raw_block.value(), data_location.block_index);
 
     return std::vector<std::uint8_t>(decoded_data.begin() + data_location.offset,
         decoded_data.begin() + data_location.offset + bytes_to_read);
 }
 
+ReedSolomonBlockDevice::ReedSolomonBlockDevice(
+    IDisk& disk, size_t raw_block_size, size_t correctable_bytes, std::shared_ptr<Logger> logger)
+    : _disk(disk)
+    , _logger(logger)
+{
+    _raw_block_size = std::min(raw_block_size, static_cast<size_t>(MAX_BLOCK_SIZE));
+    _correctable_bytes = std::min(correctable_bytes, _raw_block_size / 2);
+    _generator = _calculateGenerator();
+}
 std::expected<size_t, FsError> ReedSolomonBlockDevice::writeBlock(
     const std::vector<std::uint8_t>& data, DataLocation data_location)
 {
@@ -51,7 +53,7 @@ std::expected<size_t, FsError> ReedSolomonBlockDevice::writeBlock(
         return std::unexpected(raw_block.error());
     }
 
-    auto decoded = _fixBlockAndExtract(raw_block.value());
+    auto decoded = _fixBlockAndExtract(raw_block.value(), data_location.block_index);
 
     std::copy(data.begin(), data.begin() + to_write, decoded.begin() + data_location.offset);
 
@@ -78,7 +80,7 @@ std::vector<std::uint8_t> ReedSolomonBlockDevice::_encodeBlock(std::vector<std::
 }
 
 std::vector<std::uint8_t> ReedSolomonBlockDevice::_fixBlockAndExtract(
-    std::vector<std::uint8_t> raw_bytes)
+    std::vector<std::uint8_t> raw_bytes, block_index_t block_index)
 {
     using namespace gf256_utils;
 
@@ -119,6 +121,11 @@ std::vector<std::uint8_t> ReedSolomonBlockDevice::_fixBlockAndExtract(
     for (size_t i = 0; i < error_positions.size(); i++) {
         auto pos = error_positions[i].log();
         code_word[pos] = code_word[pos] + error_values[i];
+    }
+
+    // TODO: Write fixed version to disk
+    if (_logger) {
+        _logger->logEvent(ErrorCorrectionEvent("ReedSolomon", block_index));
     }
 
     return _extractMessage(code_word);

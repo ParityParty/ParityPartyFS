@@ -8,7 +8,7 @@ TEST(BlockManager, Compiles)
 {
     StackDisk disk;
     HammingBlockDevice device(8, disk);
-    BlockManager block_manager(0, 500, device);
+    BlockManager block_manager(SuperBlock { }, device);
 
     EXPECT_TRUE(true);
 }
@@ -17,7 +17,10 @@ TEST(BlockManager, Formats)
 {
     StackDisk disk;
     RawBlockDevice device(512, disk);
-    BlockManager block_manager(1, 8, device);
+    SuperBlock super_block {
+        .block_bitmap_address = 1, .first_data_blocks_address = 2, .last_data_block_address = 8
+    };
+    BlockManager block_manager(super_block, device);
     ASSERT_TRUE(block_manager.format().has_value());
 
     auto free_ret = block_manager.numFree();
@@ -34,7 +37,10 @@ TEST(BlockManager, FormatsMore)
 {
     StackDisk disk;
     RawBlockDevice device(512, disk);
-    BlockManager block_manager(1, 9, device);
+    SuperBlock super_block {
+        .block_bitmap_address = 1, .first_data_blocks_address = 2, .last_data_block_address = 9
+    };
+    BlockManager block_manager(super_block, device);
     ASSERT_TRUE(block_manager.format().has_value());
 
     auto free_ret = block_manager.numFree();
@@ -49,7 +55,10 @@ TEST(BlockManager, FindsFreeEasy)
 {
     StackDisk disk;
     RawBlockDevice device(512, disk);
-    BlockManager block_manager(1, 9, device);
+    SuperBlock super_block {
+        .block_bitmap_address = 1, .first_data_blocks_address = 2, .last_data_block_address = 9
+    };
+    BlockManager block_manager(super_block, device);
     ASSERT_TRUE(block_manager.format().has_value());
     auto free_ret = block_manager.getFree();
     ASSERT_TRUE(free_ret.has_value());
@@ -60,7 +69,10 @@ TEST(BlockManager, FindsFreeHarder)
 {
     StackDisk disk;
     RawBlockDevice device(512, disk);
-    BlockManager block_manager(1, 9, device);
+    SuperBlock super_block {
+        .block_bitmap_address = 1, .first_data_blocks_address = 2, .last_data_block_address = 9
+    };
+    BlockManager block_manager(super_block, device);
     ASSERT_TRUE(block_manager.format().has_value());
     auto free_ret = block_manager.getFree();
     ASSERT_TRUE(free_ret.has_value());
@@ -75,7 +87,10 @@ TEST(BlockManager, Reserves)
 {
     StackDisk disk;
     RawBlockDevice device(512, disk);
-    BlockManager block_manager(1, 9, device);
+    SuperBlock super_block {
+        .block_bitmap_address = 1, .first_data_blocks_address = 2, .last_data_block_address = 9
+    };
+    BlockManager block_manager(super_block, device);
     ASSERT_TRUE(block_manager.format().has_value());
     ASSERT_TRUE(block_manager.reserve(2).has_value());
     ASSERT_TRUE(block_manager.reserve(4).has_value());
@@ -88,7 +103,10 @@ TEST(BlockManager, Frees)
 {
     StackDisk disk;
     RawBlockDevice device(512, disk);
-    BlockManager block_manager(1, 9, device);
+    SuperBlock super_block {
+        .block_bitmap_address = 1, .first_data_blocks_address = 2, .last_data_block_address = 9
+    };
+    BlockManager block_manager(super_block, device);
     ASSERT_TRUE(block_manager.format().has_value());
     ASSERT_TRUE(block_manager.reserve(2).has_value());
     ASSERT_TRUE(block_manager.reserve(4).has_value());
@@ -108,7 +126,10 @@ TEST(BlockManager, Counts)
     // Setup bitmap
     StackDisk disk;
     RawBlockDevice device(512, disk);
-    BlockManager block_manager(1, 9, device);
+    SuperBlock super_block {
+        .block_bitmap_address = 1, .first_data_blocks_address = 2, .last_data_block_address = 9
+    };
+    BlockManager block_manager(super_block, device);
     ASSERT_TRUE(block_manager.format().has_value());
     ASSERT_TRUE(block_manager.reserve(2).has_value());
     ASSERT_TRUE(block_manager.reserve(4).has_value());
@@ -118,7 +139,7 @@ TEST(BlockManager, Counts)
 
     // Make new manager to count
 
-    BlockManager bm2(1, 9, device);
+    BlockManager bm2(super_block, device);
     auto free_ret = bm2.numFree();
     ASSERT_TRUE(free_ret.has_value());
     EXPECT_EQ(free_ret.value(), 6);

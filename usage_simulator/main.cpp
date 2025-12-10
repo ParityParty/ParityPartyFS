@@ -9,14 +9,14 @@
 
 int main()
 {
-    Logger logger;
+    std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::Medium);
     StackDisk disk;
-    PpFS fs(disk);
+    PpFS fs(disk, logger);
     if (!fs.format(FsConfig {
                        .total_size = disk.size(),
                        .average_file_size = 2000,
                        .block_size = 256,
-                       .ecc_type = ECCType::ReedSolomon,
+                       .ecc_type = ECCType::Hamming,
                        .rs_correctable_bytes = 3,
                        .use_journal = false,
                    })
@@ -24,9 +24,9 @@ int main()
         std::cerr << "Failed to format disk" << std::endl;
         return 1;
     }
-    SimpleBitFlipper flipper(disk, 0.5, 1, logger);
+    SimpleBitFlipper flipper(disk, 0.1, 1, logger);
     std::vector<SingleDirMockUser> users;
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 10; i++) {
         auto dir = (std::stringstream() << "/user" << i).str();
         users.push_back(SingleDirMockUser(fs, logger,
             { .max_write_size = 500, .max_read_size = 500, .avg_steps_between_ops = 90 }, i, dir,
@@ -35,7 +35,7 @@ int main()
     int iteration = 0;
     constexpr int MAX_ITERATIONS = 10000;
     auto on_completion = [&]() noexcept {
-        logger.step();
+        logger->step();
         flipper.step();
         iteration++;
     };
@@ -48,7 +48,7 @@ int main()
         }
     };
 
-    logger.step();
+    logger->step();
     flipper.step();
 
     std::vector<std::jthread> threads;

@@ -18,4 +18,5 @@ target_link_libraries(${NAME}
         directory_manager
         blockdevice
         common
+        data_collection
 )
