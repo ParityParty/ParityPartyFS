@@ -24,7 +24,7 @@ Other presets you can use:
 
 - `debug` → Debug mode (with tests, symbols).
 - `release` → Release mode (optimized).
-- `freertos_debug` 
+- `freertos_debug`
 - `freertos_release`
 
 ## ▶️ Run the filesystem
@@ -66,4 +66,15 @@ ctest --preset debug
 
 ```bash
 ./build/release/performance_tests/performance_tests --benchmark_counters_tabular=true
+```
+
+## Run Usage Simulator
+
+Usage simulator creates filesystem instance and runs threads doing operations on it. There are random bit flips
+performed during the simulation.
+There is a configuration file allowing to modify simulation parameters. Example configuration can be found in
+`usage_simulator/simulation_config.txt`
+
+```bash
+./build/release/usage_simulator/usage_simulator <path_to_config_file>
 ```

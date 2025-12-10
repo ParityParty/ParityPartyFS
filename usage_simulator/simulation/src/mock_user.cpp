@@ -139,7 +139,8 @@ void SingleDirMockUser::step()
     std::uniform_int_distribution<int> next_op_dist(1, 2 * _behaviour.avg_steps_between_ops);
     _to_next_op = next_op_dist(_rng);
 
-    std::discrete_distribution<int> op_dist({ 2, 10, 9, 2 });
+    std::discrete_distribution<int> op_dist({ _behaviour.create_weight, _behaviour.write_weight,
+        _behaviour.read_weight, _behaviour.delete_weight });
 
     switch (op_dist(_rng)) {
     case 0: {
