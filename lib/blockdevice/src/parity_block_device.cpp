@@ -1,11 +1,14 @@
 #include "blockdevice/parity_block_device.hpp"
+#include "data_collection/data_colection.hpp"
 
 #include <cstdint>
+#include <memory>
 
-ParityBlockDevice::ParityBlockDevice(int block_size, IDisk& disk)
+ParityBlockDevice::ParityBlockDevice(int block_size, IDisk& disk, std::shared_ptr<Logger> logger)
     : _raw_block_size(block_size)
     , _data_size(block_size - 1)
     , _disk(disk)
+    , _logger(logger)
 {
 }
 
@@ -30,8 +33,12 @@ std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
         return std::unexpected(raw_block.error());
 
     bool parity = _checkParity(raw_block.value());
-    if (!parity)
+    if (!parity) {
+        if (_logger) {
+            _logger->logEvent(ErrorDetectionEvent("Parity", data_location.block_index));
+        }
         return std::unexpected(FsError::BlockDevice_CorrectionError);
+    }
 
     std::copy(
         data.begin(), data.begin() + to_write, raw_block.value().begin() + data_location.offset);
@@ -54,8 +61,12 @@ std::expected<std::vector<std::uint8_t>, FsError> ParityBlockDevice::readBlock(
         return std::unexpected(raw_block.error());
 
     bool parity = _checkParity(raw_block.value());
-    if (!parity)
+    if (!parity) {
+        if (_logger) {
+            _logger->logEvent(ErrorDetectionEvent("Parity", data_location.block_index));
+        }
         return std::unexpected(FsError::BlockDevice_CorrectionError);
+    }
 
     auto data = raw_block.value();
     return std::vector<std::uint8_t>(

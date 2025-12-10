@@ -1,8 +1,11 @@
 #pragma once
 #include "blockdevice/iblock_device.hpp"
 #include "ecc_helpers/polynomial_gf256.hpp"
+#include <memory>
 
 #define MAX_BLOCK_SIZE 255
+
+class Logger;
 
 /**
  * Implements a block device with Reed-Solomon error correction.
@@ -27,8 +30,10 @@ public:
      *        If the requested value exceeds half of the block size, it will be
      *        automatically reduced to raw_block_size / 2 (hich effectively
      *        makes the block unusable, so we really recommend providing the right configuration.
+     * @param logger Optional shared_ptr to Logger for tracking error corrections
      */
-    ReedSolomonBlockDevice(IDisk& disk, size_t raw_block_size, size_t correctable_bytes);
+    ReedSolomonBlockDevice(IDisk& disk, size_t raw_block_size, size_t correctable_bytes,
+        std::shared_ptr<Logger> logger = nullptr);
 
     /** Writes data to a block at the specified location. */
     [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
@@ -57,12 +62,14 @@ private:
     size_t _raw_block_size; /**< Total size of one encoded block in bytes (data + redundancy). */
     size_t
         _correctable_bytes; /**< Number of individual bytes that the code can detect and correct. */
+    std::shared_ptr<Logger> _logger; /**< Optional logger for error corrections. */
 
     /** Encodes data into a full RS block with parity bytes. */
     std::vector<std::uint8_t> _encodeBlock(std::vector<std::uint8_t>);
 
     /** Fixes a block using Reed-Solomon decoding. After fixing, data is returned. */
-    std::vector<std::uint8_t> _fixBlockAndExtract(std::vector<std::uint8_t>);
+    std::vector<std::uint8_t> _fixBlockAndExtract(
+        std::vector<std::uint8_t>, block_index_t block_index);
 
     /** Computes the RS generator polynomial. */
     PolynomialGF256 _calculateGenerator();

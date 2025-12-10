@@ -18,4 +18,5 @@ target_link_libraries(${NAME}
         disk
         ecc_helpers
         common
+        data_collection
 )

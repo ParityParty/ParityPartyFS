@@ -13,9 +13,10 @@ class SimpleBitFlipper final : public IBitFlipper {
     IDisk& _disk;
     float _flip_chance;
     std::mt19937 _rng;
-    Logger& _logger;
+    std::shared_ptr<Logger> _logger;
 
 public:
-    SimpleBitFlipper(IDisk& disk, float flip_chance, unsigned int seed, Logger& logger);
+    SimpleBitFlipper(
+        IDisk& disk, float flip_chance, unsigned int seed, std::shared_ptr<Logger> logger);
     void step() override;
 };

@@ -9,9 +9,9 @@
 
 int main()
 {
-    Logger logger;
+    std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::Medium);
     StackDisk disk;
-    PpFS fs(disk);
+    PpFS fs(disk, logger);
     if (!fs.format(FsConfig {
                        .total_size = disk.size(),
                        .average_file_size = 2000,
@@ -35,7 +35,7 @@ int main()
     int iteration = 0;
     constexpr int MAX_ITERATIONS = 10000;
     auto on_completion = [&]() noexcept {
-        logger.step();
+        logger->step();
         flipper.step();
         iteration++;
     };
@@ -48,7 +48,7 @@ int main()
         }
     };
 
-    logger.step();
+    logger->step();
     flipper.step();
 
     std::vector<std::jthread> threads;

@@ -1,8 +1,10 @@
 #include "blockdevice/crc_block_device.hpp"
 #include "common/bit_helpers.hpp"
+#include "data_collection/data_colection.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <utility>
 
 std::expected<std::vector<std::uint8_t>, FsError> CrcBlockDevice::_readAndCheckRaw(
@@ -23,6 +25,9 @@ std::expected<std::vector<std::uint8_t>, FsError> CrcBlockDevice::_readAndCheckR
 
     // reminder should be 0
     if (std::ranges::contains(remainder.begin(), remainder.end(), true)) {
+        if (_logger) {
+            _logger->logEvent(ErrorDetectionEvent("CRC", block_index));
+        }
         return std::unexpected(FsError::BlockDevice_CorrectionError);
     }
     return block;
@@ -53,10 +58,12 @@ std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
     return {};
 }
 
-CrcBlockDevice::CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t block_size)
+CrcBlockDevice::CrcBlockDevice(
+    CrcPolynomial polynomial, IDisk& disk, size_t block_size, std::shared_ptr<Logger> logger)
     : _polynomial(std::move(polynomial))
     , _disk(disk)
     , _block_size(block_size)
+    , _logger(logger)
 {
 }
 
