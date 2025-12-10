@@ -99,25 +99,37 @@ protected:
     void TearDown() override { fs.reset(); }
 };
 
-// Helper function to generate all test configurations
-inline std::vector<TestConfig> generateTestConfigs()
+inline std::vector<TestConfig> generateCrcConfigs()
 {
     std::vector<TestConfig> configs;
 
     // Block sizes for non-Reed-Solomon ECC types
     std::vector<uint32_t> standard_block_sizes = { 256, 1024, 4096 };
 
-    // ECC types that use standard block sizes
-    std::vector<ECCType> standard_ecc_types
-        = { ECCType::None, /*ECCType::Parity, */ ECCType::Crc, ECCType::Hamming };
+    // Generate configurations for standard ECC types
+    for (auto block_size : standard_block_sizes) {
+        configs.emplace_back(ECCType::Crc, block_size);
+    }
+    return configs;
+}
+
+inline std::vector<TestConfig> generateHammingConfigs()
+{
+    std::vector<TestConfig> configs;
+
+    // Block sizes for non-Reed-Solomon ECC types
+    std::vector<uint32_t> standard_block_sizes = { 256, 1024, 4096 };
 
     // Generate configurations for standard ECC types
-    for (auto ecc_type : standard_ecc_types) {
-        for (auto block_size : standard_block_sizes) {
-            configs.emplace_back(ecc_type, block_size);
-        }
+    for (auto block_size : standard_block_sizes) {
+        configs.emplace_back(ECCType::Hamming, block_size);
     }
+    return configs;
+}
 
+inline std::vector<TestConfig> generateRSConfigs()
+{
+    std::vector<TestConfig> configs;
     // Reed-Solomon: only block size 256, with rs_correctable_bytes 1-3
     std::vector<uint32_t> rs_block_sizes = { 256 };
     std::vector<uint32_t> rs_correctable_values = { 1, 2, 3 };
@@ -127,6 +139,36 @@ inline std::vector<TestConfig> generateTestConfigs()
             configs.emplace_back(ECCType::ReedSolomon, block_size, rs_bytes);
         }
     }
+
+    return configs;
+}
+
+inline std::vector<TestConfig> generateNonEccConfigs()
+{
+    std::vector<TestConfig> configs;
+
+    // Block sizes for non-Reed-Solomon ECC types
+    std::vector<uint32_t> standard_block_sizes = { 256, 1024, 4096 };
+
+    // Generate configurations for standard ECC types
+    for (auto block_size : standard_block_sizes) {
+        configs.emplace_back(ECCType::None, block_size);
+    }
+    return configs;
+}
+
+// Helper function to generate all test configurations
+inline std::vector<TestConfig> generateTestConfigs()
+{
+    std::vector<TestConfig> configs;
+    auto hamming = generateHammingConfigs();
+    auto rs = generateRSConfigs();
+    auto nonEcc = generateNonEccConfigs();
+    auto crc = generateCrcConfigs();
+    configs.append_range(nonEcc);
+    configs.append_range(crc);
+    configs.append_range(hamming);
+    configs.append_range(rs);
 
     return configs;
 }

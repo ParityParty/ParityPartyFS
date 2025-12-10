@@ -30,6 +30,10 @@ add_executable(${NAME}
         test_ppfs_parametrized_io.cpp
         test_ppfs_parametrized_ecc.cpp
         test_ppfs_parametrized_multi.cpp
+        test_ppfs_parametrized_hamming.cpp
+        test_ppfs_parametrized_crc.cpp
+        test_ppfs_parametrized_none.cpp
+        test_ppfs_parametrized_reed_solomon.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC
