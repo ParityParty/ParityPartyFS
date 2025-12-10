@@ -11,23 +11,31 @@ block_index_t BlockManager::_toAbsolute(block_index_t relative_block) const
 {
     return relative_block + _data_blocks_start;
 }
-
-BlockManager::BlockManager(
-    block_index_t blocks_start, block_index_t space_for_data_and_bitmap, IBlockDevice& block_device)
-    : _bitmap(block_device, blocks_start,
-          (8 * block_device.dataSize() * space_for_data_and_bitmap)
-              / (1 + 8 * block_device.dataSize()))
+BlockManager::BlockManager(const SuperBlock& sb, IBlockDevice& block_device)
+    : _bitmap(block_device, sb.block_bitmap_address,
+          sb.last_data_block_address - sb.first_data_blocks_address + 1)
+    , _data_blocks_start(sb.first_data_blocks_address)
+    , _num_data_blocks(sb.last_data_block_address - sb.first_data_blocks_address + 1)
 {
-    _data_blocks_start = blocks_start + _bitmap.blocksSpanned();
-    _num_data_blocks = space_for_data_and_bitmap - _bitmap.blocksSpanned();
 }
+
+// Kept for bitmap size calculation
+// BlockManager::BlockManager(
+//     block_index_t blocks_start, block_index_t space_for_data_and_bitmap, IBlockDevice&
+//     block_device) : _bitmap(block_device, blocks_start,
+//      (8 * block_device.dataSize() * space_for_data_and_bitmap)
+//      / (1 + 8 * block_device.dataSize()))
+//{
+//_data_blocks_start = blocks_start + _bitmap.blocksSpanned();
+//_num_data_blocks = space_for_data_and_bitmap - _bitmap.blocksSpanned();
+//}
 
 std::expected<void, FsError> BlockManager::format()
 {
     if (auto ret = _bitmap.setAll(false); !ret.has_value()) {
         return std::unexpected(ret.error());
     }
-    return {};
+    return { };
 }
 
 std::expected<void, FsError> BlockManager::reserve(block_index_t block)
@@ -45,7 +53,7 @@ std::expected<void, FsError> BlockManager::reserve(block_index_t block)
     if (!write_ret.has_value()) {
         return std::unexpected(write_ret.error());
     }
-    return {};
+    return { };
 }
 
 std::expected<void, FsError> BlockManager::free(block_index_t block)
@@ -64,7 +72,7 @@ std::expected<void, FsError> BlockManager::free(block_index_t block)
         return std::unexpected(write_ret.error());
     }
 
-    return {};
+    return { };
 }
 
 std::expected<block_index_t, FsError> BlockManager::getFree()

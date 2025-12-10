@@ -13,4 +13,5 @@ target_include_directories(${NAME} PUBLIC
 target_link_libraries(${NAME}
         bitmap
         blockdevice
+        super_block_manager
 )

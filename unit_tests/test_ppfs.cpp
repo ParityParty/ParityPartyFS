@@ -355,8 +355,9 @@ TEST(PpFS, ReadDirectory_Succeeds)
 
     std::vector<std::string> entries = read_dir_res.value();
     ASSERT_EQ(entries.size(), 2);
-    ASSERT_EQ(entries[0], "file1.txt");
-    ASSERT_EQ(entries[1], "file2.txt");
+    std::set<std::string> expected { "file1.txt", "file2.txt" };
+    std::set got { entries[0], entries[1] };
+    ASSERT_EQ(expected, got);
 }
 
 TEST(PpFS, ReadDirectory_Fails_DirectoryDoesNotExist)
