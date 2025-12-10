@@ -3,7 +3,7 @@
 #include "disk/idisk.hpp"
 
 class StackDisk : public IDisk {
-    static constexpr size_t _size = 1 << 22; // 1MB
+    static constexpr size_t _size = 1 << 22; // 4MB
     std::uint8_t _data[_size] = {};
 
 public:
