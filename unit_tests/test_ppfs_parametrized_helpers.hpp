@@ -7,7 +7,6 @@
 #include "super_block_manager/super_block.hpp"
 #include <cctype>
 #include <gtest/gtest.h>
-#include <iostream>
 #include <memory>
 #include <random>
 #include <string>
@@ -164,10 +163,10 @@ inline std::vector<TestConfig> generateTestConfigs()
     auto rs = generateRSConfigs();
     auto nonEcc = generateNonEccConfigs();
     auto crc = generateCrcConfigs();
-    configs.append_range(nonEcc);
-    configs.append_range(crc);
-    configs.append_range(hamming);
-    configs.append_range(rs);
+    configs.insert(configs.end(), nonEcc.cbegin(), nonEcc.cend());
+    configs.insert(configs.end(), crc.cbegin(), crc.cend());
+    configs.insert(configs.end(), hamming.cbegin(), hamming.cend());
+    configs.insert(configs.end(), rs.cbegin(), rs.cend());
 
     return configs;
 }
