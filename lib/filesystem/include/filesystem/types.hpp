@@ -7,14 +7,20 @@ enum class OpenMode : std::uint8_t {
     // Cursor at the beginning of the file, moves as data is read/written.
     Normal = 0,
 
-    // Cursor always at the end of the file. Read and seek operations fail.
+    // Cursor always at the end of the file. Read and seek operations fail. Cannot be combined with
+    // Protected.
     Append = 1 << 0,
 
-    // Truncates file upon opening.
+    // Truncates the file upon opening. Cannot be combined with Protected.
     Truncate = 1 << 1,
 
-    // Fails if file is already open.
-    Exclusive = 1 << 2
+    // Fails if the file is already open. When the file is open as exclusive, all other opens will
+    // fail.
+    Exclusive = 1 << 2,
+
+    // Ensures that data won't be changed when open. Fails if the file is already open without this
+    // flag. When the file is open as protected, all non-protected opens will fail.
+    Protected = 1 << 3,
 };
 
 inline constexpr OpenMode operator|(OpenMode lhs, OpenMode rhs)

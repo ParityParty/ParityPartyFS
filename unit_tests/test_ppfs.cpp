@@ -344,6 +344,43 @@ TEST(PpFS, ReadDirectory_Succeeds)
     ASSERT_EQ(entries[1], "file2.txt");
 }
 
+TEST(PpFS, ReadDirectory_Succeeds_Partial)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_file_res = fs.create("/file1.txt");
+    ASSERT_TRUE(create_file_res.has_value())
+        << "Create file in directory failed: " << toString(create_file_res.error());
+    auto create_file_res2 = fs.create("/file2.txt");
+    ASSERT_TRUE(create_file_res2.has_value())
+        << "Create file2 in directory failed: " << toString(create_file_res2.error());
+    auto create_dir_res = fs.createDirectory("/mydir");
+    ASSERT_TRUE(create_dir_res.has_value())
+        << "Create directory in directory failed: " << toString(create_dir_res.error());
+
+    auto open_res = fs.open("/");
+    ASSERT_TRUE(open_res.has_value()) << "Open failed: " << toString(open_res.error());
+    auto read_dir_res = fs.readDirectory(open_res.value(), 2, 1);
+    ASSERT_TRUE(read_dir_res.has_value())
+        << "ReadDirectory failed: " << toString(read_dir_res.error());
+    auto close_res = fs.close(open_res.value());
+    ASSERT_TRUE(close_res.has_value()) << "Close failed: " << toString(close_res.error());
+
+    std::vector<std::string> entries = read_dir_res.value();
+    ASSERT_EQ(entries.size(), 2);
+    ASSERT_EQ(entries[0], "file2.txt");
+    ASSERT_EQ(entries[1], "mydir");
+}
+
 TEST(PpFS, ReadDirectory_Fails_DirectoryDoesNotExist)
 {
     StackDisk disk;
@@ -505,6 +542,29 @@ TEST(PpFS, Open_Succeeds_AfterCreatingFile)
     ASSERT_TRUE(open_res.has_value()) << "Open file failed: " << toString(open_res.error());
 }
 
+TEST(PpFS, Open_Fails_IncorrectFlags)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.create("/file.txt");
+    ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
+
+    auto open_res1 = fs.open("/file.txt", OpenMode::Append | OpenMode::Protected);
+    ASSERT_EQ(open_res1.error(), FsError::PpFS_InvalidRequest);
+
+    auto open_res2 = fs.open("/file.txt", OpenMode::Truncate | OpenMode::Protected);
+    ASSERT_EQ(open_res2.error(), FsError::PpFS_InvalidRequest);
+}
+
 TEST(PpFS, Open_MultipleFileDescriptors)
 {
     StackDisk disk;
@@ -587,6 +647,77 @@ TEST(PpFS, Open_Fails_ExclusiveAlreadyOpen)
     auto open_res2 = fs.open("/file.txt", OpenMode::Normal);
     ASSERT_FALSE(open_res2.has_value());
     ASSERT_EQ(open_res2.error(), FsError::PpFS_AlreadyOpen);
+}
+
+TEST(PpFS, Open_Fails_ProtectedAlreadyOpen_1)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.create("/file.txt");
+    ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
+
+    auto open_res1 = fs.open("/file.txt", OpenMode::Normal);
+    ASSERT_TRUE(open_res1.has_value()) << "First open failed: " << toString(open_res1.error());
+
+    auto open_res2 = fs.open("/file.txt", OpenMode::Protected);
+    ASSERT_FALSE(open_res2.has_value());
+    ASSERT_EQ(open_res2.error(), FsError::PpFS_AlreadyOpen);
+}
+
+TEST(PpFS, Open_Fails_ProtectedAlreadyOpen_2)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.create("/file.txt");
+    ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
+
+    auto open_res1 = fs.open("/file.txt", OpenMode::Protected);
+    ASSERT_TRUE(open_res1.has_value()) << "First open failed: " << toString(open_res1.error());
+
+    auto open_res2 = fs.open("/file.txt", OpenMode::Normal);
+    ASSERT_FALSE(open_res2.has_value());
+    ASSERT_EQ(open_res2.error(), FsError::PpFS_AlreadyOpen);
+}
+
+TEST(PpFS, Open_Succeeds_TwoProtected)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.create("/file.txt");
+    ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
+
+    auto open_res1 = fs.open("/file.txt", OpenMode::Protected);
+    ASSERT_TRUE(open_res1.has_value()) << "First open failed: " << toString(open_res1.error());
+
+    auto open_res2 = fs.open("/file.txt", OpenMode::Protected);
+    ASSERT_TRUE(open_res2.has_value());
 }
 
 TEST(PpFS, Close_Fails_NotInitialized)
@@ -1243,6 +1374,31 @@ TEST(PpFS, WriteSeekWriteRead_Succeeds)
     std::vector<uint8_t> expected_data = { 1, 2, 3, 6, 7, 8, 9, 10 };
     ASSERT_EQ(read_data.size(), expected_data.size());
     ASSERT_EQ(read_data, expected_data);
+}
+
+TEST(PpFS, Write_Fails_Protected)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.create("/file.txt");
+    ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
+
+    auto open_res1 = fs.open("/file.txt", OpenMode::Protected);
+    ASSERT_TRUE(open_res1.has_value()) << "First open failed: " << toString(open_res1.error());
+    file_descriptor_t fd1 = open_res1.value();
+
+    const std::vector<uint8_t> data1 = { 1, 2, 3 };
+    auto write_res = fs.write(fd1, data1);
+    ASSERT_EQ(write_res.error(), FsError::PpFS_InvalidRequest);
 }
 
 TEST(PpFS, Write_Succeeds_MultipleFD_AppendMode)

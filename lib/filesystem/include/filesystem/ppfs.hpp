@@ -55,10 +55,10 @@ protected:
     OpenFilesTable<MAX_OPEN_FILES> _openFilesTable;
 
     [[nodiscard]] std::expected<inode_index_t, FsError> _getParentInodeFromPath(
-        std::string_view path);
+        std::string_view path) const;
     [[nodiscard]] std::expected<inode_index_t, FsError> _getInodeFromPath(std::string_view path);
     [[nodiscard]] std::expected<inode_index_t, FsError> _getInodeFromParent(
-        inode_index_t parent_inode, std::string_view path);
+        inode_index_t parent_inode, std::string_view path) const;
     bool _isPathValid(std::string_view path);
     [[nodiscard]] std::expected<void, FsError> _checkIfInUseRecursive(inode_index_t inode);
     [[nodiscard]] std::expected<void, FsError> _removeRecursive(
@@ -81,6 +81,8 @@ protected:
     [[nodiscard]] std::expected<void, FsError> _unprotectedCreateDirectory(std::string_view path);
     [[nodiscard]] std::expected<std::vector<std::string>, FsError> _unprotectedReadDirectory(
         std::string_view path);
+    [[nodiscard]] std::expected<std::vector<std::string>, FsError> _unprotectedReadDirectory(
+        file_descriptor_t fd, std::uint32_t elements = 0, std::uint32_t offset = 0);
     [[nodiscard]] virtual std::expected<std::size_t, FsError> _unprotectedGetFileCount() const;
 
 public:
@@ -104,6 +106,8 @@ public:
         std::string_view path) override;
     [[nodiscard]] virtual std::expected<std::vector<std::string>, FsError> readDirectory(
         std::string_view path) override;
+    [[nodiscard]] virtual std::expected<std::vector<std::string>, FsError> readDirectory(
+        file_descriptor_t fd, std::uint32_t elements = 0, std::uint32_t offset = 0) override;
     virtual bool isInitialized() const override;
     [[nodiscard]] virtual std::expected<std::size_t, FsError> getFileCount() override;
 };

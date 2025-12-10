@@ -13,6 +13,7 @@
  * Interface of basic filesystem operations
  */
 struct IFilesystem {
+    virtual ~IFilesystem() = default;
     /**
      * Initializes filesystem with structures already existing on disk.
      *
@@ -42,10 +43,12 @@ struct IFilesystem {
     virtual std::expected<void, FsError> create(std::string_view path) = 0;
 
     /**
-     * Opens file for read/write operations.
+     * Opens file for read/write and directories for read.
      *
      * Method can check data integrity. Every call to open should be paired with
-     * close one the returned inode
+     * close on the returned file descriptor.
+     *
+     * If the file is a directory, mode argument is ignored.
      *
      * @param path absolute path to file to be opened
      * @param mode mode in which to open the file
@@ -118,7 +121,18 @@ struct IFilesystem {
     /**
      * Read entries of a directory
      *
-     * @param path Absolute path to directory
+     * @param fd file descriptor of the directory
+     * @param elements number of directory entries to read (0 reads all)
+     * @param offset element offset from which to start reading
+     * @return list of filenames on success, error otherwise
+     */
+    virtual std::expected<std::vector<std::string>, FsError> readDirectory(
+        file_descriptor_t fd, std::uint32_t elements = 0, std::uint32_t offset = 0) = 0;
+
+    /**
+     * Read all entries of a directory
+     *
+     * @param path absolute path to directory
      * @return list of filenames on success, error otherwise
      */
     virtual std::expected<std::vector<std::string>, FsError> readDirectory(std::string_view path)
