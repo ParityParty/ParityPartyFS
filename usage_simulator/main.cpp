@@ -3,37 +3,49 @@
 #include "filesystem/ppfs.hpp"
 #include "simulation/bit_flipper.hpp"
 #include "simulation/mock_user.hpp"
+#include "simulation/simulation_config.hpp"
 
 #include <barrier>
+#include <iostream>
 #include <thread>
 
-int main()
+int main(int argc, char* argv[])
 {
+    // Load configuration from file or use defaults
+    SimulationConfig sim_config;
+
+    if (argc > 1) {
+        sim_config = SimulationConfig::loadFromFile(argv[1]);
+        std::cout << "Configuration loaded from: " << argv[1] << std::endl;
+    } else {
+        std::cout << "Usage: " << argv[0] << " <config_file>" << std::endl;
+        std::cout << "Using default configuration" << std::endl;
+    }
+
     std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::Medium);
     StackDisk disk;
     PpFS fs(disk, logger);
     if (!fs.format(FsConfig {
                        .total_size = disk.size(),
                        .average_file_size = 2000,
-                       .block_size = 256,
-                       .ecc_type = ECCType::Hamming,
-                       .rs_correctable_bytes = 3,
-                       .use_journal = false,
+                       .block_size = sim_config.block_size,
+                       .ecc_type = sim_config.ecc_type,
+                       .rs_correctable_bytes = sim_config.rs_correctable_bytes,
+                       .use_journal = sim_config.use_journal,
                    })
             .has_value()) {
         std::cerr << "Failed to format disk" << std::endl;
         return 1;
     }
-    SimpleBitFlipper flipper(disk, 0.1, 1, logger);
+    SimpleBitFlipper flipper(
+        disk, sim_config.bit_flip_probability, sim_config.bit_flip_seed, logger);
     std::vector<SingleDirMockUser> users;
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < static_cast<int>(sim_config.num_users); i++) {
         auto dir = (std::stringstream() << "/user" << i).str();
-        users.push_back(SingleDirMockUser(fs, logger,
-            { .max_write_size = 500, .max_read_size = 500, .avg_steps_between_ops = 90 }, i, dir,
-            i));
+        users.push_back(SingleDirMockUser(fs, logger, sim_config.user_behaviour, i, dir, i));
     }
     int iteration = 0;
-    constexpr int MAX_ITERATIONS = 10000;
+    const int MAX_ITERATIONS = sim_config.max_iterations;
     auto on_completion = [&]() noexcept {
         logger->step();
         flipper.step();

@@ -8,6 +8,10 @@ struct UserBehaviour {
     int max_write_size = 512;
     int max_read_size = 512;
     int avg_steps_between_ops = 10;
+    int create_weight = 2; // Weight for create operation
+    int write_weight = 10; // Weight for write operation
+    int read_weight = 9; // Weight for read operation
+    int delete_weight = 2; // Weight for delete operation
 };
 
 struct FileNode {
