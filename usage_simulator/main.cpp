@@ -16,7 +16,7 @@ int main()
                        .total_size = disk.size(),
                        .average_file_size = 2000,
                        .block_size = 256,
-                       .ecc_type = ECCType::ReedSolomon,
+                       .ecc_type = ECCType::Hamming,
                        .rs_correctable_bytes = 3,
                        .use_journal = false,
                    })
@@ -24,7 +24,7 @@ int main()
         std::cerr << "Failed to format disk" << std::endl;
         return 1;
     }
-    SimpleBitFlipper flipper(disk, 0.5, 1, logger);
+    SimpleBitFlipper flipper(disk, 0.1, 1, logger);
     std::vector<SingleDirMockUser> users;
     for (int i = 0; i < 10; i++) {
         auto dir = (std::stringstream() << "/user" << i).str();
