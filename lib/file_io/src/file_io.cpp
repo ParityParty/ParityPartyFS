@@ -222,8 +222,11 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
     std::vector<block_index_t> indirect_blocks_added;
     // first block in indirect segment
     if (index_in_segment == 0 || (index_in_segment < indexes_per_block && _index_block_1.empty())) {
-        if (_index < _occupied_blocks) {
+        if (index_in_segment != 0 || index_in_segment < _occupied_blocks) {
+            std::cout << index_in_segment << std::endl;
+            std::cout << "Index block 1 size:" << _index_block_1.size();
             // if indirect block already exists, read it
+            std::cout << "READING " << _inode.indirect_block << " AS INDIRECT BLOCK" << std::endl;
             auto read_res = _readIndexBlock(_inode.indirect_block);
             if (!read_res.has_value()) {
                 return std::unexpected(read_res.error());
@@ -231,15 +234,24 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
             if (index_in_segment == 0)
                 indirect_blocks_added.push_back(_inode.indirect_block);
             _index_block_1 = read_res.value();
+            std::cout << "Index block 1 size:" << _index_block_1.size();
         } else {
+            std::cout << index_in_segment << std::endl;
+
+            std::cout << "index in segment: " << index_in_segment << std::endl;
+            std::cout << "Index block 1 size: " << _index_block_1.size() << std::endl;
+            std::cout << "blocks spanned: " << _occupied_blocks << std::endl;
+
             // else, allocate new indirect block
             auto index_res = _findAndReserveBlock();
             if (!index_res.has_value()) {
                 return std::unexpected(index_res.error());
             }
             _inode.indirect_block = index_res.value();
+            std::cout << "CHOSEN " << index_res.value() << " AS INDIRECT BLOCK" << std::endl;
             _block_device.formatBlock(index_res.value());
             _index_block_1 = std::vector<block_index_t>(indexes_per_block);
+            std::cout << "Index block 1 size: " << _index_block_1.size();
             if (index_in_segment == 0)
                 indirect_blocks_added.push_back(_inode.indirect_block);
         }
@@ -267,7 +279,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
 
     if (index_in_segment == 0
         || (index_in_segment < indexes_per_block * indexes_per_block) && _index_block_1.empty()) {
-        if (_index < _occupied_blocks) {
+        if (index_in_segment != 0 || _index < _occupied_blocks) {
             auto read_res = _readIndexBlock(_inode.doubly_indirect_block);
             if (!read_res.has_value()) {
                 return std::unexpected(read_res.error());
@@ -293,7 +305,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
     if (index_in_segment < indexes_per_block * indexes_per_block) {
         // next entry in doubly indirect
         if (index_in_segment % indexes_per_block == 0 || _index_block_2.empty()) {
-            if (_index < _occupied_blocks) {
+            if (index_in_segment % indexes_per_block != 0 || _index < _occupied_blocks) {
                 auto index = (_index - 12 - indexes_per_block) / indexes_per_block;
                 auto read_res = _readIndexBlock(_index_block_1[index]);
                 if (!read_res.has_value()) {
@@ -339,7 +351,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
     if (index_in_segment == 0
         || (index_in_segment < indexes_per_block * indexes_per_block * indexes_per_block
             && _index_block_1.empty())) {
-        if (_index < _occupied_blocks) {
+        if (index_in_segment != 0 || _index < _occupied_blocks) {
             auto read_res = _readIndexBlock(_inode.trebly_indirect_block);
             if (!read_res.has_value()) {
                 return std::unexpected(read_res.error());
@@ -364,8 +376,10 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
 
     if (index_in_segment < indexes_per_block * indexes_per_block * indexes_per_block) {
         if (index_in_segment % (indexes_per_block * indexes_per_block) == 0
-            || _index_block_2.empty()) {
-            if (_index < _occupied_blocks) {
+            || _index_block_2.empty()
+                && index_in_segment % (indexes_per_block * indexes_per_block) == 0) {
+            if (_index < _occupied_blocks
+                || index_in_segment % (indexes_per_block * indexes_per_block) != 0) {
                 auto read_res = _readIndexBlock(
                     _index_block_1[index_in_segment / (indexes_per_block * indexes_per_block)]);
                 if (!read_res.has_value()) {
@@ -394,7 +408,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
         }
 
         if (index_in_segment % indexes_per_block == 0 || _index_block_3.empty()) {
-            if (_index < _occupied_blocks) {
+            if (_index < _occupied_blocks || index_in_segment % indexes_per_block != 0) {
                 auto read_res = _readIndexBlock(
                     _index_block_2[(index_in_segment / indexes_per_block) % indexes_per_block]);
                 if (!read_res.has_value()) {
@@ -452,6 +466,10 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
     auto res = nextWithIndirectBlocksAdded();
     if (!res.has_value())
         return std::unexpected(res.error());
+    auto block = std::get<0>(res.value());
+    if (block == 0) {
+        std::cout << "READING 0 BLOCK AT INDEX: " << _index - 1 << std::endl;
+    }
     return std::get<0>(res.value());
 }
 
