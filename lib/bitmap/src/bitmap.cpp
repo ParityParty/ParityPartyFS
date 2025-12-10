@@ -2,7 +2,6 @@
 #include "common/bit_helpers.hpp"
 
 #include <cmath>
-#include <iostream>
 
 DataLocation Bitmap::_getByteLocation(unsigned int bit_index)
 {
@@ -81,7 +80,6 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
 std::expected<bool, FsError> Bitmap::getBit(unsigned int bit_index)
 {
     if (bit_index >= _bit_count) {
-        std::cout << "ERROR HERE 2" << std::endl;
         return std::unexpected(FsError::Bitmap_IndexOutOfRange);
     }
     auto byte_ret = _getByte(bit_index);
@@ -97,7 +95,6 @@ std::expected<bool, FsError> Bitmap::getBit(unsigned int bit_index)
 std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
 {
     if (bit_index >= _bit_count) {
-        std::cout << "ERROR HERE 1" << std::endl;
         return std::unexpected(FsError::Bitmap_IndexOutOfRange);
     }
     auto byte_ret = _getByte(bit_index);

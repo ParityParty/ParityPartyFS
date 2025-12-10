@@ -18,7 +18,6 @@
 #endif
 
 #include <fuse_lowlevel.h>
-#include <iostream>
 
 namespace low_level_fuse {
 typedef void (*t_init)(void* userdata, struct fuse_conn_info* conn);

@@ -59,7 +59,6 @@ std::expected<inode_index_t, FsError> PpFSLowLevel::createWithParentInode(
 std::expected<FileAttributes, FsError> PpFSLowLevel::_unprotectedGetAttributes(
     inode_index_t inode_index)
 {
-    std::cout << "Getattrs for inode: " << inode_index << std::endl;
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
     }
@@ -79,8 +78,6 @@ std::expected<FileAttributes, FsError> PpFSLowLevel::_unprotectedGetAttributes(
 std::expected<inode_index_t, FsError> PpFSLowLevel::_unprotectedLookup(
     inode_index_t parent_index, std::string_view name)
 {
-    std::cout << "Lookup for inode: " << parent_index << std::endl;
-    std::cout << "Name : " << name << std::endl;
     if (!isInitialized())
         return std::unexpected(FsError::PpFS_NotInitialized);
     auto lookup_res = _getInodeFromParent(parent_index, name);
@@ -91,7 +88,6 @@ std::expected<inode_index_t, FsError> PpFSLowLevel::_unprotectedLookup(
 std::expected<inode_index_t, FsError> PpFSLowLevel::_unprotectedCreateDirectoryByParent(
     inode_index_t parent, std::string_view name)
 {
-    std::cout << "Trying to create file named: " << name << " in parent: " << parent << std::endl;
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
     }
@@ -110,7 +106,6 @@ std::expected<inode_index_t, FsError> PpFSLowLevel::_unprotectedCreateDirectoryB
     if (!add_entry_res.has_value()) {
         return std::unexpected(add_entry_res.error());
     }
-    std::cout << "Great success" << std::endl;
     return new_inode_index;
 }
 
