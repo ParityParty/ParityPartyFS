@@ -42,18 +42,54 @@ std::string WriteEvent::fileName() const { return "write"; }
 std::string BitFlipEvent::prettyPrint() const { return "Oh no! A bit has flipped!"; }
 std::string BitFlipEvent::toCsv() const { return ""; }
 std::string BitFlipEvent::fileName() const { return "flip"; }
+ErrorCorrectionEvent::ErrorCorrectionEvent(std::string ecc_type, block_index_t block_index)
+    : ecc_type { ecc_type }
+    , block_index { block_index }
+{
+}
 std::string ErrorCorrectionEvent::prettyPrint() const
 {
     std::stringstream ss;
-    ss << "Bit flip corrected";
+    ss << "[" << ecc_type << "] Error corrected in block " << block_index;
     return ss.str();
 }
-std::string ErrorCorrectionEvent::toCsv() const { return ""; }
+std::string ErrorCorrectionEvent::toCsv() const
+{
+    std::stringstream ss;
+    ss << ecc_type << "," << block_index;
+    return ss.str();
+}
 std::string ErrorCorrectionEvent::fileName() const { return "correction"; }
+
+ErrorDetectionEvent::ErrorDetectionEvent(std::string ecc_type, block_index_t block_index)
+    : ecc_type { ecc_type }
+    , block_index { block_index }
+{
+}
+std::string ErrorDetectionEvent::prettyPrint() const
+{
+    std::stringstream ss;
+    ss << "[" << ecc_type << "] Error detected in block " << block_index;
+    return ss.str();
+}
+std::string ErrorDetectionEvent::toCsv() const
+{
+    std::stringstream ss;
+    ss << ecc_type << "," << block_index;
+    return ss.str();
+}
+std::string ErrorDetectionEvent::fileName() const { return "detection"; }
+Logger::Logger(LogLevel log_level)
+    : _logLevel(log_level)
+{
+}
 
 void Logger::step() { _step++; }
 void Logger::logEvent(const IEvent& event)
 {
+    if (_logLevel == LogLevel::Error) {
+        return;
+    }
     std::cout << "[INFO ][" << std::setw(6) << std::setfill('0') << _step << "] "
               << event.prettyPrint() << std::endl;
 }
@@ -64,6 +100,8 @@ void Logger::logError(std::string_view msg)
 }
 void Logger::logMsg(std::string_view msg)
 {
-    std::cout << "[INFO ][" << std::setw(6) << std::setfill('0') << _step << "] " << msg
-              << std::endl;
+    if (_logLevel == LogLevel::All) {
+        std::cout << "[INFO ][" << std::setw(6) << std::setfill('0') << _step << "] " << msg
+                  << std::endl;
+    }
 }

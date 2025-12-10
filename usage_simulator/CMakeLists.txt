@@ -6,4 +6,3 @@ target_link_libraries(usage_simulator PRIVATE
 )
 
 add_subdirectory(simulation)
-add_subdirectory(data_collection)

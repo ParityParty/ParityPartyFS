@@ -23,8 +23,10 @@
 
 static constexpr size_t MAX_OPEN_FILES = 32;
 
-class PpFS : public IFilesystem {
+class PpFS : public virtual IFilesystem {
+protected:
     IDisk& _disk;
+    std::shared_ptr<Logger> _logger;
 
     std::variant<std::monostate, RawBlockDevice, CrcBlockDevice, HammingBlockDevice,
         ParityBlockDevice, ReedSolomonBlockDevice>
@@ -61,7 +63,8 @@ class PpFS : public IFilesystem {
     [[nodiscard]] std::expected<void, FsError> _checkIfInUseRecursive(inode_index_t inode);
     [[nodiscard]] std::expected<void, FsError> _removeRecursive(
         inode_index_t parent, inode_index_t inode);
-    [[nodiscard]] std::expected<void, FsError> _createAppropriateBlockDevice(size_t block_size);
+    [[nodiscard]] std::expected<void, FsError> _createAppropriateBlockDevice(size_t block_size,
+        ECCType eccType, std::uint64_t polynomial, std::uint32_t correctable_bytes);
 
     [[nodiscard]] std::expected<void, FsError> _unprotectedCreate(std::string_view path);
     [[nodiscard]] std::expected<file_descriptor_t, FsError> _unprotectedOpen(
@@ -71,7 +74,7 @@ class PpFS : public IFilesystem {
         std::string_view path, bool recursive = false);
     [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _unprotectedRead(
         file_descriptor_t fd, std::size_t bytes_to_read);
-    [[nodiscard]] std::expected<void, FsError> _unprotectedWrite(
+    [[nodiscard]] std::expected<size_t, FsError> _unprotectedWrite(
         file_descriptor_t fd, std::vector<std::uint8_t> buffer);
     [[nodiscard]] std::expected<void, FsError> _unprotectedSeek(
         file_descriptor_t fd, size_t position);
@@ -83,7 +86,7 @@ class PpFS : public IFilesystem {
     [[nodiscard]] virtual std::expected<std::size_t, FsError> _unprotectedGetFileCount() const;
 
 public:
-    PpFS(IDisk& disk);
+    PpFS(IDisk& disk, std::shared_ptr<Logger> logger = nullptr);
 
     [[nodiscard]] virtual std::expected<void, FsError> init() override;
     [[nodiscard]] virtual std::expected<void, FsError> format(FsConfig options) override;
@@ -95,7 +98,7 @@ public:
         std::string_view path, bool recursive = false) override;
     [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> read(
         file_descriptor_t fd, std::size_t bytes_to_read) override;
-    [[nodiscard]] virtual std::expected<void, FsError> write(
+    [[nodiscard]] virtual std::expected<size_t, FsError> write(
         file_descriptor_t fd, std::vector<std::uint8_t> buffer) override;
     [[nodiscard]] virtual std::expected<void, FsError> seek(
         file_descriptor_t fd, size_t position) override;

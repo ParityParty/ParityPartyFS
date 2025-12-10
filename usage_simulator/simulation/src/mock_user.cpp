@@ -10,10 +10,10 @@ void SingleDirMockUser::_createFile()
     auto fn = new FileNode(ss.str(), false, 0, std::vector<FileNode*>());
     auto ret = _fs.create(fn->name);
     if (!ret.has_value()) {
-        _logger.logError(toString(ret.error()));
+        _logger->logError(toString(ret.error()));
     } else {
         _root->children.push_back(fn);
-        _logger.logMsg((std::stringstream()
+        _logger->logMsg((std::stringstream()
             << "User " << static_cast<int>(id) << " Created file number: " << _file_id - 1)
                 .str());
     }
@@ -31,24 +31,24 @@ void SingleDirMockUser::_writeToFile()
 
     auto open_ret = _fs.open(file->name, OpenMode::Append);
     if (!open_ret.has_value()) {
-        _logger.logError(toString(open_ret.error()));
+        _logger->logError(toString(open_ret.error()));
         return;
     }
     auto start = std::chrono::high_resolution_clock::now();
     auto write_ret = _fs.write(open_ret.value(), std::vector<uint8_t>(write_size, id));
     if (!write_ret.has_value()) {
-        _logger.logError(toString(write_ret.error()));
+        _logger->logError(toString(write_ret.error()));
         return;
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     file->size += write_size;
 
-    _logger.logEvent(WriteEvent(write_size, duration));
+    _logger->logEvent(WriteEvent(write_size, duration));
 
     auto close_ret = _fs.close(open_ret.value());
     if (!close_ret.has_value()) {
-        _logger.logError(toString(close_ret.error()));
+        _logger->logError(toString(close_ret.error()));
     }
 }
 void SingleDirMockUser::_readFromFile()
@@ -67,27 +67,27 @@ void SingleDirMockUser::_readFromFile()
 
     auto open_ret = _fs.open(file->name, OpenMode::Normal);
     if (!open_ret.has_value()) {
-        _logger.logError(toString(open_ret.error()));
+        _logger->logError(toString(open_ret.error()));
         return;
     }
     auto start = std::chrono::high_resolution_clock::now();
     auto read_ret = _fs.read(open_ret.value(), read_size);
     if (!read_ret.has_value()) {
-        _logger.logError(toString(read_ret.error()));
+        _logger->logError(toString(read_ret.error()));
         return;
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    _logger.logEvent(ReadEvent(read_size, duration));
+    _logger->logEvent(ReadEvent(read_size, duration));
     for (auto b : read_ret.value()) {
         if (b != id) {
-            _logger.logError("Data contains an error");
+            _logger->logError("Data contains an error");
             break;
         }
     }
     auto close_ret = _fs.close(open_ret.value());
     if (!close_ret.has_value()) {
-        _logger.logError(toString(close_ret.error()));
+        _logger->logError(toString(close_ret.error()));
     }
 }
 
@@ -101,16 +101,16 @@ void SingleDirMockUser::_deleteFile()
     auto file = _root->children.at(index);
     auto ret = _fs.remove(file->name);
     if (!ret.has_value()) {
-        _logger.logError(toString(ret.error()));
+        _logger->logError(toString(ret.error()));
     } else {
         _root->children.erase(_root->children.begin() + index);
-        _logger.logMsg((std::stringstream()
+        _logger->logMsg((std::stringstream()
             << "User " << static_cast<int>(index) << " deleted file: " << file->name)
                 .str());
     }
 }
-SingleDirMockUser::SingleDirMockUser(IFilesystem& fs, Logger& logger, UserBehaviour behaviour,
-    std::uint8_t id, std::string_view dir, unsigned int seed)
+SingleDirMockUser::SingleDirMockUser(IFilesystem& fs, std::shared_ptr<Logger> logger,
+    UserBehaviour behaviour, std::uint8_t id, std::string_view dir, unsigned int seed)
     : _fs(fs)
     , _logger(logger)
     , _behaviour(behaviour)
@@ -125,7 +125,7 @@ SingleDirMockUser::SingleDirMockUser(IFilesystem& fs, Logger& logger, UserBehavi
 {
     auto ret = _fs.createDirectory(_dir);
     if (!ret.has_value()) {
-        _logger.logError(toString(ret.error()));
+        _logger->logError(toString(ret.error()));
     }
 }
 
