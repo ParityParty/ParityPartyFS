@@ -62,7 +62,8 @@ protected:
     [[nodiscard]] std::expected<void, FsError> _checkIfInUseRecursive(inode_index_t inode);
     [[nodiscard]] std::expected<void, FsError> _removeRecursive(
         inode_index_t parent, inode_index_t inode);
-    [[nodiscard]] std::expected<void, FsError> _createAppropriateBlockDevice(size_t block_size);
+    [[nodiscard]] std::expected<void, FsError> _createAppropriateBlockDevice(size_t block_size,
+        ECCType eccType, std::uint64_t polynomial, std::uint32_t correctable_bytes);
 
     [[nodiscard]] std::expected<void, FsError> _unprotectedCreate(std::string_view path);
     [[nodiscard]] std::expected<file_descriptor_t, FsError> _unprotectedOpen(
