@@ -128,6 +128,9 @@ std::vector<std::uint8_t> ReedSolomonBlockDevice::_fixBlockAndExtract(
         _logger->logEvent(ErrorCorrectionEvent("ReedSolomon", block_index));
     }
 
+    auto correct_data = gf256_utils::gf_to_bytes(code_word.slice(0));
+    auto disk_result = _disk.write(block_index * _raw_block_size, correct_data);
+
     return _extractMessage(code_word);
 }
 
