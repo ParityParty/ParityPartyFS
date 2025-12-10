@@ -25,6 +25,11 @@ add_executable(${NAME}
         test_bits.cpp
         test_file_io.cpp
         test_helpers.cpp
+        test_ppfs_parametrized_format.cpp
+        test_ppfs_parametrized_init.cpp
+        test_ppfs_parametrized_io.cpp
+        test_ppfs_parametrized_ecc.cpp
+        test_ppfs_parametrized_multi.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC
@@ -47,3 +52,8 @@ gtest_discover_tests(${NAME}
         LABELS "unit"
         ENVIRONMENT "GTEST_COLOR=1"   # force colors in output 🌈
 )
+
+# Parallel test execution:
+# Run tests in parallel using: ctest -j N (where N is number of parallel jobs)
+# Or: ctest -j (uses all available CPU cores)
+# Or set environment variable: CTEST_PARALLEL_LEVEL=N
