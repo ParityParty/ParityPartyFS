@@ -2,8 +2,6 @@
 
 #include "bitmap/bitmap.hpp"
 
-#include <iostream>
-
 block_index_t BlockManager::_toRelative(block_index_t absolute_block) const
 {
     return absolute_block - _data_blocks_start;
@@ -34,12 +32,9 @@ std::expected<void, FsError> BlockManager::format()
 
 std::expected<void, FsError> BlockManager::reserve(block_index_t block)
 {
-    // std::cout << "ABSOLUTE RESERVE: " << block << std::endl;
     block = _toRelative(block);
-    // std::cout << "RELATIVE RESERVE" << block << std::endl;
     auto read_ret = _bitmap.getBit(block);
     if (!read_ret.has_value()) {
-        std::cout << "ERROR HERE" << std::endl;
         return std::unexpected(read_ret.error());
     }
     auto prev_value = read_ret.value();
@@ -58,7 +53,6 @@ std::expected<void, FsError> BlockManager::free(block_index_t block)
     block = _toRelative(block);
     auto read_ret = _bitmap.getBit(block);
     if (!read_ret.has_value()) {
-        std::cout << "ERROR HERE 3" << std::endl;
         return std::unexpected(read_ret.error());
     }
     auto prev_value = read_ret.value();
@@ -82,8 +76,6 @@ std::expected<block_index_t, FsError> BlockManager::getFree()
         }
         return std::unexpected(get_ret.error());
     }
-    // std::cout << "RELATIVE FREE" << get_ret.value() << std::endl;
-    // std::cout << "ABSOLUTE FREE: " << _toAbsolute(get_ret.value()) << std::endl;
     return _toAbsolute(get_ret.value());
 }
 

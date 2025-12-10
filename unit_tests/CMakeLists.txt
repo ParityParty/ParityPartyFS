@@ -25,6 +25,7 @@ add_executable(${NAME}
         test_bits.cpp
         test_file_io.cpp
         test_helpers.cpp
+        test_ppfs_low_level.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC

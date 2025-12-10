@@ -1,7 +1,6 @@
 #include "low_level_fuse/fuse_ppfs.hpp"
 
 #include <cstring>
-#include <iostream>
 
 #define HANDLE_EXPECTED_ERROR(req, result_expr)                                                    \
     do {                                                                                           \

@@ -130,6 +130,14 @@ std::expected<file_descriptor_t, FsError> PpFSLowLevel::_unprotectedOpenByInode(
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
     }
+
+    auto inode_res = _inodeManager->get(inode);
+    if (!inode_res.has_value())
+        return std::unexpected(inode_res.error());
+
+    if (inode_res.value().type != InodeType::File)
+        return std::unexpected(FsError::PpFS_InvalidRequest);
+
     auto open_res = _openFilesTable.open(inode, mode);
     if (!open_res.has_value()) {
         return std::unexpected(open_res.error());
