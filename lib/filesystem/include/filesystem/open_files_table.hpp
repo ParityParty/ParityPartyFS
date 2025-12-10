@@ -19,13 +19,13 @@ public:
     std::optional<OpenFile*> get(file_descriptor_t fd)
     {
         if (fd >= MAX) {
-            return { };
+            return {};
         }
         auto& entry = _table[fd];
         if (entry.has_value()) {
             return &entry.value();
         }
-        return { };
+        return {};
     }
 
     std::optional<OpenFile*> get(inode_index_t inode)
@@ -36,7 +36,7 @@ public:
                 return &entry.value();
             }
         }
-        return { };
+        return {};
     }
 
     [[nodiscard]] std::expected<file_descriptor_t, FsError> open(inode_index_t inode, OpenMode mode)
@@ -70,8 +70,27 @@ public:
         auto& entry = _table[fd];
         if (entry.has_value()) {
             entry.reset();
-            return { };
+            return {};
         }
         return std::unexpected(FsError::PpFS_NotFound);
+    }
+
+    [[nodiscard]] bool checkIfCanResize(inode_index_t inode, size_t size)
+    {
+        for (int i = 0; i < MAX; ++i) {
+            auto& entry = _table[i];
+            if (entry.has_value() && entry->inode == inode) {
+                if (entry->mode & OpenMode::Exclusive)
+                    return false;
+
+                if (!(entry->mode && append) && entry->position > size)
+                    return false;
+            }
+            if (!entry.has_value() && !free_spot.has_value()) {
+                free_spot = i;
+            }
+        }
+
+        return true;
     }
 };

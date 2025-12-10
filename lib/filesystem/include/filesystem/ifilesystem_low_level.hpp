@@ -92,4 +92,16 @@ public:
     virtual std::expected<void, FsError> removeByNameAndParent(
         inode_index_t inode, std::string_view name, bool recursive = false)
         = 0;
+
+    /**
+     * Truncate or extend a file to a new size.
+     * - Fails if the file is open with exclusive flag.
+     * - Fails if reducing size and the file pointer is beyond the new size (for normally opened
+     * files without append).
+     *
+     * @param inode inode of the file
+     * @param new_size desired file size
+     * @return success on success, error otherwise
+     */
+    virtual std::expected<void, FsError> truncate(inode_index_t inode, size_t new_size) = 0;
 };

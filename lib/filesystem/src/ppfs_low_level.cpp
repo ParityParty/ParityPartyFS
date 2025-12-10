@@ -56,6 +56,11 @@ std::expected<inode_index_t, FsError> PpFSLowLevel::createWithParentInode(
         _mutex, [&]() { return _unprotectedCreateWithParentInode(name, parent); });
 }
 
+std::expected<void, FsError> PpFSLowLevel::truncate(inode_index_t inode, size_t new_size)
+{
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedTruncate(inode, new_size); });
+}
+
 std::expected<FileAttributes, FsError> PpFSLowLevel::_unprotectedGetAttributes(
     inode_index_t inode_index)
 {
@@ -204,4 +209,20 @@ std::expected<void, FsError> PpFSLowLevel::_unprotectedRemoveByNameAndParent(
     }
 
     return {};
+}
+
+[[nodiscard]] std::expected<void, FsError> PpFSLowLevel::_unprotectedTruncate(
+    inode_index_t inode, size_t new_size)
+{
+    auto inode_res = _inodeManager->get(inode);
+    if (!inode_res.has_value())
+        return std::unexpected(inode_res.error());
+
+    if (inode_res->type != InodeType::File)
+        return std::unexpected(FsError::PpFS_InvalidRequest);
+
+    if (!_openFilesTable.checkIfCanResize(inode, new_size))
+        return std::unexpected(FsError::PpFS_InvalidRequest);
+
+    return _fileIO->resizeFile(inode, inode_res.value(), new_size);
 }

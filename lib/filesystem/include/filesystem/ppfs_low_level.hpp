@@ -30,6 +30,9 @@ public:
     [[nodiscard]] virtual std::expected<void, FsError> removeByNameAndParent(
         inode_index_t inode, std::string_view name, bool recursive = false) override;
 
+    [[nodiscard]] virtual std::expected<void, FsError> truncate(
+        inode_index_t inode, size_t new_size) override;
+
 private:
     [[nodiscard]] std::expected<FileAttributes, FsError> _unprotectedGetAttributes(
         inode_index_t inode_index);
@@ -51,4 +54,7 @@ private:
 
     [[nodiscard]] std::expected<void, FsError> _unprotectedRemoveByNameAndParent(
         inode_index_t inode, std::string_view name, bool recursive);
+
+    [[nodiscard]] std::expected<void, FsError> _unprotectedTruncate(
+        inode_index_t inode, size_t new_size);
 };
