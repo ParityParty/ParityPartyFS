@@ -361,8 +361,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
 
     if (index_in_segment < indexes_per_block * indexes_per_block * indexes_per_block) {
         if (index_in_segment % (indexes_per_block * indexes_per_block) == 0
-            || _index_block_2.empty()
-                && index_in_segment % (indexes_per_block * indexes_per_block) == 0) {
+            || _index_block_2.empty()) {
             if (_index < _occupied_blocks
                 || index_in_segment % (indexes_per_block * indexes_per_block) != 0) {
                 auto read_res = _readIndexBlock(
