@@ -1,6 +1,7 @@
 #include "filesystem/ppfs.hpp"
 #include "common/math_helpers.hpp"
 #include "common/ppfs_mutex.hpp"
+#include "filesystem/mutex_wrapper.hpp"
 #include <cstring>
 #include <numeric>
 
@@ -18,24 +19,6 @@ PpFS::PpFS(IDisk& disk, std::shared_ptr<Logger> logger)
     , _logger(logger)
 {
 }
-
-template <typename T, typename Func>
-std::expected<T, FsError> mutex_wrapper(PpFSMutex& mutex, Func f)
-{
-    auto lock = mutex.lock();
-    if (!lock.has_value()) {
-        if (lock.error() == FsError::Mutex_NotInitialized) {
-            return std::unexpected(FsError::PpFS_NotInitialized);
-        }
-        return std::unexpected(lock.error());
-    }
-    auto ret = f();
-    auto unlock = mutex.unlock();
-    if (!unlock.has_value()) {
-        return std::unexpected(unlock.error());
-    }
-    return ret;
-};
 
 bool PpFS::isInitialized() const
 {
@@ -247,9 +230,9 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::read(
     return mutex_wrapper<std::vector<std::uint8_t>>(
         _mutex, [&]() { return _unprotectedRead(fd, bytes_to_read); });
 }
-std::expected<void, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+std::expected<size_t, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
 {
-    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedWrite(fd, buffer); });
+    return mutex_wrapper<size_t>(_mutex, [&]() { return _unprotectedWrite(fd, buffer); });
 }
 std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
 {
@@ -581,8 +564,9 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::_unprotectedRead(
     return read_res;
 }
 
-std::expected<void, FsError> PpFS::_unprotectedWrite(
+std::expected<size_t, FsError> PpFS::_unprotectedWrite(
     file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -611,7 +595,9 @@ std::expected<void, FsError> PpFS::_unprotectedWrite(
     }
 
     open_file->position = offset + buffer.size();
-    return {};
+
+    return write_res.value();
+
 }
 
 std::expected<void, FsError> PpFS::_unprotectedSeek(file_descriptor_t fd, size_t position)

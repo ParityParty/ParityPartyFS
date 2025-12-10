@@ -115,7 +115,7 @@ std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
 
     auto write_ret = _block_device.writeBlock({ byte }, location);
     if (!write_ret.has_value()) {
-        std::unexpected(write_ret.error());
+        return std::unexpected(write_ret.error());
     }
 
     if (_ones_count.has_value() && byte != old_byte) {

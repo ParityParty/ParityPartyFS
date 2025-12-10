@@ -25,6 +25,7 @@ add_executable(${NAME}
         test_bits.cpp
         test_file_io.cpp
         test_helpers.cpp
+        test_ppfs_low_level.cpp
         test_ppfs_parametrized_format.cpp
         test_ppfs_parametrized_init.cpp
         test_ppfs_parametrized_io.cpp

@@ -248,7 +248,7 @@ TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
             + indexes_per_block * indexes_per_block * indexes_per_block));
 
     for (size_t i = 0; i < data.size(); ++i)
-        data[i] = uint8_t(i % 231);
+        data[i] = uint8_t(i / block_device.dataSize());
 
     auto write_res = file_io.writeFile(0, inode, 0, data);
     ASSERT_TRUE(write_res.has_value()) << "writeFile failed: " << toString(write_res.error());
@@ -270,6 +270,7 @@ TEST(FileIO, ResizeAndReadFile)
 {
     StackDisk disk;
     RawBlockDevice block_device(128, disk);
+
     SuperBlock superblock {
         .total_inodes = 10,
         .block_bitmap_address = 16,
@@ -391,7 +392,7 @@ TEST(FileIO, ResizeHugeFileToZero)
         data[i] = uint8_t(i % 251);
 
     auto write_res = file_io.writeFile(0, inode, 0, data);
-    ASSERT_TRUE(write_res.has_value()) << "write failed";
+    ASSERT_TRUE(write_res.has_value()) << "write failed" << toString(write_res.error());
 
     auto resize_res = file_io.resizeFile(0, inode, 0);
     ASSERT_TRUE(resize_res.has_value()) << "resizeFile failed";

@@ -1,8 +1,7 @@
 #pragma once
-#include <vector>
-#include <iostream>
 #include "gf256.hpp"
-
+#include <iostream>
+#include <vector>
 /**
  * Represents a polynomial over the finite field GF(256), used for Reed-Solomon error correction.
  */

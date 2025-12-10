@@ -23,7 +23,8 @@
 
 static constexpr size_t MAX_OPEN_FILES = 32;
 
-class PpFS : public IFilesystem {
+class PpFS : public virtual IFilesystem {
+protected:
     IDisk& _disk;
     std::shared_ptr<Logger> _logger;
 
@@ -73,7 +74,7 @@ class PpFS : public IFilesystem {
         std::string_view path, bool recursive = false);
     [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _unprotectedRead(
         file_descriptor_t fd, std::size_t bytes_to_read);
-    [[nodiscard]] std::expected<void, FsError> _unprotectedWrite(
+    [[nodiscard]] std::expected<size_t, FsError> _unprotectedWrite(
         file_descriptor_t fd, std::vector<std::uint8_t> buffer);
     [[nodiscard]] std::expected<void, FsError> _unprotectedSeek(
         file_descriptor_t fd, size_t position);
@@ -95,7 +96,7 @@ public:
         std::string_view path, bool recursive = false) override;
     [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> read(
         file_descriptor_t fd, std::size_t bytes_to_read) override;
-    [[nodiscard]] virtual std::expected<void, FsError> write(
+    [[nodiscard]] virtual std::expected<size_t, FsError> write(
         file_descriptor_t fd, std::vector<std::uint8_t> buffer) override;
     [[nodiscard]] virtual std::expected<void, FsError> seek(
         file_descriptor_t fd, size_t position) override;

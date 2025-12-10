@@ -34,7 +34,6 @@ std::expected<std::vector<uint8_t>, FsError> FileIO::readFile(
         if (!read_res.has_value())
             return std::unexpected(read_res.error());
         data.insert(data.end(), read_res.value().begin(), read_res.value().end());
-
         offset_in_block = 0;
         bytes_to_read -= read_res.value().size();
     }
