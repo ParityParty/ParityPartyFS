@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
     try {
         StackDisk disk;
         PpFSLowLevel ppfs(disk);
-        FsConfig options { .total_size = 4096,
+        FsConfig options { .total_size = disk.size(),
             .average_file_size = 256,
             .block_size = 128,
             .ecc_type = ECCType::None,

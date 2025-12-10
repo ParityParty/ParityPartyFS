@@ -155,6 +155,10 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
         sb.rs_correctable_bytes = options.rs_correctable_bytes;
 
     // Validate superblock
+    std::cout << "TOTAL BLOCKS: " << sb.total_blocks << std::endl;
+    std::cout << "FIRST DATA BLOCK: " << sb.first_data_blocks_address << std::endl;
+    std::cout << "LAST DATA BLOCK: " << sb.last_data_block_address << std::endl;
+
     if (sb.total_blocks == 0 || sb.total_inodes == 0) {
         return std::unexpected(FsError::PpFS_InvalidRequest);
     }

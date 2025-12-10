@@ -1,5 +1,6 @@
 #include "file_io/file_io.hpp"
 #include <cstring>
+#include <iostream>
 
 FileIO::FileIO(
     IBlockDevice& block_device, IBlockManager& block_manager, IInodeManager& inode_manager)
@@ -29,12 +30,14 @@ std::expected<std::vector<uint8_t>, FsError> FileIO::readFile(
         auto next_block = indexIterator.next();
         if (!next_block.has_value())
             return std::unexpected(next_block.error());
+        if (*next_block == 0) {
+            std::cout << "ERROR: READING FROM BLOCK 0?????" << std::endl;
+        }
         auto read_res
             = _block_device.readBlock(DataLocation(*next_block, offset_in_block), bytes_to_read);
         if (!read_res.has_value())
             return std::unexpected(read_res.error());
         data.insert(data.end(), read_res.value().begin(), read_res.value().end());
-
         offset_in_block = 0;
         bytes_to_read -= read_res.value().size();
     }
@@ -105,7 +108,7 @@ std::expected<void, FsError> FileIO::resizeFile(
     inode_index_t inode_index, Inode& inode, size_t new_size)
 {
     if (new_size == inode.file_size)
-        return { };
+        return {};
 
     if (new_size > inode.file_size) {
         BlockIndexIterator indexIterator(
@@ -149,7 +152,7 @@ std::expected<void, FsError> FileIO::resizeFile(
         auto inode_res = _inode_manager.update(inode_index, inode);
         if (!inode_res.has_value())
             return std::unexpected(inode_res.error());
-        return { };
+        return {};
     }
 
     BlockIndexIterator indexIterator(
@@ -176,7 +179,7 @@ std::expected<void, FsError> FileIO::resizeFile(
         }
         _block_manager.free(std::get<0>(next_block.value()));
     }
-    return { };
+    return {};
 }
 
 BlockIndexIterator::BlockIndexIterator(size_t index, Inode& inode, IBlockDevice& block_device,
@@ -209,7 +212,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded()
             _inode.direct_blocks[_index] = index_res.value();
         }
         return std::tuple<block_index_t, std::vector<block_index_t>>(
-            _inode.direct_blocks[_index++], { });
+            _inode.direct_blocks[_index++], {});
     }
 
     size_t indexes_per_block = _block_device.dataSize() / sizeof(block_index_t);
@@ -498,7 +501,7 @@ std::expected<void, FsError> BlockIndexIterator::_writeIndexBlock(
     if (!res.has_value())
         return std::unexpected(res.error());
 
-    return { };
+    return {};
 }
 
 std::expected<block_index_t, FsError> BlockIndexIterator::_findAndReserveBlock()

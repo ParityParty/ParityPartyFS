@@ -2,6 +2,7 @@
 #include "common/bit_helpers.hpp"
 
 #include <cmath>
+#include <iostream>
 
 DataLocation Bitmap::_getByteLocation(unsigned int bit_index)
 {
@@ -80,6 +81,7 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
 std::expected<bool, FsError> Bitmap::getBit(unsigned int bit_index)
 {
     if (bit_index >= _bit_count) {
+        std::cout << "ERROR HERE 2" << std::endl;
         return std::unexpected(FsError::Bitmap_IndexOutOfRange);
     }
     auto byte_ret = _getByte(bit_index);
@@ -95,6 +97,7 @@ std::expected<bool, FsError> Bitmap::getBit(unsigned int bit_index)
 std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
 {
     if (bit_index >= _bit_count) {
+        std::cout << "ERROR HERE 1" << std::endl;
         return std::unexpected(FsError::Bitmap_IndexOutOfRange);
     }
     auto byte_ret = _getByte(bit_index);
@@ -115,7 +118,7 @@ std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
 
     auto write_ret = _block_device.writeBlock({ byte }, location);
     if (!write_ret.has_value()) {
-        std::unexpected(write_ret.error());
+        return std::unexpected(write_ret.error());
     }
 
     if (_ones_count.has_value() && byte != old_byte) {
@@ -126,7 +129,7 @@ std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
         }
     }
 
-    return { };
+    return {};
 }
 
 std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
@@ -142,7 +145,7 @@ std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
         const auto& block_data = block_ret.value();
 
         for (int i = 0; i < _block_device.dataSize() * 8; i++) {
-            if (block * _block_device.dataSize() + i >= _bit_count) {
+            if (block * _block_device.dataSize() * 8 + i >= _bit_count) {
                 // there is no more value in bitmap
                 return std::unexpected(FsError::Bitmap_NotFound);
             }
@@ -167,5 +170,5 @@ std::expected<void, FsError> Bitmap::setAll(bool value)
     }
 
     _ones_count = value * _bit_count;
-    return { };
+    return {};
 }

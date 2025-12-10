@@ -172,14 +172,7 @@ void FusePpFS::mkdir(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t
 
     inode_index_t ppfs_parent = parent - 1;
     auto create_res = ptr->_ppfs.createDirectoryByParent(ppfs_parent, name);
-
-    if (!create_res.has_value()) {
-        std::cerr << "Error: " << toString(create_res.error()) << std::endl;
-        int posix_err = _map_fs_error_to_errno(create_res.error());
-
-        fuse_reply_err(req, posix_err);
-        return;
-    }
+    HANDLE_EXPECTED_ERROR(req, create_res);
 
     fuse_ino_t new_ino = create_res.value() + 1;
 
@@ -242,9 +235,6 @@ void FusePpFS::write(fuse_req_t req, fuse_ino_t ino, const char* buf, size_t siz
 void FusePpFS::read(
     fuse_req_t req, fuse_ino_t ino, size_t size, off_t off, struct fuse_file_info* fi)
 {
-    std::cerr << "Requested to read file with size: " << size << " adn offset: " << off
-              << std::endl;
-
     const auto ptr = this_(req);
 
     auto seek_res = ptr->_ppfs.seek(fi->fh, off);
