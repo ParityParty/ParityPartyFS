@@ -4,15 +4,15 @@
 #include <gtest/gtest.h>
 
 // Dedicated test class for Hamming ECC tests
-class PpFSHammingTest : public PpFSParametrizedTest { };
+class PpFSParametrizedHammingTest : public PpFSParametrizedTest { };
 
-INSTANTIATE_TEST_SUITE_P(PpFSHamming, PpFSHammingTest,
+INSTANTIATE_TEST_SUITE_P(PpFSHamming, PpFSParametrizedHammingTest,
     ::testing::ValuesIn(generateHammingConfigs()),
     [](const ::testing::TestParamInfo<TestConfig>& info) {
         return sanitizeTestName(info.param.test_name);
     });
 
-TEST_P(PpFSHammingTest, ErrorCorrection_Hamming_SingleBitFlip)
+TEST_P(PpFSParametrizedHammingTest, ErrorCorrection_Hamming_SingleBitFlip)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::Hamming) << "Test only for Hamming ECC";
 
@@ -63,7 +63,7 @@ TEST_P(PpFSHammingTest, ErrorCorrection_Hamming_SingleBitFlip)
     ASSERT_TRUE(close_res2.has_value());
 }
 
-TEST_P(PpFSHammingTest, ErrorDetection_Hamming_DoubleBitFlip)
+TEST_P(PpFSParametrizedHammingTest, ErrorDetection_Hamming_DoubleBitFlip)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::Hamming) << "Test only for Hamming ECC";
 

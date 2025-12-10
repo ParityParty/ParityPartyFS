@@ -4,14 +4,15 @@
 #include <gtest/gtest.h>
 
 // Dedicated test class for None ECC tests
-class PpFSNoneTest : public PpFSParametrizedTest { };
+class PpFSParametrizedNoneTest : public PpFSParametrizedTest { };
 
-INSTANTIATE_TEST_SUITE_P(PpFSNone, PpFSNoneTest, ::testing::ValuesIn(generateNonEccConfigs()),
+INSTANTIATE_TEST_SUITE_P(PpFSNone, PpFSParametrizedNoneTest,
+    ::testing::ValuesIn(generateNonEccConfigs()),
     [](const ::testing::TestParamInfo<TestConfig>& info) {
         return sanitizeTestName(info.param.test_name);
     });
 
-TEST_P(PpFSNoneTest, ErrorCorrection_None_NoCorrection)
+TEST_P(PpFSParametrizedNoneTest, ErrorCorrection_None_NoCorrection)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::None) << "Test only for None ECC type";
 

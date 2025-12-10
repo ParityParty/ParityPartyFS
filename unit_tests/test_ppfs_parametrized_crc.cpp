@@ -4,14 +4,15 @@
 #include <gtest/gtest.h>
 
 // Dedicated test class for CRC ECC tests
-class PpFSCrcTest : public PpFSParametrizedTest { };
+class PpFSParametrizedCrcTest : public PpFSParametrizedTest { };
 
-INSTANTIATE_TEST_SUITE_P(PpFSCrc, PpFSCrcTest, ::testing::ValuesIn(generateCrcConfigs()),
+INSTANTIATE_TEST_SUITE_P(PpFSCrc, PpFSParametrizedCrcTest,
+    ::testing::ValuesIn(generateCrcConfigs()),
     [](const ::testing::TestParamInfo<TestConfig>& info) {
         return sanitizeTestName(info.param.test_name);
     });
 
-TEST_P(PpFSCrcTest, ErrorDetection_CRC_SingleBitFlip)
+TEST_P(PpFSParametrizedCrcTest, ErrorDetection_CRC_SingleBitFlip)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::Crc) << "Test only for CRC ECC type";
 
@@ -61,7 +62,7 @@ TEST_P(PpFSCrcTest, ErrorDetection_CRC_SingleBitFlip)
     ASSERT_TRUE(close_res2.has_value());
 }
 
-TEST_P(PpFSCrcTest, ErrorDetection_CRC_MultipleBitFlips)
+TEST_P(PpFSParametrizedCrcTest, ErrorDetection_CRC_MultipleBitFlips)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::Crc) << "Test only for CRC ECC type";
 

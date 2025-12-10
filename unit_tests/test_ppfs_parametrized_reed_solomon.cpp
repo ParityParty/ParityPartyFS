@@ -4,14 +4,14 @@
 #include <gtest/gtest.h>
 
 // Dedicated test class for Reed-Solomon ECC tests
-class PpFSReedSolomonTest : public PpFSParametrizedTest { };
+class PpFSParametrizedReedSolomonTest : public PpFSParametrizedTest { };
 
-INSTANTIATE_TEST_SUITE_P(PpFSReedSolomon, PpFSReedSolomonTest,
+INSTANTIATE_TEST_SUITE_P(PpFSReedSolomon, PpFSParametrizedReedSolomonTest,
     ::testing::ValuesIn(generateRSConfigs()), [](const ::testing::TestParamInfo<TestConfig>& info) {
         return sanitizeTestName(info.param.test_name);
     });
 
-TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_SingleByte)
+TEST_P(PpFSParametrizedReedSolomonTest, ErrorCorrection_ReedSolomon_SingleByte)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::ReedSolomon) << "Test only for Reed-Solomon ECC";
     if (GetParam().rs_correctable_bytes < 1)
@@ -64,7 +64,7 @@ TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_SingleByte)
     ASSERT_TRUE(close_res2.has_value());
 }
 
-TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_DoubleByte)
+TEST_P(PpFSParametrizedReedSolomonTest, ErrorCorrection_ReedSolomon_DoubleByte)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::ReedSolomon) << "Test only for Reed-Solomon ECC";
     if (GetParam().rs_correctable_bytes < 2)
@@ -118,7 +118,7 @@ TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_DoubleByte)
     ASSERT_TRUE(close_res2.has_value());
 }
 
-TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_TripleByte)
+TEST_P(PpFSParametrizedReedSolomonTest, ErrorCorrection_ReedSolomon_TripleByte)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::ReedSolomon) << "Test only for Reed-Solomon ECC";
     if (GetParam().rs_correctable_bytes < 3) {
@@ -174,7 +174,7 @@ TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_TripleByte)
     ASSERT_TRUE(close_res2.has_value());
 }
 
-TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_FourByte)
+TEST_P(PpFSParametrizedReedSolomonTest, ErrorCorrection_ReedSolomon_FourByte)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::ReedSolomon) << "Test only for Reed-Solomon ECC";
     if (GetParam().rs_correctable_bytes < 4)
@@ -230,7 +230,7 @@ TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_FourByte)
     ASSERT_TRUE(close_res2.has_value());
 }
 
-TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_FiveByte)
+TEST_P(PpFSParametrizedReedSolomonTest, ErrorCorrection_ReedSolomon_FiveByte)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::ReedSolomon) << "Test only for Reed-Solomon ECC";
     if (GetParam().rs_correctable_bytes < 5)

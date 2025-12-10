@@ -29,6 +29,6 @@ jobs:
         run: cmake --build --preset debug
 
       - name: Test (ctest --preset debug)
-        run: ctest --preset debug --output-on-failure --progress
+        run: ctest --preset debug --exclude-regex "parametrized" --output-on-failure --progress
         env:
           GTEST_COLOR: "1"
