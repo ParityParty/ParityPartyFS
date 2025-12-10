@@ -449,7 +449,6 @@ std::expected<block_index_t, FsError> BlockIndexIterator::next()
     auto res = nextWithIndirectBlocksAdded();
     if (!res.has_value())
         return std::unexpected(res.error());
-    auto block = std::get<0>(res.value());
     return std::get<0>(res.value());
 }
 
