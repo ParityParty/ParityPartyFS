@@ -63,7 +63,7 @@ std::expected<void, FsError> DirectoryManager::addEntry(
     if (!write_res.has_value()) {
         return std::unexpected(write_res.error());
     }
-    return { };
+    return {};
 }
 
 std::expected<void, FsError> DirectoryManager::removeEntry(
@@ -103,7 +103,7 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     if (!resize_res.has_value()) {
         return std::unexpected(resize_res.error());
     }
-    return { };
+    return {};
 }
 
 std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::_readDirectoryData(
@@ -135,7 +135,8 @@ int DirectoryManager::_findEntryIndexByName(
     const std::vector<DirectoryEntry>& entries, char const* name)
 {
     for (size_t i = 0; i < entries.size(); ++i) {
-        if (std::strncmp(entries[i].name.data(), name, std::strlen(name)) == 0) {
+        if (std::strlen(name) == std::strlen(entries[i].name.data())
+            && std::strncmp(entries[i].name.data(), name, std::strlen(name)) == 0) {
             return static_cast<int>(i);
         }
     }
