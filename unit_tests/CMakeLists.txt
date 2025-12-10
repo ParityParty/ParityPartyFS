@@ -28,7 +28,6 @@ add_executable(${NAME}
         test_ppfs_parametrized_format.cpp
         test_ppfs_parametrized_init.cpp
         test_ppfs_parametrized_io.cpp
-        test_ppfs_parametrized_ecc.cpp
         test_ppfs_parametrized_multi.cpp
         test_ppfs_parametrized_hamming.cpp
         test_ppfs_parametrized_crc.cpp

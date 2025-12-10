@@ -14,7 +14,8 @@ INSTANTIATE_TEST_SUITE_P(PpFSReedSolomon, PpFSReedSolomonTest,
 TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_SingleByte)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::ReedSolomon) << "Test only for Reed-Solomon ECC";
-    ASSERT_GE(GetParam().rs_correctable_bytes, 1) << "Test requires rs_correctable_bytes >= 1";
+    if (GetParam().rs_correctable_bytes < 1)
+        GTEST_SKIP() << "Test requires rs_correctable_bytes >= 1";
 
     auto format_res = fs->format(config);
     ASSERT_TRUE(format_res.has_value());
@@ -66,7 +67,8 @@ TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_SingleByte)
 TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_DoubleByte)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::ReedSolomon) << "Test only for Reed-Solomon ECC";
-    ASSERT_GE(GetParam().rs_correctable_bytes, 2) << "Test requires rs_correctable_bytes >= 2";
+    if (GetParam().rs_correctable_bytes < 2)
+        GTEST_SKIP() << "Test requires rs_correctable_bytes >= 2";
 
     auto format_res = fs->format(config);
     ASSERT_TRUE(format_res.has_value());
@@ -119,7 +121,9 @@ TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_DoubleByte)
 TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_TripleByte)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::ReedSolomon) << "Test only for Reed-Solomon ECC";
-    ASSERT_GE(GetParam().rs_correctable_bytes, 3) << "Test requires rs_correctable_bytes >= 3";
+    if (GetParam().rs_correctable_bytes < 3) {
+        GTEST_SKIP() << "Test only for higher correctable bytes";
+    }
 
     auto format_res = fs->format(config);
     ASSERT_TRUE(format_res.has_value());
@@ -173,7 +177,8 @@ TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_TripleByte)
 TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_FourByte)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::ReedSolomon) << "Test only for Reed-Solomon ECC";
-    ASSERT_GE(GetParam().rs_correctable_bytes, 4) << "Test requires rs_correctable_bytes >= 4";
+    if (GetParam().rs_correctable_bytes < 4)
+        GTEST_SKIP() << "Test requires rs_correctable_bytes >= 4";
 
     auto format_res = fs->format(config);
     ASSERT_TRUE(format_res.has_value());
@@ -228,7 +233,8 @@ TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_FourByte)
 TEST_P(PpFSReedSolomonTest, ErrorCorrection_ReedSolomon_FiveByte)
 {
     ASSERT_EQ(GetParam().ecc_type, ECCType::ReedSolomon) << "Test only for Reed-Solomon ECC";
-    ASSERT_GE(GetParam().rs_correctable_bytes, 5) << "Test requires rs_correctable_bytes >= 5";
+    if (GetParam().rs_correctable_bytes < 5)
+        GTEST_SKIP() << "Test requires rs_correctable_bytes >= 5";
 
     auto format_res = fs->format(config);
     ASSERT_TRUE(format_res.has_value());

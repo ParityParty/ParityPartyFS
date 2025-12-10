@@ -130,9 +130,8 @@ inline std::vector<TestConfig> generateHammingConfigs()
 inline std::vector<TestConfig> generateRSConfigs()
 {
     std::vector<TestConfig> configs;
-    // Reed-Solomon: only block size 256, with rs_correctable_bytes 1-3
     std::vector<uint32_t> rs_block_sizes = { 256 };
-    std::vector<uint32_t> rs_correctable_values = { 1, 2, 3 };
+    std::vector<uint32_t> rs_correctable_values = { 1, 2, 3, 4, 5 };
 
     for (auto block_size : rs_block_sizes) {
         for (auto rs_bytes : rs_correctable_values) {
