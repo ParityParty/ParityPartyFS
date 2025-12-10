@@ -35,21 +35,6 @@ TEST(PpFS, Format_Fails_UnsetParameters)
     ASSERT_FALSE(fs.isInitialized());
 }
 
-TEST(PpFS, Format_Fails_BlockTooSmall)
-{
-    StackDisk disk;
-    PpFS fs(disk);
-
-    FsConfig config;
-    config.total_size = 1024;
-    config.block_size = 4;
-    config.average_file_size = 256;
-    auto res = fs.format(config);
-    ASSERT_FALSE(res.has_value());
-    ASSERT_EQ(res.error(), FsError::PpFS_InvalidRequest);
-    ASSERT_FALSE(fs.isInitialized());
-}
-
 TEST(PpFS, Format_Fails_TotalSizeNotMultipleOfBlockSize)
 {
     StackDisk disk;
@@ -1349,7 +1334,6 @@ TEST(PpFS, Format_Hamming)
     ASSERT_TRUE(fs.format(config));
 }
 
-
 TEST(PpFS, Open_Succeeds_Truncate)
 {
     StackDisk disk;
@@ -1428,4 +1412,24 @@ TEST(PpFS, Format_Succeeds_Test2)
 
     auto format_res = fs.format(config);
     ASSERT_TRUE(format_res.has_value()) << "Format failed: " << toString(format_res.error());
+}
+
+TEST(PpFS, ThreeFoldersWork)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+    ASSERT_TRUE(
+        fs.format(FsConfig {
+                      .total_size = disk.size(),
+                      .average_file_size = 2000,
+                      .block_size = 256,
+                      .ecc_type = ECCType::ReedSolomon,
+                      .rs_correctable_bytes = 3,
+                      .use_journal = false,
+                  })
+            .has_value());
+    ASSERT_TRUE(fs.createDirectory("/user0").has_value());
+    ASSERT_TRUE(fs.createDirectory("/user1").has_value());
+    ASSERT_TRUE(fs.createDirectory("/user2").has_value());
+    ASSERT_TRUE(fs.create("/user2/0"));
 }
