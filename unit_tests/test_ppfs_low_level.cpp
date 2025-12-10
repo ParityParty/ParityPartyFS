@@ -173,6 +173,35 @@ TEST(PpFS, RemoveMissing)
     ASSERT_FALSE(r.has_value());
 }
 
+TEST(PpFSLowLevel, TruncateFileSuccessfully)
+{
+    StackDisk disk;
+    auto ppfs = prepareFS(disk);
+    auto inode_res = ppfs->createWithParentInode("test_file", 0);
+    ASSERT_TRUE(inode_res.has_value());
+    
+    inode_index_t file_inode = inode_res.has_value();
+
+    auto res = ppfs->truncate(file_inode, 50);
+    ASSERT_TRUE(res.has_value());
+
+    res = ppfs->truncate(file_inode, 150);
+    ASSERT_TRUE(res.has_value());
+}
+
+TEST(PpFSLowLevel, TruncateDirectoryFails)
+{
+    StackDisk disk;
+    auto ppfs = prepareFS(disk);
+    auto inode_res = ppfs->createDirectoryByParent(0, "abc");
+    ASSERT_TRUE(inode_res.has_value());
+    
+    inode_index_t dir_inode = inode_res.has_value();
+
+    auto res = ppfs->truncate(dir_inode, 50);
+    ASSERT_FALSE(res.has_value());
+}
+
 TEST(PpFS, FullFlowCreateWriteRead)
 {
     StackDisk disk;

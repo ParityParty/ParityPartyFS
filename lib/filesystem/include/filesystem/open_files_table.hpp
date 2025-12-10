@@ -83,11 +83,8 @@ public:
                 if (entry->mode & OpenMode::Exclusive)
                     return false;
 
-                if (!(entry->mode && append) && entry->position > size)
+                if (!(entry->mode & OpenMode::Append) && entry->position > size)
                     return false;
-            }
-            if (!entry.has_value() && !free_spot.has_value()) {
-                free_spot = i;
             }
         }
 

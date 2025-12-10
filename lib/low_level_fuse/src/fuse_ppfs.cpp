@@ -333,16 +333,9 @@ void FusePpFS::truncate(fuse_req_t req, fuse_ino_t ino, off_t new_size, struct f
     const auto ptr = this_(req);
 
     inode_index_t ppfs_ino = ino - 1;
-    /*
-        auto truncate_res = ptr->_ppfs.truncateFile(internal_ino, new_size);
 
-        if (!truncate_res.has_value()) {
-            int posix_err = _map_fs_error_to_errno(truncate_res.error());
-            fuse_reply_err(req, posix_err);
-            return;
-        }
-    */
-
+    auto truncate_res = ptr->_ppfs.truncate(ppfs_ino, new_size);
+    HANDLE_EXPECTED_ERROR(req, truncate_res);
     fuse_reply_err(req, 0);
 }
 
