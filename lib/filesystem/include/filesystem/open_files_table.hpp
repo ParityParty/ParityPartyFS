@@ -41,12 +41,21 @@ public:
 
     [[nodiscard]] std::expected<file_descriptor_t, FsError> open(inode_index_t inode, OpenMode mode)
     {
-        // Check if already open in exclusive mode and save a free spot
+        // Check if already open in exclusive/protected mode and save a free spot
         std::optional<int> free_spot;
         for (int i = 0; i < MAX; ++i) {
             auto& entry = _table[i];
             if (entry.has_value() && entry->inode == inode) {
-                if (entry->mode & OpenMode::Exclusive || mode & OpenMode::Exclusive) {
+                // Check exclusivity
+                if (mode & OpenMode::Exclusive || entry->mode & OpenMode::Exclusive) {
+                    return std::unexpected(FsError::PpFS_AlreadyOpen);
+                }
+                // If protected, check if no other non-protected OpenFiles exist
+                if (mode & OpenMode::Protected && !(entry->mode & OpenMode::Protected)) {
+                    return std::unexpected(FsError::PpFS_AlreadyOpen);
+                }
+                // If non-protected, check if no other protected OpenFiles exist
+                if (!(mode & OpenMode::Protected) && entry->mode & OpenMode::Protected) {
                     return std::unexpected(FsError::PpFS_AlreadyOpen);
                 }
             }

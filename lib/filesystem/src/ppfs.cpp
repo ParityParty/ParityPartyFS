@@ -270,6 +270,13 @@ std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(std::string
         _mutex, [&]() { return _unprotectedReadDirectory(path); });
 }
 
+std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(
+    file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset)
+{
+    return mutex_wrapper<std::vector<std::string>>(
+        _mutex, [&]() { return _unprotectedReadDirectory(fd, elements, offset); });
+}
+
 std::expected<void, FsError> PpFS::_unprotectedCreate(std::string_view path)
 {
     if (!isInitialized()) {
@@ -328,7 +335,7 @@ bool PpFS::_isPathValid(std::string_view path)
     return true;
 }
 
-std::expected<inode_index_t, FsError> PpFS::_getParentInodeFromPath(std::string_view path)
+std::expected<inode_index_t, FsError> PpFS::_getParentInodeFromPath(std::string_view path) const
 {
     inode_index_t current_inode = _root;
 
@@ -362,7 +369,7 @@ std::expected<inode_index_t, FsError> PpFS::_getParentInodeFromPath(std::string_
 }
 
 std::expected<inode_index_t, FsError> PpFS::_getInodeFromParent(
-    inode_index_t parent_inode, std::string_view path)
+    inode_index_t parent_inode, std::string_view path) const
 {
     size_t last_slash = path.find_last_of('/');
     std::string_view name = path.substr(last_slash + 1);
@@ -406,11 +413,27 @@ std::expected<file_descriptor_t, FsError> PpFS::_unprotectedOpen(
         return std::unexpected(FsError::PpFS_InvalidPath);
     }
 
+    if (mode & OpenMode::Truncate && mode & OpenMode::Protected) {
+        return std::unexpected(FsError::PpFS_InvalidRequest);
+    }
+    if (mode & OpenMode::Append && mode & OpenMode::Protected) {
+        return std::unexpected(FsError::PpFS_InvalidRequest);
+    }
+
     auto inode_res = _getInodeFromPath(path);
     if (!inode_res.has_value()) {
         return std::unexpected(inode_res.error());
     }
     inode_index_t inode = inode_res.value();
+
+    auto inode_data_res = _inodeManager->get(inode);
+    if (!inode_data_res.has_value()) {
+        return std::unexpected(inode_data_res.error());
+    }
+    Inode inode_data = inode_data_res.value();
+    if (inode_data.type == InodeType::Directory) {
+        mode = OpenMode::Protected;
+    }
 
     auto open_res = _openFilesTable.open(inode, mode);
     if (!open_res.has_value()) {
@@ -418,12 +441,6 @@ std::expected<file_descriptor_t, FsError> PpFS::_unprotectedOpen(
     }
 
     if (mode & OpenMode::Truncate) {
-        auto inode_data_res = _inodeManager->get(inode);
-        if (!inode_data_res.has_value()) {
-            return std::unexpected(inode_data_res.error());
-        }
-        Inode inode_data = inode_data_res.value();
-
         auto truncate_res = _fileIO->resizeFile(inode, inode_data, 0);
         if (!truncate_res.has_value()) {
             return std::unexpected(truncate_res.error());
@@ -452,11 +469,12 @@ std::expected<void, FsError> PpFS::_checkIfInUseRecursive(inode_index_t inode)
         return std::unexpected(inode_res.error());
     }
     Inode inode_data = inode_res.value();
+
+    auto open_file_res = _openFilesTable.get(inode);
+    if (open_file_res.has_value()) {
+        return std::unexpected(FsError::PpFS_FileInUse);
+    }
     if (inode_data.type != InodeType::Directory) {
-        auto open_file_res = _openFilesTable.get(inode);
-        if (open_file_res.has_value()) {
-            return std::unexpected(FsError::PpFS_FileInUse);
-        }
         return { };
     }
 
@@ -599,6 +617,10 @@ std::expected<void, FsError> PpFS::_unprotectedWrite(
     }
     OpenFile* open_file = open_table_res.value();
 
+    if (open_file->mode & OpenMode::Protected) {
+        return std::unexpected(FsError::PpFS_InvalidRequest);
+    }
+
     auto inode_res = _inodeManager->get(open_file->inode);
     if (!inode_res.has_value()) {
         return std::unexpected(inode_res.error());
@@ -711,6 +733,33 @@ std::expected<std::vector<std::string>, FsError> PpFS::_unprotectedReadDirectory
     inode_index_t dir_inode = dir_inode_res.value();
 
     auto entries_res = _directoryManager->getEntries(dir_inode);
+    if (!entries_res.has_value()) {
+        return std::unexpected(entries_res.error());
+    }
+    const auto& entries = entries_res.value();
+    std::vector<std::string> names;
+    names.reserve(entries.size());
+
+    for (const auto& entry : entries) {
+        names.emplace_back(entry.name.data());
+    }
+    return names;
+}
+
+std::expected<std::vector<std::string>, FsError> PpFS::_unprotectedReadDirectory(
+    file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset)
+{
+    if (!isInitialized()) {
+        return std::unexpected(FsError::PpFS_NotInitialized);
+    }
+
+    auto open_table_res = _openFilesTable.get(fd);
+    if (!open_table_res.has_value()) {
+        return std::unexpected(FsError::PpFS_NotFound);
+    }
+    OpenFile* open_file = open_table_res.value();
+
+    auto entries_res = _directoryManager->getEntries(open_file->inode, elements, offset);
     if (!entries_res.has_value()) {
         return std::unexpected(entries_res.error());
     }

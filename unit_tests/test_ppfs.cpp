@@ -1349,7 +1349,6 @@ TEST(PpFS, Format_Hamming)
     ASSERT_TRUE(fs.format(config));
 }
 
-
 TEST(PpFS, Open_Succeeds_Truncate)
 {
     StackDisk disk;

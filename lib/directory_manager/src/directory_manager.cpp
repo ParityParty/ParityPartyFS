@@ -35,7 +35,7 @@ std::expected<Inode, FsError> DirectoryManager::checkNameUnique(
 }
 
 std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::getEntries(
-    inode_index_t inode)
+    inode_index_t inode, std::uint32_t elements, std::uint32_t offset)
 {
     auto inode_result = _getDirectoryInode(inode);
     if (!inode_result.has_value()) {
@@ -44,7 +44,7 @@ std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::getEntries
 
     Inode dir_inode = inode_result.value();
 
-    return _readDirectoryData(inode, dir_inode);
+    return _readDirectoryData(inode, dir_inode, elements, offset);
 }
 
 std::expected<void, FsError> DirectoryManager::addEntry(
@@ -63,7 +63,7 @@ std::expected<void, FsError> DirectoryManager::addEntry(
     if (!write_res.has_value()) {
         return std::unexpected(write_res.error());
     }
-    return {};
+    return { };
 }
 
 std::expected<void, FsError> DirectoryManager::removeEntry(
@@ -103,13 +103,18 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     if (!resize_res.has_value()) {
         return std::unexpected(resize_res.error());
     }
-    return {};
+    return { };
 }
 
 std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::_readDirectoryData(
-    inode_index_t inode_index, Inode& dir_inode)
+    inode_index_t inode_index, Inode& dir_inode, std::uint32_t elements, std::uint32_t offset) const
 {
-    auto data_result = _file_io.readFile(inode_index, dir_inode, 0, dir_inode.file_size);
+    auto bytes_to_read = elements * sizeof(DirectoryEntry);
+    if (elements == 0)
+        bytes_to_read = dir_inode.file_size;
+
+    auto data_result
+        = _file_io.readFile(inode_index, dir_inode, offset * sizeof(DirectoryEntry), bytes_to_read);
     if (!data_result.has_value()) {
         return std::unexpected(data_result.error());
     }

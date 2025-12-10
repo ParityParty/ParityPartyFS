@@ -17,9 +17,12 @@ struct IDirectoryManager {
      * Get entries of a directory.
      *
      * @param inode inode of a directory
+     * @param elements elements to retrieve (0 = all)
+     * @param offset element offset to start from
      * @return list of directory entries on success, error otherwise
      */
-    virtual std::expected<std::vector<DirectoryEntry>, FsError> getEntries(inode_index_t inode) = 0;
+    virtual std::expected<std::vector<DirectoryEntry>, FsError> getEntries(
+        inode_index_t inode, std::uint32_t elements = 0, std::uint32_t offset = 0) = 0;
 
     /**
      * Add entry to existing directory. Checks if the name is unique in the parent directory.

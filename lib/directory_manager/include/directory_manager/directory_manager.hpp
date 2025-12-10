@@ -10,7 +10,8 @@ class DirectoryManager : public IDirectoryManager {
     FileIO& _file_io;
 
     [[nodiscard]] std::expected<std::vector<DirectoryEntry>, FsError> _readDirectoryData(
-        inode_index_t inode_index, Inode& dir_inode);
+        inode_index_t inode_index, Inode& dir_inode, std::uint32_t elements = 0,
+        std::uint32_t offset = 0) const;
     int _findEntryIndexByName(const std::vector<DirectoryEntry>& entries, char const* name);
     int _findEntryIndexByInode(const std::vector<DirectoryEntry>& entries, inode_index_t inode);
     [[nodiscard]] std::expected<Inode, FsError> _getDirectoryInode(inode_index_t inode_index);
@@ -19,7 +20,7 @@ public:
     DirectoryManager(IBlockDevice& block_device, IInodeManager& inode_manager, FileIO& file_io);
 
     [[nodiscard]] virtual std::expected<std::vector<DirectoryEntry>, FsError> getEntries(
-        inode_index_t inode) override;
+        inode_index_t inode, std::uint32_t elements = 0, std::uint32_t offset = 0) override;
 
     [[nodiscard]] virtual std::expected<void, FsError> addEntry(
         inode_index_t directory, DirectoryEntry entry) override;
