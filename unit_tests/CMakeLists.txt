@@ -29,7 +29,7 @@ add_executable(${NAME}
         test_ppfs_parametrized_init.cpp
         test_ppfs_parametrized_io.cpp
         test_ppfs_parametrized_ecc.cpp
-        #test_ppfs_parametrized_multi.cpp
+        test_ppfs_parametrized_multi.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC

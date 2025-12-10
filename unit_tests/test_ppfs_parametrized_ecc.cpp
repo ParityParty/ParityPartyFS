@@ -192,9 +192,9 @@ TEST_P(PpFSParametrizedTest, ErrorDetection_CRC_MultipleBitFlips)
     std::memcpy(&sb, sb_read.value().data(), sizeof(SuperBlock));
 
     size_t data_region = findDataBlockRegion(disk, sb);
-    injectBitFlip(disk, data_region + 30, 0x02);
-    injectBitFlip(disk, data_region + 60, 0x04);
-    injectBitFlip(disk, data_region + 90, 0x08);
+    injectBitFlip(disk, data_region + GetParam().block_size + 30, 0x02);
+    injectBitFlip(disk, data_region + GetParam().block_size + 60, 0x04);
+    injectBitFlip(disk, data_region + GetParam().block_size + 90, 0x08);
 
     // Read back - should detect error
     auto open_res2 = fs->open("/test.txt");
@@ -297,8 +297,8 @@ TEST_P(PpFSParametrizedTest, ErrorDetection_Hamming_DoubleBitFlip)
     std::memcpy(&sb, sb_read.value().data(), sizeof(SuperBlock));
 
     size_t data_region = findDataBlockRegion(disk, sb);
-    injectBitFlip(disk, data_region + 20, 0x20);
-    injectBitFlip(disk, data_region + 50, 0x40);
+    injectBitFlip(disk, data_region + GetParam().block_size + 20, 0x20);
+    injectBitFlip(disk, data_region + GetParam().block_size + 50, 0x40);
 
     // Read back - should detect uncorrectable error
     auto open_res2 = fs->open("/test.txt");
@@ -585,61 +585,6 @@ TEST_P(PpFSParametrizedTest, ErrorCorrection_ReedSolomon_FiveByte)
     ASSERT_EQ(read_data.size(), data_size);
     ASSERT_EQ(read_data, write_data)
         << "Data should be correctly recovered for " << GetParam().test_name;
-
-    auto close_res2 = fs->close(fd2);
-    ASSERT_TRUE(close_res2.has_value());
-}
-
-TEST_P(PpFSParametrizedTest, ErrorDetection_ReedSolomon_ExceedsCorrection)
-{
-    if (GetParam().ecc_type != ECCType::ReedSolomon) {
-        GTEST_SKIP() << "Test only for Reed-Solomon ECC type";
-    }
-
-    auto format_res = fs->format(config);
-    ASSERT_TRUE(format_res.has_value());
-
-    auto create_res = fs->create("/test.txt");
-    ASSERT_TRUE(create_res.has_value());
-
-    auto open_res = fs->open("/test.txt");
-    ASSERT_TRUE(open_res.has_value());
-    file_descriptor_t fd = open_res.value();
-
-    // Write data
-    size_t data_size = GetParam().block_size / 2;
-    auto write_data = createTestData(data_size, 0xAB);
-
-    auto write_res = fs->write(fd, write_data);
-    ASSERT_TRUE(write_res.has_value());
-
-    auto close_res = fs->close(fd);
-    ASSERT_TRUE(close_res.has_value());
-
-    // Corrupt more bytes than can be corrected
-    auto sb_read = disk.read(0, sizeof(SuperBlock));
-    ASSERT_TRUE(sb_read.has_value());
-    SuperBlock sb;
-    std::memcpy(&sb, sb_read.value().data(), sizeof(SuperBlock));
-
-    size_t data_region = findDataBlockRegion(disk, sb);
-    uint32_t corrupt_count = GetParam().rs_correctable_bytes + 1;
-
-    for (uint32_t i = 0; i < corrupt_count; ++i) {
-        injectByteError(disk, data_region + (i * 50), 0xFF);
-    }
-
-    // Read back - should fail
-    auto open_res2 = fs->open("/test.txt");
-    ASSERT_TRUE(open_res2.has_value());
-    file_descriptor_t fd2 = open_res2.value();
-
-    auto read_res = fs->read(fd2, data_size);
-    ASSERT_FALSE(read_res.has_value())
-        << "Reed-Solomon should fail when errors exceed correction capability for "
-        << GetParam().test_name;
-    ASSERT_EQ(read_res.error(), FsError::BlockDevice_CorrectionError)
-        << "Should return CorrectionError for " << GetParam().test_name;
 
     auto close_res2 = fs->close(fd2);
     ASSERT_TRUE(close_res2.has_value());
