@@ -35,21 +35,6 @@ TEST(PpFS, Format_Fails_UnsetParameters)
     ASSERT_FALSE(fs.isInitialized());
 }
 
-TEST(PpFS, Format_Fails_BlockTooSmall)
-{
-    StackDisk disk;
-    PpFS fs(disk);
-
-    FsConfig config;
-    config.total_size = 1024;
-    config.block_size = 4;
-    config.average_file_size = 256;
-    auto res = fs.format(config);
-    ASSERT_FALSE(res.has_value());
-    ASSERT_EQ(res.error(), FsError::PpFS_InvalidRequest);
-    ASSERT_FALSE(fs.isInitialized());
-}
-
 TEST(PpFS, Format_Fails_TotalSizeNotMultipleOfBlockSize)
 {
     StackDisk disk;
@@ -355,9 +340,8 @@ TEST(PpFS, ReadDirectory_Succeeds)
 
     std::vector<std::string> entries = read_dir_res.value();
     ASSERT_EQ(entries.size(), 2);
-    std::set<std::string> expected { "file1.txt", "file2.txt" };
-    std::set got { entries[0], entries[1] };
-    ASSERT_EQ(expected, got);
+    ASSERT_EQ(entries[0], "file1.txt");
+    ASSERT_EQ(entries[1], "file2.txt");
 }
 
 TEST(PpFS, ReadDirectory_Fails_DirectoryDoesNotExist)
@@ -1447,5 +1431,5 @@ TEST(PpFS, ThreeFoldersWork)
     ASSERT_TRUE(fs.createDirectory("/user0").has_value());
     ASSERT_TRUE(fs.createDirectory("/user1").has_value());
     ASSERT_TRUE(fs.createDirectory("/user2").has_value());
-    ASSERT_TRUE(fs.create("/user2/0").has_value());
+    ASSERT_TRUE(fs.create("/user2/0"));
 }

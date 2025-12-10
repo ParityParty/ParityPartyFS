@@ -126,7 +126,7 @@ std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
         }
     }
 
-    return { };
+    return {};
 }
 
 std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
@@ -142,7 +142,7 @@ std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
         const auto& block_data = block_ret.value();
 
         for (int i = 0; i < _block_device.dataSize() * 8; i++) {
-            if (block * _block_device.dataSize() + i >= _bit_count) {
+            if (block * _block_device.dataSize() * 8 + i >= _bit_count) {
                 // there is no more value in bitmap
                 return std::unexpected(FsError::Bitmap_NotFound);
             }
@@ -167,5 +167,5 @@ std::expected<void, FsError> Bitmap::setAll(bool value)
     }
 
     _ones_count = value * _bit_count;
-    return { };
+    return {};
 }

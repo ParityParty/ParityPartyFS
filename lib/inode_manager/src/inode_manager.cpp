@@ -11,8 +11,8 @@ DataLocation InodeManager::_getInodeLocation(inode_index_t inode)
 {
     DataLocation result;
     result.block_index
-        = _superblock.inode_table_address + inode * sizeof(Inode) / _superblock.block_size;
-    result.offset = inode * sizeof(Inode) % _superblock.block_size;
+        = _superblock.inode_table_address + inode * sizeof(Inode) / _block_device.dataSize();
+    result.offset = inode * sizeof(Inode) % _block_device.dataSize();
     return result;
 }
 
@@ -23,15 +23,15 @@ std::expected<void, FsError> InodeManager::_writeInode(inode_index_t index, cons
     int bytes_written = 0;
 
     auto start = _getInodeLocation(index);
-    if (_superblock.block_size - start.offset < sizeof(Inode)) {
+    if (_block_device.dataSize() - start.offset < sizeof(Inode)) {
         // Data won't fit in one block
         // We write the unaligned part here before writing the rest
-        std::vector<std::uint8_t> data_vector(data, data + _superblock.block_size - start.offset);
+        std::vector<std::uint8_t> data_vector(data, data + _block_device.dataSize() - start.offset);
         auto write_res = _block_device.writeBlock(data_vector, start);
         if (!write_res.has_value()) {
             return std::unexpected(write_res.error());
         }
-        bytes_written = _superblock.block_size - start.offset;
+        bytes_written = _block_device.dataSize() - start.offset;
         start.offset = 0;
         start.block_index++;
         data += bytes_written;
@@ -40,7 +40,7 @@ std::expected<void, FsError> InodeManager::_writeInode(inode_index_t index, cons
     while (bytes_written < sizeof(Inode)) {
         int bytes_left = sizeof(Inode) - bytes_written;
         int bytes_to_write
-            = bytes_left > _superblock.block_size ? _superblock.block_size : bytes_left;
+            = bytes_left > _block_device.dataSize() ? _block_device.dataSize() : bytes_left;
         std::vector<std::uint8_t> data_vector(data, data + bytes_to_write);
         auto write_res = _block_device.writeBlock(data_vector, start);
         if (!write_res.has_value()) {
@@ -60,10 +60,10 @@ std::expected<Inode, FsError> InodeManager::_readInode(inode_index_t index)
     data_vector.reserve(sizeof(Inode));
 
     auto start = _getInodeLocation(index);
-    if (_superblock.block_size - start.offset < sizeof(Inode)) {
+    if (_block_device.dataSize() - start.offset < sizeof(Inode)) {
         // Data doesn't fit in one block
         // We read the unaligned part here before reading the rest
-        auto read_res = _block_device.readBlock(start, _superblock.block_size - start.offset);
+        auto read_res = _block_device.readBlock(start, _block_device.dataSize() - start.offset);
         if (!read_res.has_value()) {
             return std::unexpected(read_res.error());
         }
@@ -75,7 +75,7 @@ std::expected<Inode, FsError> InodeManager::_readInode(inode_index_t index)
     while (data_vector.size() < sizeof(Inode)) {
         int bytes_left = sizeof(Inode) - data_vector.size();
         int bytes_to_read
-            = bytes_left > _superblock.block_size ? _superblock.block_size : bytes_left;
+            = bytes_left > _block_device.dataSize() ? _block_device.dataSize() : bytes_left;
 
         auto read_res = _block_device.readBlock(start, bytes_to_read);
         if (!read_res.has_value()) {

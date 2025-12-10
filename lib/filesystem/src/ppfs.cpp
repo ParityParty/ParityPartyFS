@@ -46,9 +46,10 @@ std::expected<std::size_t, FsError> PpFS::getFileCount()
     return mutex_wrapper<std::size_t>(_mutex, [&]() { return _unprotectedGetFileCount(); });
 }
 
-std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(size_t block_size)
+std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(
+    size_t block_size, ECCType eccType, std::uint64_t polynomial, std::uint32_t correctable_bytes)
 {
-    switch (_superBlock.ecc_type) {
+    switch (eccType) {
     case ECCType::None: {
         _blockDeviceStorage.emplace<RawBlockDevice>(block_size, _disk);
         _blockDevice = &std::get<RawBlockDevice>(_blockDeviceStorage);
@@ -60,7 +61,7 @@ std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(size_t block_si
         break;
     }
     case ECCType::Crc: {
-        auto crc_polynomial = CrcPolynomial::MsgExplicit(_superBlock.crc_polynomial);
+        auto crc_polynomial = CrcPolynomial::MsgExplicit(polynomial);
         _blockDeviceStorage.emplace<CrcBlockDevice>(crc_polynomial, _disk, block_size);
         _blockDevice = &std::get<CrcBlockDevice>(_blockDeviceStorage);
         break;
@@ -71,9 +72,7 @@ std::expected<void, FsError> PpFS::_createAppropriateBlockDevice(size_t block_si
         break;
     }
     case ECCType::ReedSolomon: {
-        auto rs_correctable_bytes = _superBlock.rs_correctable_bytes;
-        _blockDeviceStorage.emplace<ReedSolomonBlockDevice>(
-            _disk, block_size, rs_correctable_bytes);
+        _blockDeviceStorage.emplace<ReedSolomonBlockDevice>(_disk, block_size, correctable_bytes);
         _blockDevice = &std::get<ReedSolomonBlockDevice>(_blockDeviceStorage);
         break;
     }
@@ -96,7 +95,8 @@ std::expected<void, FsError> PpFS::init()
     auto block_size = _superBlock.block_size;
 
     // Create block device with appropriate ECC
-    auto bd_res = _createAppropriateBlockDevice(block_size);
+    auto bd_res = _createAppropriateBlockDevice(block_size, _superBlock.ecc_type,
+        _superBlock.crc_polynomial, _superBlock.rs_correctable_bytes);
     if (!bd_res.has_value()) {
         return std::unexpected(bd_res.error());
     }
@@ -131,10 +131,6 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
     if (options.total_size == 0 || options.block_size == 0 || options.average_file_size == 0) {
         return std::unexpected(FsError::PpFS_InvalidRequest);
     }
-    // Ensure that block size can hold at least one inode
-    if (options.block_size < sizeof(Inode)) {
-        return std::unexpected(FsError::PpFS_InvalidRequest);
-    }
     // Check if total size is a multiple of block size
     if (options.total_size % options.block_size != 0) {
         return std::unexpected(FsError::PpFS_InvalidRequest);
@@ -144,24 +140,31 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
         return std::unexpected(FsError::PpFS_InvalidRequest);
     }
 
+    // Create block device with appropriate ECC
+    auto bd_res = _createAppropriateBlockDevice(options.block_size, options.ecc_type,
+        options.crc_polynomial.getExplicitPolynomial(), options.rs_correctable_bytes);
+    if (!bd_res.has_value()) {
+        return std::unexpected(bd_res.error());
+    }
+    auto data_block_size = _blockDevice->dataSize();
+
     // Create superblock
     SuperBlock sb { };
     sb.total_blocks = options.total_size / options.block_size;
     sb.total_inodes = options.total_size / options.average_file_size;
-    sb.inode_bitmap_address = divCeil(sizeof(SuperBlock) * 2, (size_t)options.block_size);
-    sb.inode_table_address = sb.inode_bitmap_address
-        + divCeil(divCeil((uint32_t)(sb.total_inodes), 8U), options.block_size);
+    sb.inode_bitmap_address = divCeil(sizeof(SuperBlock) * 2, data_block_size);
+    sb.inode_table_address
+        = sb.inode_bitmap_address + divCeil((size_t)divCeil(sb.total_inodes, 8U), data_block_size);
 
     if (options.use_journal) {
         return std::unexpected(FsError::NotImplemented);
     }
 
-    sb.block_bitmap_address = sb.inode_table_address
-        + divCeil((uint32_t)(sb.total_inodes * sizeof(Inode)), options.block_size);
+    sb.block_bitmap_address
+        = sb.inode_table_address + divCeil((sb.total_inodes * sizeof(Inode)), data_block_size);
     sb.first_data_blocks_address = sb.block_bitmap_address
-        + divCeil(divCeil((uint32_t)(sb.total_blocks), 8U), options.block_size);
-    sb.last_data_block_address
-        = sb.total_blocks - divCeil(sizeof(SuperBlock), (size_t)options.block_size);
+        + divCeil(divCeil((size_t)(sb.total_blocks), 8UL), data_block_size);
+    sb.last_data_block_address = sb.total_blocks - divCeil(sizeof(SuperBlock), data_block_size);
     sb.block_size = options.block_size;
     sb.ecc_type = options.ecc_type;
     if (sb.ecc_type == ECCType::Crc)
@@ -188,12 +191,6 @@ std::expected<void, FsError> PpFS::format(FsConfig options)
         return std::unexpected(put_res.error());
     }
     _superBlock = sb;
-
-    // Create block device with appropriate ECC
-    auto bd_res = _createAppropriateBlockDevice(options.block_size);
-    if (!bd_res.has_value()) {
-        return std::unexpected(bd_res.error());
-    }
 
     // Create and format inode manager
     _inodeManagerStorage.emplace<InodeManager>(*_blockDevice, _superBlock);
