@@ -2,6 +2,9 @@
 
 #include "blockdevice/iblock_device.hpp"
 #include "ecc_helpers/crc_polynomial.hpp"
+#include <memory>
+
+class Logger;
 
 /**
  * Block device with customizable crc error detection
@@ -12,6 +15,7 @@ class CrcBlockDevice : public IBlockDevice {
     CrcPolynomial _polynomial;
     IDisk& _disk;
     size_t _block_size;
+    std::shared_ptr<Logger> _logger;
 
     /**
      * Calculate block crc and write to disk
@@ -41,8 +45,10 @@ public:
      * Parity Party! If you forgot yours, ask around, maybe somebody have a *redundant* polynomials.
      *
      * @param polynomial polynomial used for crc with most significant bit first with explicit +1
+     * @param logger Optional shared_ptr to Logger for tracking error detections
      */
-    CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t block_size);
+    CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t block_size,
+        std::shared_ptr<Logger> logger = nullptr);
 
     /**
      * Writes a sequence of bytes into the device at a specified data location.

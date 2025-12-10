@@ -1,7 +1,10 @@
 #pragma once
 
 #include "iblock_device.hpp"
+#include <memory>
 #include <optional>
+
+class Logger;
 
 /**
  * @brief Block device that applies Hamming code for error detection and correction.
@@ -18,8 +21,9 @@ public:
      * @param block_size_power Power of two determining the raw block size (2^block_size_power
      * bytes).
      * @param disk Reference to the underlying disk device implementing IDisk.
+     * @param logger Optional shared_ptr to Logger for tracking error corrections/detections.
      */
-    HammingBlockDevice(int block_size_power, IDisk& disk);
+    HammingBlockDevice(int block_size_power, IDisk& disk, std::shared_ptr<Logger> logger = nullptr);
 
     /**
      * @brief Writes a block of data to the device using Hamming encoding.
@@ -70,6 +74,7 @@ private:
     size_t _block_size;
     size_t _data_size;
     IDisk& _disk;
+    std::shared_ptr<Logger> _logger;
 
     std::vector<std::uint8_t> _encodeData(const std::vector<std::uint8_t>& data);
     std::vector<std::uint8_t> _extractData(const std::vector<std::uint8_t>& encoded_data);

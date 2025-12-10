@@ -1,11 +1,15 @@
 #include "blockdevice/hamming_block_device.hpp"
 #include "common/bit_helpers.hpp"
+#include "data_collection/data_colection.hpp"
 
 #include <cmath>
 #include <cstdint>
+#include <memory>
 
-HammingBlockDevice::HammingBlockDevice(int block_size_power, IDisk& disk)
+HammingBlockDevice::HammingBlockDevice(
+    int block_size_power, IDisk& disk, std::shared_ptr<Logger> logger)
     : _disk(disk)
+    , _logger(logger)
 {
     _block_size = 1 << block_size_power;
     int parity_bytes = (int)std::ceil(((float)(block_size_power * 3 + 1)) / 8.0);
@@ -43,8 +47,19 @@ std::expected<std::vector<std::uint8_t>, FsError> HammingBlockDevice::_readAndFi
         if (!disk_result.has_value()) {
             return std::unexpected(disk_result.error());
         }
+
+        // Log error correction
+        if (_logger) {
+            ErrorCorrectionEvent event("Hamming", block_index);
+            _logger->logEvent(event);
+        }
     } else {
         if (error_position != 0) {
+            // Log error detection (uncorrectable)
+            if (_logger) {
+                ErrorDetectionEvent event("Hamming", block_index);
+                _logger->logEvent(event);
+            }
             return std::unexpected(FsError::BlockDevice_CorrectionError);
         }
     }

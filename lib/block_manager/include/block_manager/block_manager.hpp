@@ -1,5 +1,6 @@
 #pragma once
 #include "iblock_manager.hpp"
+#include "super_block_manager/super_block.hpp"
 
 #include "bitmap/bitmap.hpp"
 #include "common/types.hpp"
@@ -15,13 +16,11 @@ class BlockManager : public IBlockManager {
     block_index_t _toAbsolute(block_index_t relative_block) const;
 
 public:
-    /** TODO: CHANGE TO SUPERBLOCK PARAMETER
-     * @param blocks_start Start of bitmap + data blocks region
-     * @param space_for_data_and_bitmap number of blocks reserved for  bitmap + data blocks
+    /**
+     * @param sb superblock with valid bitmap and data addresses
      * @param block_device device for io
      */
-    BlockManager(block_index_t blocks_start, block_index_t space_for_data_and_bitmap,
-        IBlockDevice& block_device);
+    BlockManager(const SuperBlock& sb, IBlockDevice& block_device);
     [[nodiscard]] virtual std::expected<void, FsError> format() override;
     [[nodiscard]] virtual std::expected<void, FsError> reserve(block_index_t block) override;
     [[nodiscard]] virtual std::expected<void, FsError> free(block_index_t block) override;

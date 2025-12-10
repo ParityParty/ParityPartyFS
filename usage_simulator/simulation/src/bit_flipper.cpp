@@ -3,7 +3,7 @@
 #include "common/bit_helpers.hpp"
 
 SimpleBitFlipper::SimpleBitFlipper(
-    IDisk& disk, float flip_chance, unsigned int seed, Logger& logger)
+    IDisk& disk, float flip_chance, unsigned int seed, std::shared_ptr<Logger> logger)
     : _disk(disk)
     , _flip_chance(flip_chance)
     , _rng(seed)
@@ -29,6 +29,6 @@ void SimpleBitFlipper::step()
         if (!_disk.write(pos, read_ret.value()).has_value()) {
             return;
         };
-        _logger.logEvent(BitFlipEvent());
+        _logger->logEvent(BitFlipEvent());
     }
 }
