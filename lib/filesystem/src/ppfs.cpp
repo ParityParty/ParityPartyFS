@@ -595,6 +595,10 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::_unprotectedRead(
     }
     Inode inode = inode_res.value();
 
+    if (inode.type == InodeType::Directory) {
+        return std::unexpected(FsError::PpFS_InvalidRequest);
+    }
+
     auto read_res = _fileIO->readFile(open_file->inode, inode, open_file->position, bytes_to_read);
     if (!read_res.has_value()) {
         return std::unexpected(read_res.error());
@@ -626,6 +630,10 @@ std::expected<void, FsError> PpFS::_unprotectedWrite(
         return std::unexpected(inode_res.error());
     }
     Inode inode = inode_res.value();
+
+    if (inode.type == InodeType::Directory) {
+        return std::unexpected(FsError::PpFS_InvalidRequest);
+    }
 
     size_t offset = open_file->position;
     if (open_file->mode & OpenMode::Append) {
@@ -662,6 +670,10 @@ std::expected<void, FsError> PpFS::_unprotectedSeek(file_descriptor_t fd, size_t
         return std::unexpected(inode_res.error());
     }
     Inode inode = inode_res.value();
+
+    if (inode.type == InodeType::Directory) {
+        return std::unexpected(FsError::PpFS_InvalidRequest);
+    }
 
     if (position > inode.file_size) {
         return std::unexpected(FsError::PpFS_OutOfBounds);
