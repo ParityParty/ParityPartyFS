@@ -1,91 +1,36 @@
-#pragma once
+#include <cstddef>
+#include <new>
+#include <stdexcept>
 
-#include <array>
-#include <vector>
-
-#include "buffer.hpp"
-
-/**
- * Static allocator used by static vector.
- */
-template <typename T, std::size_t N> struct static_allocator {
-    using value_type = T;
-
-    T* storage = nullptr;
-    std::size_t used = 0;
-
-    static_allocator() = default;
-    explicit static_allocator(T* external_storage)
-        : storage(external_storage)
-    {
-    }
-
-    T* allocate(std::size_t n)
-    {
-        if (!storage)
-            throw std::runtime_error("static_allocator: storage not set");
-        if (used + n > N)
-            throw std::bad_alloc();
-        T* ptr = storage + used;
-        used += n;
-        return ptr;
-    }
-
-    void deallocate(T*, std::size_t n) { used -= n }
-};
-
-/**
- * This class is designed to be used similar to std::vector,
- * but does not use dynamic memory. Data is stored in array structure
- * of capacity declared in the constructor.
- * Inherits publicly from std::vector with static_allocator to expose
- * the same interface.
- */
-template <typename T, std::size_t max_size>
-class static_vector : public buffer<T>, public std::vector<T, static_allocator<T, max_size>> {
+template <typename T> class static_vector {
 public:
-    using base_type = std::vector<T, static_allocator<T, max_size>>;
-
-    using base_type::begin;
-    using base_type::end;
-    using base_type::insert;
-
-    explicit static_vector(std::size_t max_cap, std::size_t initial_size = 0)
-        : _alloc(_buffer.data())
-        , _max(max_cap)
-        , base_type(_alloc)
+    static_vector(T* buffer, std::size_t capacity, std::size_t size = 0)
+        : _buffer(buffer)
+        , _capacity(capacity)
+        , _size(0)
     {
-        if (max_cap > max_size)
-            throw std::runtime_error("static_vector: max_cap too large");
-        this->resize(initial_size);
+        if (_size > _capacity)
+            throw std::bad_alloc();
     }
 
-    template <typename InputIt>
-    static_vector(InputIt first, InputIt last)
-        : static_vector(std::distance(first, last), first, last)
+    void push_back(const T& value)
     {
+        if (size_ >= capacity_)
+            throw std::bad_alloc();
+        new (buffer_ + size_++) T(value);
     }
 
-    T& operator[](size_t idx) override { return base_type::operator[](idx); }
-    const T& operator[](size_t idx) const override { return base_type::operator[](idx); }
+    T& operator[](std::size_t i) { return buffer_[i]; }
+    const T& operator[](std::size_t i) const { return buffer_[i]; }
 
-    size_t size() const override { return base_type::size(); }
-    size_t max_size() const override { return _max; }
+    std::size_t size() const { return size_; }
+    std::size_t capacity() const { return capacity_; }
 
-    void push_back(const T& value) override { base_type::push_back(value); }
-
-    T* data() override { return base_type::data(); }
-    const T* data() const override { return base_type::data(); }
-
-    T* begin() override { return base_type::begin(); }
-    T* end() override { return base_type::end(); }
-    const T* begin() const override { return base_type::begin(); }
-    const T* end() const override { return base_type::end(); }
-
-    void resize(size_t size) { base_type::resize(size); }
+    T* begin() { return buffer_; }
+    T* end() { return buffer_ + size_; }
 
 private:
-    std::array<T, max_size> _buffer;
-    static_allocator<T, max_size> _alloc;
-    std::size_t _max;
+    T* _buffer;
+    std::size_t _capacity;
+    std::size_t _size;
 };
