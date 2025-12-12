@@ -10,7 +10,7 @@
  * this release is available on most Ubuntu / Debian systems (like mine xd).
  */
 
-#include "low_level_fuse/fuse_wrapper.h"
+#include "low_level_fuse/fuse_wrapper.hpp"
 
 #include <cassert>
 #include <cerrno>
@@ -76,7 +76,7 @@ template <class T> low_level_fuse::t_lseek low_level_fuse::Fuse<T>::_lseek = nul
 
 template <class T> struct fuse_lowlevel_ops low_level_fuse::Fuse<T>::_operations;
 
-class HelloFS : public Fuse<HelloFS> {
+class HelloFS : public FuseWrapper<HelloFS> {
 private:
     static constexpr const char* _file_name = "hello.txt";
     static constexpr const char* _file_content = "Hello, World!\n";

@@ -1,7 +1,11 @@
+#pragma once
 #include "blockdevice/iblock_device.hpp"
 #include "ecc_helpers/polynomial_gf256.hpp"
+#include <memory>
 
 #define MAX_BLOCK_SIZE 255
+
+class Logger;
 
 /**
  * Implements a block device with Reed-Solomon error correction.
@@ -25,9 +29,11 @@ public:
      *        The redundancy (parity) region will be twice this size (2 * correctable_bytes).
      *        If the requested value exceeds half of the block size, it will be
      *        automatically reduced to raw_block_size / 2 (hich effectively
-     *        makes the block unusable, so we really reccomend providing the right configuration.
+     *        makes the block unusable, so we really recommend providing the right configuration.
+     * @param logger Optional shared_ptr to Logger for tracking error corrections
      */
-    ReedSolomonBlockDevice(IDisk& disk, size_t raw_block_size, size_t correctable_bytes);
+    ReedSolomonBlockDevice(IDisk& disk, size_t raw_block_size, size_t correctable_bytes,
+        std::shared_ptr<Logger> logger = nullptr);
 
     /** Writes data to a block at the specified location. */
     virtualstd::expected<size_t, FsError> writeBlock(
@@ -38,16 +44,17 @@ public:
         DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data);
 
     /** Returns the size of a raw encoded block in bytes. */
-    virtual size_t rawBlockSize() const;
+    virtual size_t rawBlockSize() const override;
 
     /** Returns the usable data size of a block in bytes. */
-    virtual size_t dataSize() const;
+    virtual size_t dataSize() const override;
 
     /** Returns the total number of blocks on the underlying disk. */
-    virtual size_t numOfBlocks() const;
+    virtual size_t numOfBlocks() const override;
 
     /** Formats a block (zeroes it out) at the given index. */
-    virtual std::expected<void, FsError> formatBlock(unsigned int block_index);
+    [[nodiscard]] virtual std::expected<void, FsError> formatBlock(
+        unsigned int block_index) override;
 
 private:
     IDisk& _disk; /**< Reference to the underlying disk. */
@@ -55,12 +62,14 @@ private:
     size_t _raw_block_size; /**< Total size of one encoded block in bytes (data + redundancy). */
     size_t
         _correctable_bytes; /**< Number of individual bytes that the code can detect and correct. */
+    std::shared_ptr<Logger> _logger; /**< Optional logger for error corrections. */
 
     /** Encodes data into a full RS block with parity bytes. */
     std::vector<std::uint8_t> _encodeBlock(std::vector<std::uint8_t>);
 
     /** Fixes a block using Reed-Solomon decoding. After fixing, data is returned. */
-    std::vector<std::uint8_t> _fixBlockAndExtract(std::vector<std::uint8_t>);
+    std::vector<std::uint8_t> _fixBlockAndExtract(
+        std::vector<std::uint8_t>, block_index_t block_index);
 
     /** Computes the RS generator polynomial. */
     PolynomialGF256 _calculateGenerator();

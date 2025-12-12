@@ -104,7 +104,7 @@ TEST(Bitmap, FindFirst_NoSpace)
     ASSERT_TRUE(disk.write(0, std::vector(512, std::uint8_t { 0xFF })));
     auto ret = bm.getFirstEq(false);
     ASSERT_FALSE(ret.has_value());
-    ASSERT_EQ(ret.error(), FsError::NotFound);
+    ASSERT_EQ(ret.error(), FsError::Bitmap_NotFound);
 }
 
 TEST(Bitmap, FindFirst)

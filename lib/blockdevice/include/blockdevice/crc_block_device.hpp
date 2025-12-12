@@ -1,7 +1,10 @@
 #pragma once
 
-#include "blockdevice/crc_polynomial.hpp"
 #include "blockdevice/iblock_device.hpp"
+#include "ecc_helpers/crc_polynomial.hpp"
+#include <memory>
+
+class Logger;
 
 /**
  * Block device with customizable crc error detection
@@ -12,6 +15,7 @@ class CrcBlockDevice : public IBlockDevice {
     CrcPolynomial _polynomial;
     IDisk& _disk;
     size_t _block_size;
+    std::shared_ptr<Logger> _logger;
 
     /**
      * Calculate block crc and write to disk
@@ -20,7 +24,7 @@ class CrcBlockDevice : public IBlockDevice {
      * will be changed
      * @return void if successful, error otherwise
      */
-    std::expected<void, FsError> _calculateAndWrite(
+    [[nodiscard]] std::expected<void, FsError> _calculateAndWrite(
         std::vector<std::uint8_t>& block, block_index_t block_index);
 
     /**
@@ -29,7 +33,8 @@ class CrcBlockDevice : public IBlockDevice {
      * @param block index of a block to read
      * @return block with redundancy bits on success, error otherwise
      */
-    std::expected<std::vector<std::uint8_t>, FsError> _readAndCheckRaw(block_index_t block);
+    [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _readAndCheckRaw(
+        block_index_t block);
 
 public:
     /**
@@ -40,8 +45,10 @@ public:
      * Parity Party! If you forgot yours, ask around, maybe somebody have a *redundant* polynomials.
      *
      * @param polynomial polynomial used for crc with most significant bit first with explicit +1
+     * @param logger Optional shared_ptr to Logger for tracking error detections
      */
-    CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t block_size);
+    CrcBlockDevice(CrcPolynomial polynomial, IDisk& disk, size_t block_size,
+        std::shared_ptr<Logger> logger = nullptr);
 
     /**
      * Writes a sequence of bytes into the device at a specified data location.
@@ -53,7 +60,7 @@ public:
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
     std::expected<size_t, FsError> writeBlock(
-        const buffer<std::uint8_t>& data, DataLocation data_location) override;
+        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * Reads a sequence of bytes from the device at a specified data location.
@@ -64,14 +71,14 @@ public:
      * @param bytes_to_read Number of bytes to read starting from the specified location.
      * @return On success, returns the bytes read; otherwise returns a FsError.
      */
-    std::expected<void, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data) override;
+    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read) override;
 
     /**
      * Returns the physical (raw) block size of the underlying device.
      * @return Size of one raw block in bytes.
      */
-    size_t rawBlockSize() const override;
+    virtual size_t rawBlockSize() const override;
 
     /**
      * Returns the usable data size within a block.
@@ -80,13 +87,13 @@ public:
      *
      * @return The size of usable (payload) data in a single block.
      */
-    size_t dataSize() const override;
+    virtual size_t dataSize() const override;
 
     /**
      * Returns the number of available blocks.
      * @return Number of blocks.
      */
-    size_t numOfBlocks() const override;
+    virtual size_t numOfBlocks() const override;
 
     /**
      * Formats a specific block on the device.
@@ -96,5 +103,6 @@ public:
      * After formatting, the block is set to a correct state (e.g., all zeros with valid redundancy
      * bits).
      */
-    std::expected<void, FsError> formatBlock(unsigned int block_index) override;
+    [[nodiscard]] virtual std::expected<void, FsError> formatBlock(
+        unsigned int block_index) override;
 };

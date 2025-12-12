@@ -10,6 +10,7 @@ DirectoryManager::DirectoryManager(
 {
 }
 
+<<<<<<< HEAD
 std::expected<void, FsError> DirectoryManager::getEntries(
     inode_index_t inode, buffer<DirectoryEntry>& buf)
 {
@@ -28,6 +29,10 @@ std::expected<void, FsError> DirectoryManager::getEntries(
 
 std::expected<void, FsError> DirectoryManager::addEntry(
     inode_index_t directory, DirectoryEntry entry)
+=======
+std::expected<Inode, FsError> DirectoryManager::checkNameUnique(
+    inode_index_t directory, const char* name)
+>>>>>>> main
 {
     auto inode_result = _getDirectoryInode(directory);
     if (!inode_result.has_value()) {
@@ -43,10 +48,38 @@ std::expected<void, FsError> DirectoryManager::addEntry(
 
     static_vector<uint8_t, MAX_BLOCK_SIZE> temp(MAX_BLOCK_SIZE);
 
+<<<<<<< HEAD
     int index = _findEntryIndexByName(temp, entry.name.data());
+=======
+    int index = _findEntryIndexByName(entries, name);
+>>>>>>> main
     if (index != -1) {
-        return std::unexpected(FsError::NameTaken);
+        return std::unexpected(FsError::DirectoryManager_NameTaken);
     }
+    return dir_inode;
+}
+
+std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::getEntries(
+    inode_index_t inode, std::uint32_t elements, std::uint32_t offset)
+{
+    auto inode_result = _getDirectoryInode(inode);
+    if (!inode_result.has_value()) {
+        return std::unexpected(inode_result.error());
+    }
+
+    Inode dir_inode = inode_result.value();
+
+    return _readDirectoryData(inode, dir_inode, elements, offset);
+}
+
+std::expected<void, FsError> DirectoryManager::addEntry(
+    inode_index_t directory, DirectoryEntry entry)
+{
+    auto inode_result = checkNameUnique(directory, entry.name.data());
+    if (!inode_result.has_value()) {
+        return std::unexpected(inode_result.error());
+    }
+    Inode dir_inode = inode_result.value();
 
     static_vector<uint8_t, sizeof(DirectoryEntry)> temp2(reinterpret_cast<uint8_t*>(&entry),
         reinterpret_cast<uint8_t*>(&entry) + sizeof(DirectoryEntry));
@@ -76,7 +109,7 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
 
     int index = _findEntryIndexByInode(entries, entry);
     if (index == -1) {
-        return std::unexpected(FsError::NotFound);
+        return std::unexpected(FsError::DirectoryManager_NotFound);
     }
 
     auto new_dir_size = dir_inode.file_size - sizeof(DirectoryEntry);
@@ -99,11 +132,15 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     return {};
 }
 
-std::expected<void, FsError> DirectoryManager::_readDirectoryData(
-    inode_index_t inode_index, Inode& dir_inode, buffer<DirectoryEntry>& buf)
+std::expected<std::vector<DirectoryEntry>, FsError> DirectoryManager::_readDirectoryData(
+    inode_index_t inode_index, Inode& dir_inode, std::uint32_t elements, std::uint32_t offset) const
 {
-    static_vector<uint8_t, MAX_BLOCK_SIZE> temp(MAX_BLOCK_SIZE);
-    auto data_result = _file_io.readFile(inode_index, dir_inode, 0, dir_inode.file_size, temp);
+    auto bytes_to_read = elements * sizeof(DirectoryEntry);
+    if (elements == 0)
+        bytes_to_read = dir_inode.file_size;
+
+    auto data_result
+        = _file_io.readFile(inode_index, dir_inode, offset * sizeof(DirectoryEntry), bytes_to_read);
     if (!data_result.has_value()) {
         return std::unexpected(data_result.error());
     }
@@ -120,7 +157,8 @@ std::expected<void, FsError> DirectoryManager::_readDirectoryData(
 int DirectoryManager::_findEntryIndexByName(const buffer<DirectoryEntry>& entries, char const* name)
 {
     for (size_t i = 0; i < entries.size(); ++i) {
-        if (std::strncmp(entries[i].name.data(), name, std::strlen(name)) == 0) {
+        if (std::strlen(name) == std::strlen(entries[i].name.data())
+            && std::strncmp(entries[i].name.data(), name, std::strlen(name)) == 0) {
             return static_cast<int>(i);
         }
     }
@@ -146,7 +184,7 @@ std::expected<Inode, FsError> DirectoryManager::_getDirectoryInode(inode_index_t
     }
 
     if (inode_result->type != InodeType::Directory)
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::DirectoryManager_InvalidRequest);
 
     return *inode_result;
 }

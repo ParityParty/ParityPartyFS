@@ -1,7 +1,7 @@
 #pragma once
 #include "directory_manager/directory.hpp"
 #include "disk/idisk.hpp"
-#include "filesystem/fs_config.hpp"
+#include "filesystem/types.hpp"
 
 #include "common/types.hpp"
 #include <expected>
@@ -13,6 +13,7 @@
  * Interface of basic filesystem operations
  */
 struct IFilesystem {
+    virtual ~IFilesystem() = default;
     /**
      * Initializes filesystem with structures already existing on disk.
      *
@@ -42,44 +43,47 @@ struct IFilesystem {
     virtual std::expected<void, FsError> create(std::string_view path) = 0;
 
     /**
-     * Opens file for read/write operations.
+     * Opens file for read/write and directories for read.
      *
      * Method can check data integrity. Every call to open should be paired with
-     * close one the returned inode
+     * close on the returned file descriptor.
+     *
+     * If the file is a directory, mode argument is ignored.
      *
      * @param path absolute path to file to be opened
-     * @return inode to be used with read, write, close operations on success,
+     * @param mode mode in which to open the file
+     * @return file descriptor to be used with read, write, close operations on success,
      * error otherwise
      */
-    virtual std::expected<inode_index_t, FsError> open(std::string_view path) = 0;
+    virtual std::expected<file_descriptor_t, FsError> open(
+        std::string_view path, OpenMode mode = OpenMode::Normal) = 0;
 
     /**
      * Close file
      *
-     * @param inode inode of file to close
+     * @param fd file descriptor of file to close
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> close(inode_index_t inode) = 0;
+    virtual std::expected<void, FsError> close(file_descriptor_t fd) = 0;
 
     /**
-     * Deletes file from the disk
+     * Remove file(s) from the disk. If the files are open, removal fails and no action is taken.
      *
-     * @param path absolute path to file to be removed
+     * @param path absolute path to file or directory to be removed
+     * @param recursive if true, remove directories and their contents recursively
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> remove(std::string_view path) = 0;
+    virtual std::expected<void, FsError> remove(std::string_view path, bool recursive = false) = 0;
 
     /**
      * Read bytes from disk
      *
-     * @param inode inode of a file to read from
-     * @param offset beginning of byte sequence to read
-     * @param size amount of bytes to read
+     * @param fd file descriptor of a file to read from
+     * @param bytes_to_read number of bytes to read
      * @return vector of bytes on success, error otherwise
      */
     virtual std::expected<std::vector<std::uint8_t>, FsError> read(
-        inode_index_t inode, size_t offset, size_t size)
-        = 0;
+        file_descriptor_t fd, std::size_t bytes_to_read) = 0;
 
     /**
      * Write data from buffer to file.
@@ -87,14 +91,23 @@ struct IFilesystem {
      * Write data from buffer starting at offset. If file size is too small,
      * method makes it larger.
      *
-     * @param inode inode of file to write to
+     * @param fd file descriptor of file to write to
      * @param buffer data to write
-     * @param offset place to write data
+     * @return number of written bytes, error otherwise
+     */
+
+    virtual std::expected<size_t, FsError> write(
+        file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+        = 0;
+
+    /**
+     * Seek to position in file
+     *
+     * @param fd file descriptor of file to seek in
+     * @param position position to seek to
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> write(
-        inode_index_t inode, std::vector<std::uint8_t> buffer, size_t offset)
-        = 0;
+    virtual std::expected<void, FsError> seek(file_descriptor_t fd, size_t position) = 0;
 
     /**
      * Create new directory
@@ -108,7 +121,18 @@ struct IFilesystem {
     /**
      * Read entries of a directory
      *
-     * @param path Absolute path to directory
+     * @param fd file descriptor of the directory
+     * @param elements number of directory entries to read (0 reads all)
+     * @param offset element offset from which to start reading
+     * @return list of filenames on success, error otherwise
+     */
+    virtual std::expected<std::vector<std::string>, FsError> readDirectory(
+        file_descriptor_t fd, std::uint32_t elements = 0, std::uint32_t offset = 0) = 0;
+
+    /**
+     * Read all entries of a directory
+     *
+     * @param path absolute path to directory
      * @return list of filenames on success, error otherwise
      */
     virtual std::expected<std::vector<std::string>, FsError> readDirectory(std::string_view path)
@@ -120,4 +144,11 @@ struct IFilesystem {
      * @return true if initialized, false otherwise
      */
     virtual bool isInitialized() const = 0;
+
+    /**
+     * Get number of files in the filesystem
+     *
+     * @return number of files
+     */
+    virtual std::expected<std::size_t, FsError> getFileCount() = 0;
 };

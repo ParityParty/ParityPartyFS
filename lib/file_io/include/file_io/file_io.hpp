@@ -30,7 +30,7 @@ public:
     /**
      * Resizes file to a given size
      */
-    std::expected<void, FsError> resizeFile(
+    [[nodiscard]] std::expected<void, FsError> resizeFile(
         inode_index_t inode_index, Inode& inode, size_t new_size);
 };
 
@@ -45,7 +45,7 @@ public:
      * If should_resize is set to true, updates inode and find new index block if necessary.
      * Does not update inode in inode maneger!!! File size is not updated either!!!
      */
-    std::expected<block_index_t, FsError> next();
+    [[nodiscard]] std::expected<block_index_t, FsError> next();
 
     /**
      * Returns the next data block index of the file. If this data block is the
@@ -55,7 +55,11 @@ public:
      * If should_resize is set to true, updates inode and find new index block if necessary.
      * Does not update inode in inode maneger!!! File size is not updated either!!!
      */
-    std::expected<std::tuple<block_index_t, static_vector<block_index_t, 3>>, FsError>
+
+    std::expected<std::tuple<block_index_t, static_vector<block_index_t, 3>>,
+        FsError> [[nodiscard]] std::expected<std::tuple<block_index_t, std::vector<block_index_t>>,
+        FsError>
+
     nextWithIndirectBlocksAdded();
 
 private:
@@ -70,9 +74,16 @@ private:
     bool _should_resize;
     size_t _occupied_blocks;
 
+<<<<<<< HEAD
     std::expected<void, FsError> _readIndexBlock(block_index_t index, buffer<block_index_t>& buf);
     std::expected<void, FsError> _writeIndexBlock(
         block_index_t index, const buffer<block_index_t>& indices);
+=======
+    [[nodiscard]] std::expected<std::vector<block_index_t>, FsError> _readIndexBlock(
+        block_index_t index);
+    [[nodiscard]] std::expected<void, FsError> _writeIndexBlock(
+        block_index_t index, const std::vector<block_index_t>& indices);
+>>>>>>> main
 
-    std::expected<block_index_t, FsError> _findAndReserveBlock();
+    [[nodiscard]] std::expected<block_index_t, FsError> _findAndReserveBlock();
 };

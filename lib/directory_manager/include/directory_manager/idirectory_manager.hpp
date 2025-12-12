@@ -2,6 +2,7 @@
 
 #include "directory_manager/directory.hpp"
 #include "disk/idisk.hpp"
+#include "inode_manager/inode.hpp"
 #include <expected>
 #include <vector>
 
@@ -16,10 +17,12 @@ struct IDirectoryManager {
      * Get entries of a directory.
      *
      * @param inode inode of a directory
+     * @param elements elements to retrieve (0 = all)
+     * @param offset element offset to start from
      * @return list of directory entries on success, error otherwise
      */
-    virtual std::expected<void, FsError> getEntries(
-        inode_index_t inode, buffer<DirectoryEntry>& buf)
+    virtual std::expected<std::vector<DirectoryEntry>, FsError> getEntries(
+        inode_index_t inode, std::uint32_t elements = 0, std::uint32_t offset = 0)
         = 0;
 
     /**
@@ -41,5 +44,14 @@ struct IDirectoryManager {
      * @return void on success, error otherwise
      */
     virtual std::expected<void, FsError> removeEntry(inode_index_t directory, inode_index_t entry)
+        = 0;
+
+    /**
+     * Check if name is unique in the given directory.
+     * @param directory inode of directory to check
+     * @param name name to check
+     * @return directory inode on success, error otherwise
+     */
+    virtual std::expected<Inode, FsError> checkNameUnique(inode_index_t directory, const char* name)
         = 0;
 };

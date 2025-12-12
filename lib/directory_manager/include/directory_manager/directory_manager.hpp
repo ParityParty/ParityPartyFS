@@ -22,7 +22,12 @@ public:
     std::expected<void, FsError> getEntries(
         inode_index_t inode, buffer<DirectoryEntry>& buf) override;
 
-    std::expected<void, FsError> addEntry(inode_index_t directory, DirectoryEntry entry) override;
+    [[nodiscard]] virtual std::expected<void, FsError> addEntry(
+        inode_index_t directory, DirectoryEntry entry) override;
 
-    std::expected<void, FsError> removeEntry(inode_index_t directory, inode_index_t entry) override;
+    [[nodiscard]] virtual std::expected<void, FsError> removeEntry(
+        inode_index_t directory, inode_index_t entry) override;
+
+    [[nodiscard]] virtual std::expected<Inode, FsError> checkNameUnique(
+        inode_index_t directory, const char* name) override;
 };

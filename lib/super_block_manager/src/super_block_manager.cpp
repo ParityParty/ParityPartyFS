@@ -61,10 +61,10 @@ std::expected<BlockRange, FsError> SuperBlockManager::getFreeBlocksIndexes()
 std::expected<void, FsError> SuperBlockManager::_writeToDisk(bool writeAtBeginning, bool writeAtEnd)
 {
     if (!writeAtBeginning && !writeAtEnd)
-        return std::unexpected(FsError::InvalidRequest);
+        return {};
 
     if (!_superBlock.has_value())
-        return std::unexpected(FsError::InvalidRequest);
+        return std::unexpected(FsError::SuperBlockManager_InvalidRequest);
 
     // write at the beggining
 
@@ -113,10 +113,13 @@ std::expected<void, FsError> SuperBlockManager::_readFromDisk()
 
     std::memcpy(&sb, voting_res.finalData.data(), sizeof(SuperBlock));
 
-    _writeToDisk(voting_res.damaged1 || voting_res.damaged2, voting_res.damaged3);
+    auto write_res = _writeToDisk(voting_res.damaged1 || voting_res.damaged2, voting_res.damaged3);
+    if (!write_res.has_value()) {
+        return std::unexpected(write_res.error());
+    }
 
     if (std::memcmp(sb.signature, "PPFS", 4) != 0) {
-        return std::unexpected(FsError::DiskNotFormatted);
+        return std::unexpected(FsError::PpFS_DiskNotFormatted);
     }
 
     _superBlock = sb;

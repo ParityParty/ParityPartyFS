@@ -1,7 +1,12 @@
-#include <optional>
+#pragma once
 
 #include "iblock_device.hpp"
 #include "static_vector.hpp"
+
+#include <memory>
+#include <optional>
+
+class Logger;
 
 /**
  * @brief Block device that applies Hamming code for error detection and correction.
@@ -18,8 +23,9 @@ public:
      * @param block_size_power Power of two determining the raw block size (2^block_size_power
      * bytes).
      * @param disk Reference to the underlying disk device implementing IDisk.
+     * @param logger Optional shared_ptr to Logger for tracking error corrections/detections.
      */
-    HammingBlockDevice(int block_size_power, IDisk& disk);
+    HammingBlockDevice(int block_size_power, IDisk& disk, std::shared_ptr<Logger> logger = nullptr);
 
     /**
      * @brief Writes a block of data to the device using Hamming encoding.
@@ -31,8 +37,9 @@ public:
      *
      * If size of data exceeds the data size per block, it will be truncated.
      */
-    std::expected<size_t, FsError> writeBlock(
-        const buffer<std::uint8_t>& data, DataLocation data_location) override;
+
+    [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
+        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * @brief Reads a block of data from the device and performs Hamming error correction.
@@ -49,26 +56,28 @@ public:
     /**
      * @brief Fills a specific block with zeros.
      */
-    std::expected<void, FsError> formatBlock(unsigned int block_index) override;
+    [[nodiscard]] virtual std::expected<void, FsError> formatBlock(
+        unsigned int block_index) override;
 
     /**
      * @brief Returns the total raw block size in bytes (including ECC bits).
      */
-    size_t rawBlockSize() const override;
+    virtual size_t rawBlockSize() const override;
 
     /**
      * @brief Returns the size in bytes of the actual data per block (without ECC bits).
      */
-    size_t dataSize() const override;
+    virtual size_t dataSize() const override;
     /**
      * @brief Returns the total number of blocks available on the underlying disk.
      */
-    size_t numOfBlocks() const override;
+    virtual size_t numOfBlocks() const override;
 
 private:
     size_t _block_size;
     size_t _data_size;
     IDisk& _disk;
+    std::shared_ptr<Logger> _logger;
 
     void _encodeData(const buffer<uint8_t>& data, buffer<uint8_t>& encoded_data);
     void _extractData(const buffer<uint8_t>& encoded_data, buffer<uint8_t>& data);

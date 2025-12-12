@@ -14,103 +14,105 @@
 class PpFSMutex {
 public:
     PpFSMutex()
-        : isInitialized_(false)
+        : _is_initialized(false)
     {
 #ifdef PPFS_USE_FREERTOS
-        mutexHandle_ = nullptr;
+        _mutex_handle = nullptr;
 #endif
     }
 
-    ~PpFSMutex() { deinit(); }
+    ~PpFSMutex() { (void)deinit(); }
 
     [[nodiscard]] std::expected<void, FsError> init()
     {
-        if (isInitialized_) {
-            return std::unexpected(FsError::MutexAlreadyInitialized);
+        if (_is_initialized) {
+            return std::unexpected(FsError::Mutex_AlreadyInitialized);
         }
 
 #ifdef PPFS_USE_FREERTOS
-        mutexHandle_ = xSemaphoreCreateMutex();
-        if (mutexHandle_ == nullptr) {
-            return std::unexpected(FsError::MutexInitFailed);
+        _mutex_handle = xSemaphoreCreateMutex();
+        if (_mutex_handle == nullptr) {
+            return std::unexpected(FsError::Mutex_InitFailed);
         }
 #else
-        if (pthread_mutex_init(&mutexHandle_, nullptr) != 0) {
-            return std::unexpected(FsError::MutexInitFailed);
+        if (pthread_mutex_init(&_mutex_handle, nullptr) != 0) {
+            return std::unexpected(FsError::Mutex_InitFailed);
         }
 #endif
 
-        isInitialized_ = true;
-        return {};
+        _is_initialized = true;
+        return { };
     }
 
-    std::expected<void, FsError> deinit()
+    [[nodiscard]] std::expected<void, FsError> deinit()
     {
-        if (!isInitialized_) {
-            return std::unexpected(FsError::MutexNotInitialized);
+        if (!_is_initialized) {
+            return std::unexpected(FsError::Mutex_NotInitialized);
         }
 
 #ifdef PPFS_USE_FREERTOS
-        if (mutexHandle_ != nullptr) {
-            vSemaphoreDelete(mutexHandle_);
-            mutexHandle_ = nullptr;
+        if (_mutex_handle != nullptr) {
+            vSemaphoreDelete(_mutex_handle);
+            _mutex_handle = nullptr;
         }
 #else
-        if (pthread_mutex_destroy(&mutexHandle_) != 0) {
-            return std::unexpected(FsError::InternalError);
+        if (pthread_mutex_destroy(&_mutex_handle) != 0) {
+            return std::unexpected(FsError::Mutex_InternalError);
         }
 #endif
 
-        isInitialized_ = false;
-        return {};
+        _is_initialized = false;
+        return { };
     }
 
     [[nodiscard]] std::expected<void, FsError> lock()
     {
-        if (!isInitialized_) {
-            return std::unexpected(FsError::MutexNotInitialized);
+        if (!_is_initialized) {
+            return std::unexpected(FsError::Mutex_NotInitialized);
         }
 
 #ifdef PPFS_USE_FREERTOS
-        if (xSemaphoreTake(mutexHandle_, portMAX_DELAY) != pdTRUE) {
-            return std::unexpected(FsError::MutexLockFailed);
+        if (xSemaphoreTake(_mutex_handle, portMAX_DELAY) != pdTRUE) {
+            return std::unexpected(FsError::Mutex_LockFailed);
         }
 #else
-        if (pthread_mutex_lock(&mutexHandle_) != 0) {
-            return std::unexpected(FsError::MutexLockFailed);
+        if (pthread_mutex_lock(&_mutex_handle) != 0) {
+            return std::unexpected(FsError::Mutex_LockFailed);
         }
 #endif
-        return {};
+        return { };
     }
 
     [[nodiscard]] std::expected<void, FsError> unlock()
     {
-        if (!isInitialized_) {
-            return std::unexpected(FsError::MutexNotInitialized);
+        if (!_is_initialized) {
+            return std::unexpected(FsError::Mutex_NotInitialized);
         }
 
 #ifdef PPFS_USE_FREERTOS
-        if (xSemaphoreGive(mutexHandle_) != pdTRUE) {
-            return std::unexpected(FsError::MutexUnlockFailed);
+        if (xSemaphoreGive(_mutex_handle) != pdTRUE) {
+            return std::unexpected(FsError::Mutex_UnlockFailed);
         }
 #else
-        if (pthread_mutex_unlock(&mutexHandle_) != 0) {
-            return std::unexpected(FsError::MutexUnlockFailed);
+        if (pthread_mutex_unlock(&_mutex_handle) != 0) {
+            return std::unexpected(FsError::Mutex_UnlockFailed);
         }
 #endif
-        return {};
+        return { };
     }
+
+    bool isInitialized() const { return _is_initialized; }
 
     // Disable copying
     PpFSMutex(const PpFSMutex&) = delete;
     PpFSMutex& operator=(const PpFSMutex&) = delete;
 
 private:
-    bool isInitialized_;
+    bool _is_initialized;
 
 #ifdef PPFS_USE_FREERTOS
-    SemaphoreHandle_t mutexHandle_;
+    SemaphoreHandle_t _mutex_handle;
 #else
-    pthread_mutex_t mutexHandle_;
+    pthread_mutex_t _mutex_handle;
 #endif
 };

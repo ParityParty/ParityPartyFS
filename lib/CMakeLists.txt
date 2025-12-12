@@ -1,4 +1,3 @@
-add_subdirectory(ppfs_fat)
 add_subdirectory(fusepp)
 add_subdirectory(disk)
 add_subdirectory(blockdevice)
@@ -11,4 +10,5 @@ add_subdirectory(filesystem)
 add_subdirectory(directory_manager)
 add_subdirectory(ecc_helpers)
 add_subdirectory(file_io)
-
+add_subdirectory(low_level_fuse)
+add_subdirectory(data_collection)

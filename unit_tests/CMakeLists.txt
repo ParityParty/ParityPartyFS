@@ -13,7 +13,6 @@ add_executable(${NAME}
         test_ppfs.cpp
         # test_ppfs_fat.cpp  Commented out because PpFS classes collide
         test_stack_disk.cpp
-        test_ppfs_data_structures.cpp
         test_hamming_block_device.cpp
         test_parity_block_device.cpp
         test_bitmap.cpp
@@ -25,6 +24,16 @@ add_executable(${NAME}
         test_crc_block_device.cpp
         test_bits.cpp
         test_file_io.cpp
+        test_helpers.cpp
+        test_ppfs_low_level.cpp
+        test_ppfs_parametrized_format.cpp
+        test_ppfs_parametrized_init.cpp
+        test_ppfs_parametrized_io.cpp
+        test_ppfs_parametrized_multi.cpp
+        test_ppfs_parametrized_hamming.cpp
+        test_ppfs_parametrized_crc.cpp
+        test_ppfs_parametrized_none.cpp
+        test_ppfs_parametrized_reed_solomon.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC
@@ -36,7 +45,6 @@ target_link_libraries(${NAME} PUBLIC
         block_manager
         inode_manager
         bitmap
-        ppfs_fat
         blockdevice
         ecc_helpers
         file_io
@@ -48,3 +56,8 @@ gtest_discover_tests(${NAME}
         LABELS "unit"
         ENVIRONMENT "GTEST_COLOR=1"   # force colors in output 🌈
 )
+
+# Parallel test execution:
+# Run tests in parallel using: ctest -j N (where N is number of parallel jobs)
+# Or: ctest -j (uses all available CPU cores)
+# Or set environment variable: CTEST_PARALLEL_LEVEL=N

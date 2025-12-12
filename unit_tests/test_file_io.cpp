@@ -7,21 +7,21 @@
 
 struct FakeInodeManager : public IInodeManager {
     std::expected<inode_index_t, FsError> create(Inode& inode) override { return 0; }
-    std::expected<void, FsError> remove(inode_index_t inode) override { return {}; }
+    std::expected<void, FsError> remove(inode_index_t inode) override { return { }; }
     std::expected<Inode, FsError> get(inode_index_t inode) override { return Inode(); }
     std::expected<unsigned int, FsError> numFree() { return 1; }
     std::expected<void, FsError> update(inode_index_t inode_index, const Inode& inode)
     {
-        return {};
+        return { };
     }
-    std::expected<void, FsError> format() { return {}; };
+    std::expected<void, FsError> format() { return { }; };
 };
 
 TEST(FileIO, Compiles)
 {
     StackDisk disk;
     RawBlockDevice block_device(32, disk);
-    BlockManager block_manager(0, 512, block_device);
+    BlockManager block_manager(SuperBlock { }, block_device);
     InodeManager inode_manager(block_device, *(new SuperBlock()));
     FileIO file_io(block_device, block_manager, inode_manager);
 
@@ -31,14 +31,20 @@ TEST(FileIO, WritesAndReadsDirectBlocks)
 {
     StackDisk disk;
     RawBlockDevice block_device(128, disk);
-    BlockManager block_manager(16, 1024, block_device);
     SuperBlock superblock {
-        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 10,
+        .block_bitmap_address = 16,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 18,
+        .last_data_block_address = 1024,
+        .block_size = 128,
     };
+    BlockManager block_manager(superblock, block_device);
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode {};
+    Inode inode { };
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -71,14 +77,20 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
 {
     StackDisk disk;
     RawBlockDevice block_device(128, disk);
-    BlockManager block_manager(16, 1024, block_device);
     SuperBlock superblock {
-        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 10,
+        .block_bitmap_address = 16,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 18,
+        .last_data_block_address = 1024,
+        .block_size = 128,
     };
+    BlockManager block_manager(superblock, block_device);
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode {};
+    Inode inode { };
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -113,14 +125,20 @@ TEST(FileIO, ReadAndWriteWithOffset)
 {
     StackDisk disk;
     RawBlockDevice block_device(128, disk);
-    BlockManager block_manager(16, 1024, block_device);
     SuperBlock superblock {
-        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 10,
+        .block_bitmap_address = 16,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 18,
+        .last_data_block_address = 1024,
+        .block_size = 128,
     };
+    BlockManager block_manager(superblock, block_device);
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode {};
+    Inode inode { };
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -159,14 +177,20 @@ TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
 {
     StackDisk disk;
     RawBlockDevice block_device(128, disk);
-    BlockManager block_manager(16, 2048, block_device);
     SuperBlock superblock {
-        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 10,
+        .block_bitmap_address = 16,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 30,
+        .last_data_block_address = 2024,
+        .block_size = 128,
     };
+    BlockManager block_manager(superblock, block_device);
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode {};
+    Inode inode { };
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -202,14 +226,20 @@ TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
 {
     StackDisk disk;
     RawBlockDevice block_device(32, disk);
-    BlockManager block_manager(16, 40000, block_device);
     SuperBlock superblock {
-        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 10,
+        .block_bitmap_address = 16,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 100,
+        .last_data_block_address = 40000,
+        .block_size = 128,
     };
+    BlockManager block_manager(superblock, block_device);
     FakeInodeManager inode_manager;
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode {};
+    Inode inode { };
     inode.file_size = 0;
 
     auto indexes_per_block = block_device.dataSize() / sizeof(block_index_t);
@@ -218,7 +248,7 @@ TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
             + indexes_per_block * indexes_per_block * indexes_per_block));
 
     for (size_t i = 0; i < data.size(); ++i)
-        data[i] = uint8_t(i % 231);
+        data[i] = uint8_t(i / block_device.dataSize());
 
     auto write_res = file_io.writeFile(0, inode, 0, data);
     ASSERT_TRUE(write_res.has_value()) << "writeFile failed: " << toString(write_res.error());
@@ -240,14 +270,21 @@ TEST(FileIO, ResizeAndReadFile)
 {
     StackDisk disk;
     RawBlockDevice block_device(128, disk);
-    BlockManager block_manager(16, 2048, block_device);
+
     SuperBlock superblock {
-        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 10,
+        .block_bitmap_address = 16,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 18,
+        .last_data_block_address = 2048,
+        .block_size = 128,
     };
+    BlockManager block_manager(superblock, block_device);
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode {};
+    Inode inode { };
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -278,14 +315,20 @@ TEST(FileIO, TruncatePartOfBlock)
 {
     StackDisk disk;
     RawBlockDevice block_device(128, disk);
-    BlockManager block_manager(16, 2048, block_device);
     SuperBlock superblock {
-        .total_inodes = 2, .inode_bitmap_address = 0, .inode_table_address = 1, .block_size = 128
+        .total_inodes = 10,
+        .block_bitmap_address = 16,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 18,
+        .last_data_block_address = 2048,
+        .block_size = 128,
     };
+    BlockManager block_manager(superblock, block_device);
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode {};
+    Inode inode { };
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -320,11 +363,18 @@ TEST(FileIO, ResizeHugeFileToZero)
 {
     StackDisk disk;
     RawBlockDevice block_device(32, disk);
-    BlockManager block_manager(16, 1024, block_device);
+    SuperBlock superblock {
+        .total_inodes = 10,
+        .block_bitmap_address = 16,
+        .first_data_blocks_address = 18,
+        .last_data_block_address = 1024,
+
+    };
+    BlockManager block_manager(superblock, block_device);
     FakeInodeManager inode_manager;
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode {};
+    Inode inode { };
     inode.file_size = 0;
 
     auto num_free_res = block_manager.numFree();
@@ -342,7 +392,7 @@ TEST(FileIO, ResizeHugeFileToZero)
         data[i] = uint8_t(i % 251);
 
     auto write_res = file_io.writeFile(0, inode, 0, data);
-    ASSERT_TRUE(write_res.has_value()) << "write failed";
+    ASSERT_TRUE(write_res.has_value()) << "write failed" << toString(write_res.error());
 
     auto resize_res = file_io.resizeFile(0, inode, 0);
     ASSERT_TRUE(resize_res.has_value()) << "resizeFile failed";
