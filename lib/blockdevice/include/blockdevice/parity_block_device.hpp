@@ -29,7 +29,7 @@ public:
      */
 
     std::expected<void, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data) override;
+        DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /** Formats a block (fills it with zeros and valid parity). */
     [[nodiscard]] virtual std::expected<void, FsError> formatBlock(

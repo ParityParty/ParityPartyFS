@@ -45,7 +45,7 @@ public:
      */
 
     std::expected<void, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data) override;
+        DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /**
      * This function does nothing - every state is valid.

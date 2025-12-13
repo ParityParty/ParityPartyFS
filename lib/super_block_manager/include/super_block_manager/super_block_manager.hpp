@@ -12,12 +12,12 @@ struct SuperBlockEntry {
 };
 
 struct VotingResult {
-    const buffer<uint8_t>& finalData;
+    const static_vector<uint8_t>& finalData;
     bool damaged1;
     bool damaged2;
     bool damaged3;
 
-    VotingResult(const buffer<uint8_t>& data, bool d1, bool d2, bool d3)
+    VotingResult(const static_vector<uint8_t>& data, bool d1, bool d2, bool d3)
         : finalData(data)
         , damaged1(d1)
         , damaged2(d2)

@@ -51,7 +51,7 @@ public:
      * truncated.
      */
     std::expected<void, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data) override;
+        DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /**
      * @brief Fills a specific block with zeros.
@@ -79,10 +79,10 @@ private:
     IDisk& _disk;
     std::shared_ptr<Logger> _logger;
 
-    void _encodeData(const buffer<uint8_t>& data, buffer<uint8_t>& encoded_data);
-    void _extractData(const buffer<uint8_t>& encoded_data, buffer<uint8_t>& data);
+    void _encodeData(const static_vector<uint8_t>& data, static_vector<uint8_t>& encoded_data);
+    void _extractData(const static_vector<uint8_t>& encoded_data, static_vector<uint8_t>& data);
 
-    std::expected<void, FsError> _readAndFixBlock(int block_index, buffer<uint8_t>& data);
+    std::expected<void, FsError> _readAndFixBlock(int block_index, static_vector<uint8_t>& data);
 };
 
 /**

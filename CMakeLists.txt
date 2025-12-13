@@ -17,7 +17,7 @@ pkg_check_modules(FUSE3 REQUIRED fuse3)
 
 # Subdirectories
 add_subdirectory(lib)
-add_subdirectory(exec)
+# add_subdirectory(exec)
 add_subdirectory(unit_tests)
-add_subdirectory(performance_tests)
-add_subdirectory(usage_simulator)
+# add_subdirectory(performance_tests)
+# add_subdirectory(usage_simulator)

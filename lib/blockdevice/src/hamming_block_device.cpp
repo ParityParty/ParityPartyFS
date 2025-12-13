@@ -17,7 +17,7 @@ HammingBlockDevice::HammingBlockDevice(
 }
 
 std::expected<void, FsError> HammingBlockDevice::_readAndFixBlock(
-    int block_index, buffer<uint8_t>& data)
+    int block_index, static_vector<uint8_t>& data)
 {
     auto read_result = _disk.read(block_index * _block_size, _block_size, data);
     if (!read_result.has_value()) {
@@ -64,7 +64,8 @@ std::expected<void, FsError> HammingBlockDevice::_readAndFixBlock(
     return {};
 }
 
-void HammingBlockDevice::_extractData(const buffer<uint8_t>& encoded_data, buffer<uint8_t>& data)
+void HammingBlockDevice::_extractData(
+    const static_vector<uint8_t>& encoded_data, static_vector<uint8_t>& data)
 {
     data.resize(_data_size);
     HammingDataBitsIterator it(_block_size, _data_size);
@@ -72,7 +73,8 @@ void HammingBlockDevice::_extractData(const buffer<uint8_t>& encoded_data, buffe
         BitHelpers::setBit(data, i, BitHelpers::getBit(encoded_data, *it.next()));
 }
 
-void HammingBlockDevice::_encodeData(const buffer<uint8_t>& data, buffer<uint8_t>& encoded_data)
+void HammingBlockDevice::_encodeData(
+    const static_vector<uint8_t>& data, static_vector<uint8_t>& encoded_data)
 {
     encoded_data.resize(_block_size);
 
@@ -133,7 +135,7 @@ std::expected<size_t, FsError> HammingBlockDevice::writeBlock(
 }
 
 std::expected<void, FsError> HammingBlockDevice::readBlock(
-    DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data)
+    DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data)
 {
     bytes_to_read = std::min(_data_size - data_location.offset, bytes_to_read);
 

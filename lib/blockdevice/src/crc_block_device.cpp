@@ -85,7 +85,7 @@ std::expected<size_t, FsError> CrcBlockDevice::writeBlock(
 }
 
 std::expected<void, FsError> CrcBlockDevice::readBlock(
-    DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data)
+    DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data)
 {
     auto read_ret = _readAndCheckRaw(data_location.block_index);
     if (!read_ret.has_value()) {

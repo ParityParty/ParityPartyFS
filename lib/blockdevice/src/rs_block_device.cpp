@@ -20,7 +20,7 @@ std::expected<void, FsError> ReedSolomonBlockDevice::formatBlock(unsigned int bl
 }
 
 std::expected<void, FsError> ReedSolomonBlockDevice::readBlock(
-    DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data)
+    DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data)
 {
     bytes_to_read = std::min(dataSize() - data_location.offset, bytes_to_read);
     auto raw_block = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size);

@@ -1,26 +1,32 @@
+#include "array"
+#include "common/static_vector.hpp"
 #include "disk/stack_disk.hpp"
 #include <gtest/gtest.h>
 
 TEST(StackDisk, Compiles)
 {
     StackDisk stack_disk;
-    auto res = stack_disk.read(0, 1);
     SUCCEED();
 }
 
 TEST(StackDisk, Reads)
 {
     StackDisk stack_disk;
-    auto res = stack_disk.read(0, 1);
+
+    std::array<uint8_t, 1> buffer;
+    static_vector data(buffer.data(), 1);
+
+    auto res = stack_disk.read(0, 1, data);
     ASSERT_TRUE(res.has_value());
-    EXPECT_EQ(res.value().size(), 1);
+    EXPECT_EQ(data.size(), 1);
 }
 
 TEST(StackDisk, Writes)
 {
     StackDisk stack_disk;
-    std::vector data
+    std::array buffer
         = { std::uint8_t { 0 }, std::uint8_t { 1 }, std::uint8_t { 2 }, std::uint8_t { 3 } };
+    static_vector<uint8_t> data(buffer.data(), buffer.size(), buffer.size());
     auto res = stack_disk.write(0, data);
     ASSERT_TRUE(res.has_value());
     EXPECT_EQ(data.size(), res.value());
@@ -29,45 +35,56 @@ TEST(StackDisk, Writes)
 TEST(StackDisk, OutOfBounds)
 {
     StackDisk stack_disk;
-    auto res_read = stack_disk.read(stack_disk.size() - 1, 3);
+    std::array<uint8_t, 3> buffer1;
+    static_vector data1(buffer1.data(), 3);
+
+    auto res_read = stack_disk.read(stack_disk.size() - 1, 3, data1);
     EXPECT_FALSE(res_read.has_value());
     EXPECT_EQ(res_read.error(), FsError::Disk_OutOfBounds);
 
-    auto res_write = stack_disk.write(
-        stack_disk.size() - 1, { std::uint8_t { 1 }, std::uint8_t { 2 }, std::uint8_t { 3 } });
+    std::array buffer2 = { std::uint8_t { 1 }, std::uint8_t { 2 }, std::uint8_t { 3 } };
+    static_vector data2(buffer2.data(), 3, 3);
+
+    auto res_write = stack_disk.write(stack_disk.size() - 1, data2);
     EXPECT_FALSE(res_write.has_value());
-    EXPECT_EQ(res_write.error(), FsError::Disk_OutOfBounds);
+    EXPECT_EQ(res_write.error(), FsError::Disk_OutOfBounds) << toString(res_write.error());
 }
 
 TEST(StackDisk, ReadsAndWrites)
 {
     StackDisk stack_disk;
-    std::vector data
-        = { std::uint8_t { 0 }, std::uint8_t { 1 }, std::uint8_t { 2 }, std::uint8_t { 3 } };
-    std::vector short_data = { std::uint8_t { 99 }, std::uint8_t { 100 } };
+    std::array<uint8_t, 4> buf1 = { 0, 1, 2, 3 };
+    static_vector<uint8_t> data(buf1.data(), buf1.size(), buf1.size());
+
+    std::array<uint8_t, 2> buf2 = { 99, 100 };
+    static_vector<uint8_t> short_data(buf2.data(), buf2.size(), buf2.size());
 
     // we need some space for the test
     ASSERT_GT(stack_disk.size(), 4);
 
-    auto res = stack_disk.write(0, data);
-    ASSERT_TRUE(res.has_value());
-    EXPECT_EQ(data.size(), res.value());
+    auto write_res = stack_disk.write(0, data);
+    ASSERT_TRUE(write_res.has_value());
+    EXPECT_EQ(data.size(), write_res.value());
 
-    auto read_res = stack_disk.read(0, data.size());
+    std::array<uint8_t, 4> buf3;
+    static_vector read_data(buf3.data(), buf3.size());
+    auto read_res = stack_disk.read(0, data.size(), read_data);
     ASSERT_TRUE(read_res.has_value());
-    for (auto i = 0; i < read_res.value().size(); i++) {
-        EXPECT_EQ(data[i], read_res.value()[i]);
+    ASSERT_EQ(read_data.size(), data.size());
+    for (auto i = 0; i < data.size(); i++) {
+        EXPECT_EQ(data[i], read_data[i]);
     }
 
-    auto write_res = stack_disk.write(1, short_data);
+    write_res = stack_disk.write(1, short_data);
     ASSERT_TRUE(write_res.has_value());
     EXPECT_EQ(write_res.value(), short_data.size());
 
-    auto second_read_res = stack_disk.read(0, data.size());
-    ASSERT_TRUE(second_read_res.has_value());
+    read_res = stack_disk.read(0, data.size(), read_data);
+    ASSERT_TRUE(read_res.has_value());
+    ASSERT_EQ(read_data.size(), data.size());
 
-    EXPECT_EQ(std::uint8_t { 0 }, second_read_res.value()[0]);
-    EXPECT_EQ(std::uint8_t { 99 }, second_read_res.value()[1]);
-    EXPECT_EQ(std::uint8_t { 100 }, second_read_res.value()[2]);
-    EXPECT_EQ(std::uint8_t { 3 }, second_read_res.value()[3]);
+    EXPECT_EQ(std::uint8_t { 0 }, read_data[0]);
+    EXPECT_EQ(std::uint8_t { 99 }, read_data[1]);
+    EXPECT_EQ(std::uint8_t { 100 }, read_data[2]);
+    EXPECT_EQ(std::uint8_t { 3 }, read_data[3]);
 }

@@ -27,7 +27,7 @@ std::expected<size_t, FsError> RawBlockDevice::writeBlock(
 }
 
 std::expected<void, FsError> RawBlockDevice::readBlock(
-    DataLocation data_location, size_t bytes_to_read, buffer<uint8_t>& data)
+    DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data)
 {
     size_t to_read = std::min(bytes_to_read, _block_size - data_location.offset);
 

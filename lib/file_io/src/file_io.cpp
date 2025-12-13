@@ -10,7 +10,7 @@ FileIO::FileIO(
 }
 
 std::expected<void, FsError> FileIO::readFile(inode_index_t inode_index, Inode& inode,
-    size_t offset, size_t bytes_to_read, buffer<uint8_t>& data)
+    size_t offset, size_t bytes_to_read, static_vector<uint8_t>& data)
 {
     data.resize(0);
     if (offset + bytes_to_read > inode.file_size) {
@@ -41,8 +41,8 @@ std::expected<void, FsError> FileIO::readFile(inode_index_t inode_index, Inode& 
     return {};
 }
 
-std::expected<size_t, FsError> FileIO::writeFile(
-    inode_index_t inode_index, Inode& inode, size_t offset, const buffer<uint8_t>& bytes_to_write)
+std::expected<size_t, FsError> FileIO::writeFile(inode_index_t inode_index, Inode& inode,
+    size_t offset, const static_vector<uint8_t>& bytes_to_write)
 {
     size_t written_bytes = 0;
     size_t block_number = offset / _block_device.dataSize();

@@ -1,4 +1,7 @@
+#pragma once
+
 #include <cstddef>
+#include <cstring>
 #include <new>
 #include <stdexcept>
 
@@ -7,7 +10,7 @@ public:
     static_vector(T* buffer, std::size_t capacity, std::size_t size = 0)
         : _buffer(buffer)
         , _capacity(capacity)
-        , _size(0)
+        , _size(size)
     {
         if (_size > _capacity)
             throw std::bad_alloc();
@@ -15,22 +18,44 @@ public:
 
     void push_back(const T& value)
     {
-        if (size_ >= capacity_)
+        if (_size >= _capacity)
             throw std::bad_alloc();
-        new (buffer_ + size_++) T(value);
+
+        _buffer[_size++] = value;
     }
 
-    T& operator[](std::size_t i) { return buffer_[i]; }
-    const T& operator[](std::size_t i) const { return buffer_[i]; }
+    T& operator[](std::size_t i) { return _buffer[i]; }
+    const T& operator[](std::size_t i) const { return _buffer[i]; }
 
-    std::size_t size() const { return size_; }
-    std::size_t capacity() const { return capacity_; }
+    std::size_t size() const { return _size; }
+    std::size_t capacity() const { return _capacity; }
 
-    T* begin() { return buffer_; }
-    T* end() { return buffer_ + size_; }
+    T* begin() { return _buffer; }
+    T* end() { return _buffer + _size; }
+
+    T* data() { return _buffer; }
+    const T* data() const { return _buffer; }
+
+    void resize(size_t size)
+    {
+        if (size > _capacity)
+            throw std::bad_alloc();
+        _size = size;
+    }
+
+    void assign(std::initializer_list<T> init)
+    {
+        if (init.size() > _capacity)
+            throw std::bad_alloc();
+
+        std::memcpy(_buffer, init.begin(), init.size() * sizeof(T));
+        _size = init.size();
+    }
 
 private:
     T* _buffer;
     std::size_t _capacity;
     std::size_t _size;
+
+    static_assert(std::is_arithmetic_v<T>, "static_vector supports only arithmetic types");
 };

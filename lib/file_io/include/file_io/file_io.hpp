@@ -16,7 +16,7 @@ public:
      * Reads file with given inode. If read exceeds file size, returns FsError::OutOfBounds.
      */
     std::expected<void, FsError> readFile(inode_index_t inode_index, Inode& inode, size_t offset,
-        size_t bytes_to_read, buffer<uint8_t>& buf);
+        size_t bytes_to_read, static_vector<uint8_t>& buf);
 
     /**
      * Writes file with given inode. Resizes file if necessary and updates inode table.
@@ -25,7 +25,7 @@ public:
      */
 
     std::expected<size_t, FsError> writeFile(inode_index_t inode_index, Inode& inode, size_t offset,
-        const buffer<uint8_t>& bytes_to_write);
+        const static_vector<uint8_t>& bytes_to_write);
 
     /**
      * Resizes file to a given size
@@ -74,16 +74,9 @@ private:
     bool _should_resize;
     size_t _occupied_blocks;
 
-<<<<<<< HEAD
     std::expected<void, FsError> _readIndexBlock(block_index_t index, buffer<block_index_t>& buf);
     std::expected<void, FsError> _writeIndexBlock(
         block_index_t index, const buffer<block_index_t>& indices);
-=======
-    [[nodiscard]] std::expected<std::vector<block_index_t>, FsError> _readIndexBlock(
-        block_index_t index);
-    [[nodiscard]] std::expected<void, FsError> _writeIndexBlock(
-        block_index_t index, const std::vector<block_index_t>& indices);
->>>>>>> main
 
     [[nodiscard]] std::expected<block_index_t, FsError> _findAndReserveBlock();
 };
