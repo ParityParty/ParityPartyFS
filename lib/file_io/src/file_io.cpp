@@ -118,7 +118,7 @@ std::expected<void, FsError> FileIO::resizeFile(
             bytes_to_allocate
                 = bytes_to_allocate > free_in_block ? bytes_to_allocate - free_in_block : 0;
 
-            inode.file_size += std::min(free_in_block, new_size - inode.file_size);
+            inode.file_size += std::min(free_in_block, new_size - (size_t)inode.file_size);
             auto inode_res = _inode_manager.update(inode_index, inode);
             if (!inode_res.has_value())
                 return std::unexpected(inode_res.error());

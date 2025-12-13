@@ -8,6 +8,7 @@ target_include_directories(${NAME} INTERFACE
 
 if(ENABLE_FREERTOS)
     target_compile_definitions(${NAME} INTERFACE PPFS_USE_FREERTOS)
+    target_link_libraries(${NAME} INTERFACE freertos_config FreeRTOS-Kernel-Heap4)
 else()
     find_package(Threads REQUIRED)
     target_link_libraries(${NAME} INTERFACE Threads::Threads)
