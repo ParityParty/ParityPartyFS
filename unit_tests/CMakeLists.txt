@@ -23,7 +23,7 @@ add_executable(${NAME}
         test_rs_block_device.cpp
         test_crc_block_device.cpp
         test_bits.cpp
-        # test_file_io.cpp
+        test_file_io.cpp
         # test_helpers.cpp
         # test_ppfs_low_level.cpp
         # test_ppfs_parametrized_format.cpp
@@ -47,7 +47,7 @@ target_link_libraries(${NAME} PUBLIC
         bitmap
         blockdevice
         #ecc_helpers
-        #file_io
+        file_io
 )
 
 include(GoogleTest)

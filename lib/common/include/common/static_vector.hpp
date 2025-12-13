@@ -7,6 +7,13 @@
 
 template <typename T> class static_vector {
 public:
+    static_vector()
+        : _buffer(nullptr)
+        , _capacity(0)
+        , _size(0)
+    {
+    }
+
     static_vector(T* buffer, std::size_t capacity, std::size_t size = 0)
         : _buffer(buffer)
         , _capacity(capacity)
@@ -29,6 +36,7 @@ public:
 
     std::size_t size() const { return _size; }
     std::size_t capacity() const { return _capacity; }
+    bool empty() const { return _size == 0; }
 
     T* begin() { return _buffer; }
     T* end() { return _buffer + _size; }

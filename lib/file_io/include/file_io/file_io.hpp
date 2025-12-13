@@ -3,6 +3,8 @@
 #include "blockdevice/iblock_device.hpp"
 #include "common/static_vector.hpp"
 #include "inode_manager/iinode_manager.hpp"
+#include <array>
+#include <cstddef>
 #include <optional>
 
 class FileIO {
@@ -56,27 +58,27 @@ public:
      * Does not update inode in inode maneger!!! File size is not updated either!!!
      */
 
-    std::expected<std::tuple<block_index_t, static_vector<block_index_t, 3>>,
-        FsError> [[nodiscard]] std::expected<std::tuple<block_index_t, std::vector<block_index_t>>,
-        FsError>
-
-    nextWithIndirectBlocksAdded();
+    [[nodiscard]] std::expected<block_index_t, FsError>
+    nextWithIndirectBlocksAdded(static_vector<block_index_t>& undirected_blocks_addeed);
 
 private:
     size_t _index;
     Inode& _inode;
     IBlockDevice& _block_device;
     IBlockManager& _block_manager;
-    static_vector<block_index_t, MAX_BLOCK_SIZE / sizeof(block_index_t)> _index_block_1;
-    static_vector<block_index_t, MAX_BLOCK_SIZE / sizeof(block_index_t)> _index_block_2;
-    static_vector<block_index_t, MAX_BLOCK_SIZE / sizeof(block_index_t)> _index_block_3;
+    std::array<block_index_t, MAX_BLOCK_SIZE / sizeof(block_index_t)> _index_block_1_buffer;
+    std::array<block_index_t, MAX_BLOCK_SIZE / sizeof(block_index_t)> _index_block_2_buffer;
+    std::array<block_index_t, MAX_BLOCK_SIZE / sizeof(block_index_t)> _index_block_3_buffer;
+    static_vector<block_index_t> _index_block_1;
+    static_vector<block_index_t> _index_block_2;
+    static_vector<block_index_t> _index_block_3;
     bool _finished = false;
     bool _should_resize;
     size_t _occupied_blocks;
 
-    std::expected<void, FsError> _readIndexBlock(block_index_t index, buffer<block_index_t>& buf);
+    std::expected<void, FsError> _readIndexBlock(block_index_t index, static_vector<block_index_t>& buf);
     std::expected<void, FsError> _writeIndexBlock(
-        block_index_t index, const buffer<block_index_t>& indices);
+        block_index_t index, const static_vector<block_index_t>& indices);
 
     [[nodiscard]] std::expected<block_index_t, FsError> _findAndReserveBlock();
 };
