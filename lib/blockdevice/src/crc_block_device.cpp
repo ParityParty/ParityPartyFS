@@ -8,7 +8,6 @@
 #include <cmath>
 #include <memory>
 #include <utility>
-#include <vector>
 
 std::expected<void, FsError> CrcBlockDevice::_readAndCheckRaw(
     block_index_t block_index, static_vector<std::uint8_t>& block_buffer)
@@ -25,8 +24,9 @@ std::expected<void, FsError> CrcBlockDevice::_readAndCheckRaw(
     block_bits.resize(block_bits.size() - amount_unused_bits);
 
     // Convert to std::vector<bool> for divide() call
-    std::vector<bool> block_bits_vec(block_bits.begin(), block_bits.end());
-    auto remainder = _polynomial.divide(block_bits_vec);
+    std::array<bool, MAX_POLYNOMIAL_DEGREE> remainder_buffer;
+    static_vector<bool> remainder(remainder_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    _polynomial.divide(block_bits, remainder);
 
     // reminder should be 0
     if (std::ranges::contains(remainder.begin(), remainder.end(), true)) {
@@ -46,7 +46,7 @@ std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
     std::array<bool, MAX_BLOCK_SIZE * 8> block_bits_buffer;
     static_vector<bool> block_bits(block_bits_buffer.data(), MAX_BLOCK_SIZE * 8);
     BitHelpers::blockToBits(data_view, block_bits);
-    
+
     // Add padding
     size_t original_size = block_bits.size();
     block_bits.resize(original_size + _polynomial.getDegree());
@@ -54,9 +54,9 @@ std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
         block_bits[i] = false;
     }
 
-    // Convert to std::vector<bool> for divide() call
-    std::vector<bool> block_bits_vec(block_bits.begin(), block_bits.end());
-    auto remainder = _polynomial.divide(block_bits_vec);
+    std::array<bool, MAX_POLYNOMIAL_DEGREE> remainder_buffer;
+    static_vector<bool> remainder(remainder_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    _polynomial.divide(block_bits, remainder);
     for (int i = 0; i < _polynomial.getDegree(); i++) {
         BitHelpers::setBit(block, dataSize() * 8 + i, remainder[i]);
     }

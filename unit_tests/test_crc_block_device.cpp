@@ -11,14 +11,27 @@ TEST(CrcPolynomial, ExplicitImplicitDifference)
 {
     auto poly = CrcPolynomial::MsgExplicit(0xfff);
     auto poly2 = CrcPolynomial::MsgImplicit(0xfff);
-    EXPECT_NE(poly2.getCoefficients(), poly.getCoefficients());
+    std::array<bool, MAX_POLYNOMIAL_DEGREE> coeffs1_buffer, coeffs2_buffer;
+    static_vector<bool> coeffs1(coeffs1_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    static_vector<bool> coeffs2(coeffs2_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    poly.getCoefficients(coeffs1);
+    poly2.getCoefficients(coeffs2);
+    ASSERT_NE(coeffs1.size(), coeffs2.size());
 }
 
 TEST(CrcPolynomial, Conversion)
 {
     auto poly1 = CrcPolynomial::MsgImplicit(0xad0424f3);
     auto poly2 = CrcPolynomial::MsgExplicit(0x15a0849e7);
-    EXPECT_EQ(poly1.getCoefficients(), poly2.getCoefficients());
+    std::array<bool, MAX_POLYNOMIAL_DEGREE> coeffs1_buffer, coeffs2_buffer;
+    static_vector<bool> coeffs1(coeffs1_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    static_vector<bool> coeffs2(coeffs2_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    poly1.getCoefficients(coeffs1);
+    poly2.getCoefficients(coeffs2);
+    ASSERT_EQ(coeffs1.size(), coeffs2.size());
+    for (size_t i = 0; i < coeffs1.size(); i++) {
+        EXPECT_EQ(coeffs1[i], coeffs2[i]) << "Mismatch at index " << i;
+    }
     EXPECT_EQ(32, poly1.getDegree());
     EXPECT_EQ(32, poly2.getDegree());
 }
@@ -31,9 +44,9 @@ TEST(CrcPolynomial, division)
     std::array<bool, 64> bits_buffer;
     static_vector<bool> bits(bits_buffer.data(), 64);
     BitHelpers::ulongToBits(num, bits);
-    // Convert to std::vector<bool> for divide() call
-    std::vector<bool> bits_vec(bits.begin(), bits.end());
-    auto remainder = poly1.divide(bits_vec);
+    std::array<bool, MAX_POLYNOMIAL_DEGREE> remainder_buffer;
+    static_vector<bool> remainder(remainder_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    poly1.divide(bits, remainder);
     ASSERT_EQ(remainder.size(), 3);
     EXPECT_TRUE(remainder[0]);
     EXPECT_FALSE(remainder[1]);
@@ -48,9 +61,9 @@ TEST(CrcPolynomial, division2)
     std::array<bool, 64> bits_buffer;
     static_vector<bool> bits(bits_buffer.data(), 64);
     BitHelpers::ulongToBits(num, bits);
-    // Convert to std::vector<bool> for divide() call
-    std::vector<bool> bits_vec(bits.begin(), bits.end());
-    auto remainder = poly1.divide(bits_vec);
+    std::array<bool, MAX_POLYNOMIAL_DEGREE> remainder_buffer;
+    static_vector<bool> remainder(remainder_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    poly1.divide(bits, remainder);
     ASSERT_EQ(remainder.size(), 3);
     EXPECT_FALSE(remainder[0]);
     EXPECT_FALSE(remainder[1]);
