@@ -59,5 +59,6 @@ private:
     std::size_t _capacity;
     std::size_t _size;
 
-    static_assert(std::is_arithmetic_v<T>, "static_vector supports only arithmetic types");
+    static_assert(std::is_trivially_copyable_v<T>, 
+        "static_vector supports only trivially copyable types");
 };

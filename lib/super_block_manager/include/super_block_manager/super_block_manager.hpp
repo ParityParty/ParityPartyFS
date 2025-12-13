@@ -1,7 +1,7 @@
 #pragma once
 #include "disk/idisk.hpp"
-#include "isuper_block_manager.hpp"
 #include "super_block_manager/isuper_block_manager.hpp"
+#include "common/static_vector.hpp"
 
 #include <optional>
 
@@ -12,12 +12,12 @@ struct SuperBlockEntry {
 };
 
 struct VotingResult {
-    const static_vector<uint8_t>& finalData;
+    SuperBlock finalData;
     bool damaged1;
     bool damaged2;
     bool damaged3;
 
-    VotingResult(const static_vector<uint8_t>& data, bool d1, bool d2, bool d3)
+    VotingResult(const SuperBlock& data, bool d1, bool d2, bool d3)
         : finalData(data)
         , damaged1(d1)
         , damaged2(d2)
@@ -81,5 +81,5 @@ private:
     /**
      * Performs bit voting on multiple copies of superblock data.
      */
-    VotingResult _performBitVoting(const static_vector<uint8_t, 3 * sizeof(SuperBlock)> copies);
+    VotingResult _performBitVoting(const static_vector<SuperBlock> copies);
 };

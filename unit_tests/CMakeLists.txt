@@ -18,7 +18,7 @@ add_executable(${NAME}
         # test_bitmap.cpp
         # test_inode_manager.cpp
         # test_block_manager.cpp
-        # test_super_block_manager.cpp
+        test_super_block_manager.cpp
         # test_directory_manager.cpp
         test_rs_block_device.cpp
         test_crc_block_device.cpp
@@ -41,7 +41,7 @@ target_link_libraries(${NAME} PUBLIC
         GTest::gtest_main
         #directory_manager
         #filesystem
-        #super_block_manager
+        super_block_manager
         #block_manager
         #inode_manager
         #bitmap
