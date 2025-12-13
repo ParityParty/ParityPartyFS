@@ -8,6 +8,7 @@
 #include <cmath>
 #include <memory>
 #include <utility>
+#include <vector>
 
 std::expected<void, FsError> CrcBlockDevice::_readAndCheckRaw(
     block_index_t block_index, static_vector<std::uint8_t>& block_buffer)
@@ -17,13 +18,15 @@ std::expected<void, FsError> CrcBlockDevice::_readAndCheckRaw(
     if (!bytes_res.has_value()) {
         return std::unexpected(bytes_res.error());
     }
-    auto block_bits = BitHelpers::blockToBits(block_buffer);
+    std::array<bool, MAX_BLOCK_SIZE * 8> block_bits_buffer;
+    static_vector<bool> block_bits(block_bits_buffer.data(), MAX_BLOCK_SIZE * 8);
+    BitHelpers::blockToBits(block_buffer, block_bits);
     auto amount_unused_bits = (_block_size - dataSize()) * 8 - _polynomial.getDegree();
-    for (int i = 0; i < amount_unused_bits; i++) {
-        block_bits.pop_back();
-    }
+    block_bits.resize(block_bits.size() - amount_unused_bits);
 
-    auto remainder = _polynomial.divide(block_bits);
+    // Convert to std::vector<bool> for divide() call
+    std::vector<bool> block_bits_vec(block_bits.begin(), block_bits.end());
+    auto remainder = _polynomial.divide(block_bits_vec);
 
     // reminder should be 0
     if (std::ranges::contains(remainder.begin(), remainder.end(), true)) {
@@ -40,16 +43,20 @@ std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
 {
     // Get data bits - only process the data portion, not the redundancy area
     static_vector<uint8_t> data_view(block.data(), dataSize(), dataSize());
-    auto block_bits = BitHelpers::blockToBits(data_view);
-    block_bits.reserve(block_bits.size() + _polynomial.getDegree());
-
+    std::array<bool, MAX_BLOCK_SIZE * 8> block_bits_buffer;
+    static_vector<bool> block_bits(block_bits_buffer.data(), MAX_BLOCK_SIZE * 8);
+    BitHelpers::blockToBits(data_view, block_bits);
+    
     // Add padding
-    for (int i = 0; i < _polynomial.getDegree(); i++) {
-        block_bits.push_back(false);
+    size_t original_size = block_bits.size();
+    block_bits.resize(original_size + _polynomial.getDegree());
+    for (size_t i = original_size; i < block_bits.size(); i++) {
+        block_bits[i] = false;
     }
 
-    // Calculate redundancy bits
-    auto remainder = _polynomial.divide(block_bits);
+    // Convert to std::vector<bool> for divide() call
+    std::vector<bool> block_bits_vec(block_bits.begin(), block_bits.end());
+    auto remainder = _polynomial.divide(block_bits_vec);
     for (int i = 0; i < _polynomial.getDegree(); i++) {
         BitHelpers::setBit(block, dataSize() * 8 + i, remainder[i]);
     }

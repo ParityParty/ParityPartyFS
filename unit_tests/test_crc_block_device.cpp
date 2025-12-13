@@ -5,6 +5,7 @@
 
 #include <array>
 #include <gtest/gtest.h>
+#include <vector>
 
 TEST(CrcPolynomial, ExplicitImplicitDifference)
 {
@@ -27,8 +28,12 @@ TEST(CrcPolynomial, division)
     // Example form Wikipedia
     unsigned long num = 0b11010011101100000;
     auto poly1 = CrcPolynomial::MsgExplicit(0b1011);
-    auto bits = BitHelpers::ulongToBits(num);
-    auto remainder = poly1.divide(bits);
+    std::array<bool, 64> bits_buffer;
+    static_vector<bool> bits(bits_buffer.data(), 64);
+    BitHelpers::ulongToBits(num, bits);
+    // Convert to std::vector<bool> for divide() call
+    std::vector<bool> bits_vec(bits.begin(), bits.end());
+    auto remainder = poly1.divide(bits_vec);
     ASSERT_EQ(remainder.size(), 3);
     EXPECT_TRUE(remainder[0]);
     EXPECT_FALSE(remainder[1]);
@@ -40,8 +45,12 @@ TEST(CrcPolynomial, division2)
     // Example form Wikipedia
     unsigned long num = 0b11010011101100100;
     auto poly1 = CrcPolynomial::MsgExplicit(0b1011);
-    auto bits = BitHelpers::ulongToBits(num);
-    auto remainder = poly1.divide(bits);
+    std::array<bool, 64> bits_buffer;
+    static_vector<bool> bits(bits_buffer.data(), 64);
+    BitHelpers::ulongToBits(num, bits);
+    // Convert to std::vector<bool> for divide() call
+    std::vector<bool> bits_vec(bits.begin(), bits.end());
+    auto remainder = poly1.divide(bits_vec);
     ASSERT_EQ(remainder.size(), 3);
     EXPECT_FALSE(remainder[0]);
     EXPECT_FALSE(remainder[1]);

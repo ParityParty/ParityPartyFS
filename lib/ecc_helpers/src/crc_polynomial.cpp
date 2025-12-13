@@ -1,5 +1,7 @@
 #include "ecc_helpers/crc_polynomial.hpp"
 #include "common/bit_helpers.hpp"
+#include "common/static_vector.hpp"
+#include <array>
 
 unsigned int CrcPolynomial::_findDegree(unsigned long int coefficients)
 {
@@ -25,8 +27,11 @@ CrcPolynomial CrcPolynomial::MsgExplicit(unsigned long int polynomial)
 {
     auto n = _findDegree(polynomial);
 
-    auto poly_with_zeros = BitHelpers::ulongToBits(polynomial);
-    std::vector<bool> poly(poly_with_zeros.end() - n - 1, poly_with_zeros.end());
+    std::array<bool, 64> poly_with_zeros_buffer;
+    static_vector<bool> poly_with_zeros(poly_with_zeros_buffer.data(), 64);
+    BitHelpers::ulongToBits(polynomial, poly_with_zeros);
+    size_t start_idx = poly_with_zeros.size() - n - 1;
+    std::vector<bool> poly(poly_with_zeros.begin() + start_idx, poly_with_zeros.end());
 
     return { poly, n, polynomial };
 }
@@ -36,8 +41,11 @@ CrcPolynomial CrcPolynomial::MsgImplicit(unsigned long int polynomial)
     polynomial = (polynomial << 1) + 1;
     auto n = _findDegree(polynomial);
 
-    auto poly_with_zeros = BitHelpers::ulongToBits(polynomial);
-    std::vector<bool> poly(poly_with_zeros.end() - n - 1, poly_with_zeros.end());
+    std::array<bool, 64> poly_with_zeros_buffer;
+    static_vector<bool> poly_with_zeros(poly_with_zeros_buffer.data(), 64);
+    BitHelpers::ulongToBits(polynomial, poly_with_zeros);
+    size_t start_idx = poly_with_zeros.size() - n - 1;
+    std::vector<bool> poly(poly_with_zeros.begin() + start_idx, poly_with_zeros.end());
 
     return { poly, n, polynomial };
 }

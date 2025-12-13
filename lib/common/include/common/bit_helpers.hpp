@@ -2,7 +2,6 @@
 
 #include "common/static_vector.hpp"
 #include <cstdint>
-#include <vector>
 
 namespace BitHelpers {
 
@@ -29,25 +28,22 @@ inline void setBit(static_vector<uint8_t>& data, unsigned int index, bool value)
     data[byteIndex] = std::uint8_t(byteValue);
 }
 
-inline std::vector<bool> blockToBits(const static_vector<uint8_t>& block)
+inline void blockToBits(const static_vector<uint8_t>& block, static_vector<bool>& bits)
 {
-    std::vector<bool> bits(block.size() * 8);
-
-    for (int i = 0; i < bits.size(); ++i) {
+    size_t num_bits = block.size() * 8;
+    bits.resize(num_bits);
+    for (size_t i = 0; i < num_bits; ++i) {
         bits[i] = getBit(block, i);
     }
-
-    return bits;
 }
 
-inline std::vector<bool> ulongToBits(unsigned long int value)
+inline void ulongToBits(unsigned long int value, static_vector<bool>& bits)
 {
     auto size = sizeof(unsigned long int) * 8;
-    std::vector<bool> bits(size);
-    for (int i = 0; i < size; ++i) {
+    bits.resize(size);
+    for (size_t i = 0; i < size; ++i) {
         bits[i] = ((value >> (size - 1 - i)) & 1) > 0;
     }
-    return bits;
 }
 
 }
