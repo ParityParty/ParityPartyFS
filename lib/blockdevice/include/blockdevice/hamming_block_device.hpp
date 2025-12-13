@@ -50,7 +50,7 @@ public:
      * If size of requested bytes exceeds the data size available on the block, it will be
      * truncated.
      */
-    std::expected<void, FsError> readBlock(
+    [[nodiscard]] std::expected<void, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /**
@@ -82,7 +82,7 @@ private:
     void _encodeData(const static_vector<uint8_t>& data, static_vector<uint8_t>& encoded_data);
     void _extractData(const static_vector<uint8_t>& encoded_data, static_vector<uint8_t>& data);
 
-    std::expected<void, FsError> _readAndFixBlock(int block_index, static_vector<uint8_t>& data);
+    [[nodiscard]] std::expected<void, FsError> _readAndFixBlock(int block_index, static_vector<uint8_t>& data);
 };
 
 /**

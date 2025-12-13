@@ -12,7 +12,7 @@ DirectoryManager::DirectoryManager(
 {
 }
 
-std::expected<void, FsError> DirectoryManager::getEntries(
+[[nodiscard]] std::expected<void, FsError> DirectoryManager::getEntries(
     inode_index_t inode, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& buf)
 {
     auto inode_result = _getDirectoryInode(inode);

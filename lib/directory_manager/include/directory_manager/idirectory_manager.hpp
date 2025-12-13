@@ -22,7 +22,7 @@ struct IDirectoryManager {
      * @param buf buffer to fill with directory entries, must have sufficient capacity
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> getEntries(
+    [[nodiscard]] virtual std::expected<void, FsError> getEntries(
         inode_index_t inode, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& buf)
         = 0;
 
@@ -33,7 +33,7 @@ struct IDirectoryManager {
      * @param entry new entry
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> addEntry(inode_index_t directory, DirectoryEntry entry)
+    [[nodiscard]] virtual std::expected<void, FsError> addEntry(inode_index_t directory, DirectoryEntry entry)
         = 0;
 
     /**
@@ -44,7 +44,7 @@ struct IDirectoryManager {
      * @param entry inode of entry to be removed
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> removeEntry(inode_index_t directory, inode_index_t entry)
+    [[nodiscard]] virtual std::expected<void, FsError> removeEntry(inode_index_t directory, inode_index_t entry)
         = 0;
 
     /**
@@ -53,6 +53,6 @@ struct IDirectoryManager {
      * @param name name to check
      * @return directory inode on success, error otherwise
      */
-    virtual std::expected<Inode, FsError> checkNameUnique(inode_index_t directory, const char* name)
+    [[nodiscard]] virtual std::expected<Inode, FsError> checkNameUnique(inode_index_t directory, const char* name)
         = 0;
 };

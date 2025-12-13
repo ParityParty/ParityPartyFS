@@ -10,8 +10,8 @@ public:
     StackDisk() = default;
 
     size_t size() override;
-    std::expected<void, FsError> read(
+    [[nodiscard]] std::expected<void, FsError> read(
         size_t address, size_t size, static_vector<uint8_t>& data) override;
-    std::expected<size_t, FsError> write(
+    [[nodiscard]] std::expected<size_t, FsError> write(
         size_t address, const static_vector<uint8_t>& data) override;
 };

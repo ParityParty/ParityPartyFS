@@ -37,11 +37,11 @@ public:
         std::shared_ptr<Logger> logger = nullptr);
 
     /** Writes data to a block at the specified location. */
-    virtual std::expected<size_t, FsError> writeBlock(
+    [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
         const static_vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /** Reads a block from the specified location, returning only the requested bytes. */
-    virtual std::expected<void, FsError> readBlock(
+    [[nodiscard]] virtual std::expected<void, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data);
 
     /** Returns the size of a raw encoded block in bytes. */

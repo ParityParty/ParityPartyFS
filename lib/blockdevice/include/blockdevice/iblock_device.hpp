@@ -46,7 +46,7 @@ public:
      * @param data_location The target location (block index and offset) on the device.
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
-    virtual std::expected<size_t, FsError> writeBlock(
+    [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
         const static_vector<std::uint8_t>& data, DataLocation data_location)
         = 0;
 
@@ -60,7 +60,7 @@ public:
      * @param bytes_to_read Number of bytes to read starting from the specified location.
      * @return On success, returns the bytes read; otherwise returns a FsError.
      */
-    virtual std::expected<void, FsError> readBlock(
+    [[nodiscard]] virtual std::expected<void, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data)
         = 0;
 
@@ -93,5 +93,5 @@ public:
      *
      * After formatting, the block is set to a correct state (e.g., all zeros with valid ECC).
      */
-    virtual std::expected<void, FsError> formatBlock(unsigned int block_index) = 0;
+    [[nodiscard]] virtual std::expected<void, FsError> formatBlock(unsigned int block_index) = 0;
 };

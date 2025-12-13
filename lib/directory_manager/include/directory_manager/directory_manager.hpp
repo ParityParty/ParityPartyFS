@@ -10,16 +10,16 @@ class DirectoryManager : public IDirectoryManager {
     IInodeManager& _inode_manager;
     FileIO& _file_io;
 
-    std::expected<void, FsError> _readDirectoryData(
+    [[nodiscard]] std::expected<void, FsError> _readDirectoryData(
         inode_index_t inode_index, Inode& dir_inode, static_vector<DirectoryEntry>& buf);
     int _findEntryIndexByName(const static_vector<DirectoryEntry>& entries, char const* name);
     int _findEntryIndexByInode(const static_vector<DirectoryEntry>& entries, inode_index_t inode);
-    std::expected<Inode, FsError> _getDirectoryInode(inode_index_t inode_index);
+    [[nodiscard]] std::expected<Inode, FsError> _getDirectoryInode(inode_index_t inode_index);
 
 public:
     DirectoryManager(IBlockDevice& block_device, IInodeManager& inode_manager, FileIO& file_io);
 
-    std::expected<void, FsError> getEntries(
+    [[nodiscard]] std::expected<void, FsError> getEntries(
         inode_index_t inode, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& buf) override;
 
     [[nodiscard]] virtual std::expected<void, FsError> addEntry(
