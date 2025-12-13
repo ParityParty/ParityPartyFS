@@ -1,5 +1,6 @@
 #include "low_level_fuse/fuse_ppfs.hpp"
-
+#include "common/static_vector.hpp"
+#include <array>
 #include <cstring>
 
 #define HANDLE_EXPECTED_ERROR(req, result_expr)                                                    \
@@ -123,10 +124,10 @@ void FusePpFS::readdir(
     }
 
     inode_index_t ppfs_inode = ino - 1;
-    auto entries_res = ptr->_ppfs.getDirectoryEntries(ppfs_inode);
+    std::array<DirectoryEntry, 10000> entries_buffer;
+    static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+    auto entries_res = ptr->_ppfs.getDirectoryEntries(ppfs_inode, entries);
     HANDLE_EXPECTED_ERROR(req, entries_res);
-
-    std::vector<DirectoryEntry> entries = std::move(entries_res.value());
 
     size_t total_size = 0;
 
@@ -223,8 +224,13 @@ void FusePpFS::write(fuse_req_t req, fuse_ino_t ino, const char* buf, size_t siz
         auto seek_res = ptr->_ppfs.seek(fi->fh, off);
         HANDLE_EXPECTED_ERROR(req, seek_res);
     }
-    std::vector<uint8_t> to_write(size);
-    std::memcpy(to_write.data(), buf, size);
+    std::array<uint8_t, 65536> write_buffer; // Large enough for typical writes
+    if (size > write_buffer.size()) {
+        fuse_reply_err(req, EINVAL);
+        return;
+    }
+    std::memcpy(write_buffer.data(), buf, size);
+    static_vector<uint8_t> to_write(write_buffer.data(), write_buffer.size(), size);
     auto write_res = ptr->_ppfs.write(fi->fh, to_write);
     HANDLE_EXPECTED_ERROR(req, write_res);
 
@@ -239,12 +245,16 @@ void FusePpFS::read(
     auto seek_res = ptr->_ppfs.seek(fi->fh, off);
     HANDLE_EXPECTED_ERROR(req, seek_res);
 
-    auto read_res = ptr->_ppfs.read(fi->fh, size);
+    std::array<uint8_t, 65536> read_buffer; // Large enough for typical reads
+    if (size > read_buffer.size()) {
+        fuse_reply_err(req, EINVAL);
+        return;
+    }
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_res = ptr->_ppfs.read(fi->fh, size, read_data);
     HANDLE_EXPECTED_ERROR(req, read_res);
 
-    auto buffer = read_res.value();
-
-    fuse_reply_buf(req, reinterpret_cast<const char*>(buffer.data()), buffer.size());
+    fuse_reply_buf(req, reinterpret_cast<const char*>(read_data.data()), read_data.size());
 }
 
 void FusePpFS::release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)

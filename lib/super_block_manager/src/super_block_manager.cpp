@@ -108,17 +108,16 @@ std::expected<void, FsError> SuperBlockManager::_readFromDisk()
     if (!read_res.has_value())
         return std::unexpected(read_res.error());
 
-    SuperBlock sb;
-
     auto voting_res = _performBitVoting(static_vector<SuperBlock>(buffer.data(), 3));
+
+    // Check if the disk is formatted by verifying the signature
+    if (std::memcmp(voting_res.finalData.signature, "PPFS", 4) != 0) {
+        return std::unexpected(FsError::PpFS_DiskNotFormatted);
+    }
 
     auto write_res = _writeToDisk(voting_res.damaged1 || voting_res.damaged2, voting_res.damaged3);
     if (!write_res.has_value()) {
         return std::unexpected(write_res.error());
-    }
-
-    if (std::memcmp(sb.signature, "PPFS", 4) != 0) {
-        return std::unexpected(FsError::PpFS_DiskNotFormatted);
     }
 
     _superBlock = voting_res.finalData;

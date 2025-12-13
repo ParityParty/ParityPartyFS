@@ -1,3 +1,5 @@
+#include "common/static_vector.hpp"
+#include "directory_manager/directory.hpp"
 #include "filesystem/ifilesystem.hpp"
 #include "inode_manager/inode.hpp"
 
@@ -35,11 +37,12 @@ public:
     /**
      * Read entries of a directory
      *
-     * @param path Absolute path to directory
-     * @return list of filenames and inodes on success, error otherwise
+     * @param inode inode of the directory
+     * @param buf buffer to fill with directory entries, must have sufficient capacity
+     * @return void on success, error otherwise
      */
-    virtual std::expected<std::vector<DirectoryEntry>, FsError> getDirectoryEntries(
-        inode_index_t inode)
+    virtual std::expected<void, FsError> getDirectoryEntries(
+        inode_index_t inode, static_vector<DirectoryEntry>& buf)
         = 0;
 
     /**

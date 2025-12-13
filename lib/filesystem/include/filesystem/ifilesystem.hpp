@@ -1,4 +1,5 @@
 #pragma once
+#include "common/static_vector.hpp"
 #include "directory_manager/directory.hpp"
 #include "disk/idisk.hpp"
 #include "filesystem/types.hpp"
@@ -80,10 +81,11 @@ struct IFilesystem {
      *
      * @param fd file descriptor of a file to read from
      * @param bytes_to_read number of bytes to read
-     * @return vector of bytes on success, error otherwise
+     * @param data buffer to fill with read data, must have sufficient capacity
+     * @return void on success, error otherwise
      */
-    virtual std::expected<std::vector<std::uint8_t>, FsError> read(
-        file_descriptor_t fd, std::size_t bytes_to_read) = 0;
+    virtual std::expected<void, FsError> read(
+        file_descriptor_t fd, std::size_t bytes_to_read, static_vector<std::uint8_t>& data) = 0;
 
     /**
      * Write data from buffer to file.
@@ -97,7 +99,7 @@ struct IFilesystem {
      */
 
     virtual std::expected<size_t, FsError> write(
-        file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+        file_descriptor_t fd, const static_vector<std::uint8_t>& buffer)
         = 0;
 
     /**
@@ -124,19 +126,21 @@ struct IFilesystem {
      * @param fd file descriptor of the directory
      * @param elements number of directory entries to read (0 reads all)
      * @param offset element offset from which to start reading
-     * @return list of filenames on success, error otherwise
+     * @param entries buffer to fill with directory entries, must have sufficient capacity
+     * @return void on success, error otherwise
      */
-    virtual std::expected<std::vector<std::string>, FsError> readDirectory(
-        file_descriptor_t fd, std::uint32_t elements = 0, std::uint32_t offset = 0) = 0;
+    virtual std::expected<void, FsError> readDirectory(
+        file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries) = 0;
 
     /**
      * Read all entries of a directory
      *
      * @param path absolute path to directory
-     * @return list of filenames on success, error otherwise
+     * @param entries buffer to fill with directory entries, must have sufficient capacity
+     * @return void on success, error otherwise
      */
-    virtual std::expected<std::vector<std::string>, FsError> readDirectory(std::string_view path)
-        = 0;
+    virtual std::expected<void, FsError> readDirectory(
+        std::string_view path, static_vector<DirectoryEntry>& entries) = 0;
 
     /**
      * Check if filesystem has been initialized and is ready for operations

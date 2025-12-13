@@ -1,8 +1,10 @@
 #include "block_manager/block_manager.hpp"
 #include "blockdevice/raw_block_device.hpp"
+#include "common/static_vector.hpp"
 #include "directory_manager/directory_manager.hpp"
 #include "disk/stack_disk.hpp"
 #include "inode_manager/inode_manager.hpp"
+#include <array>
 #include <gtest/gtest.h>
 
 TEST(DirectoryManager, compiles)
@@ -43,11 +45,13 @@ TEST(DirectoryManager, AddAndReadEntries)
     auto add_res = dm.addEntry(dir, e1);
     ASSERT_TRUE(add_res.has_value()) << "Adding entry failed: " << toString(add_res.error());
 
-    auto entries = dm.getEntries(dir);
-    ASSERT_TRUE(entries.has_value());
-    ASSERT_EQ(entries->size(), 1);
-    EXPECT_EQ(entries->at(0).inode, 42);
-    EXPECT_STREQ(entries->at(0).name.data(), "hello");
+    std::array<DirectoryEntry, 100> entries_buffer;
+    static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+    auto entries_res = dm.getEntries(dir, 0, 0, entries);
+    ASSERT_TRUE(entries_res.has_value());
+    ASSERT_EQ(entries.size(), 1);
+    EXPECT_EQ(entries[0].inode, 42);
+    EXPECT_STREQ(entries[0].name.data(), "hello");
 }
 
 TEST(DirectoryManager, RemoveFirstOfMultipleEntries)
@@ -86,12 +90,14 @@ TEST(DirectoryManager, RemoveFirstOfMultipleEntries)
     auto rm_res = dm.removeEntry(dir, 1);
     ASSERT_TRUE(rm_res.has_value()) << "Removing file failed: " << toString(rm_res.error());
 
-    auto entries = dm.getEntries(dir);
-    ASSERT_TRUE(entries.has_value());
-    ASSERT_EQ(entries->size(), 2);
+    std::array<DirectoryEntry, 100> entries_buffer;
+    static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+    auto entries_res = dm.getEntries(dir, 0, 0, entries);
+    ASSERT_TRUE(entries_res.has_value());
+    ASSERT_EQ(entries.size(), 2);
 
     std::set<int> expected = { 2, 3 };
-    std::set<int> got = { entries->at(0).inode, entries->at(1).inode };
+    std::set<int> got = { entries[0].inode, entries[1].inode };
     EXPECT_EQ(got, expected);
 }
 

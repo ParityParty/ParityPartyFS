@@ -1,10 +1,10 @@
 #pragma once
 
+#include "common/static_vector.hpp"
 #include "directory_manager/directory.hpp"
 #include "disk/idisk.hpp"
 #include "inode_manager/inode.hpp"
 #include <expected>
-#include <vector>
 
 /**
  * Interface of directory operations
@@ -19,10 +19,11 @@ struct IDirectoryManager {
      * @param inode inode of a directory
      * @param elements elements to retrieve (0 = all)
      * @param offset element offset to start from
-     * @return list of directory entries on success, error otherwise
+     * @param buf buffer to fill with directory entries, must have sufficient capacity
+     * @return void on success, error otherwise
      */
-    virtual std::expected<std::vector<DirectoryEntry>, FsError> getEntries(
-        inode_index_t inode, std::uint32_t elements = 0, std::uint32_t offset = 0)
+    virtual std::expected<void, FsError> getEntries(
+        inode_index_t inode, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& buf)
         = 0;
 
     /**

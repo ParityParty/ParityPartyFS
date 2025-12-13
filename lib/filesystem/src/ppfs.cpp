@@ -1,7 +1,9 @@
 #include "filesystem/ppfs.hpp"
 #include "common/math_helpers.hpp"
 #include "common/ppfs_mutex.hpp"
+#include "common/static_vector.hpp"
 #include "filesystem/mutex_wrapper.hpp"
+#include <array>
 #include <cstring>
 #include <numeric>
 
@@ -224,15 +226,18 @@ std::expected<void, FsError> PpFS::remove(std::string_view path, bool recursive)
 {
     return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedRemove(path, recursive); });
 }
-std::expected<std::vector<std::uint8_t>, FsError> PpFS::read(
-    file_descriptor_t fd, std::size_t bytes_to_read)
+std::expected<void, FsError> PpFS::read(
+    file_descriptor_t fd, std::size_t bytes_to_read, static_vector<std::uint8_t>& data)
 {
-    return mutex_wrapper<std::vector<std::uint8_t>>(
-        _mutex, [&]() { return _unprotectedRead(fd, bytes_to_read); });
+    return mutex_wrapper<void>(_mutex, [&]() {
+        return _unprotectedRead(fd, bytes_to_read, data);
+    });
 }
-std::expected<size_t, FsError> PpFS::write(file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+std::expected<size_t, FsError> PpFS::write(file_descriptor_t fd, const static_vector<std::uint8_t>& buffer)
 {
-    return mutex_wrapper<size_t>(_mutex, [&]() { return _unprotectedWrite(fd, buffer); });
+    return mutex_wrapper<size_t>(_mutex, [&]() {
+        return _unprotectedWrite(fd, buffer);
+    });
 }
 std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
 {
@@ -242,17 +247,18 @@ std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
 {
     return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedCreateDirectory(path); });
 }
-std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(std::string_view path)
+std::expected<void, FsError> PpFS::readDirectory(
+    std::string_view path, static_vector<DirectoryEntry>& entries)
 {
-    return mutex_wrapper<std::vector<std::string>>(
-        _mutex, [&]() { return _unprotectedReadDirectory(path); });
+    return mutex_wrapper<void>(
+        _mutex, [&]() { return _unprotectedReadDirectory(path, entries); });
 }
 
-std::expected<std::vector<std::string>, FsError> PpFS::readDirectory(
-    file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset)
+std::expected<void, FsError> PpFS::readDirectory(
+    file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries)
 {
-    return mutex_wrapper<std::vector<std::string>>(
-        _mutex, [&]() { return _unprotectedReadDirectory(fd, elements, offset); });
+    return mutex_wrapper<void>(
+        _mutex, [&]() { return _unprotectedReadDirectory(fd, elements, offset, entries); });
 }
 
 std::expected<void, FsError> PpFS::_unprotectedCreate(std::string_view path)
@@ -324,17 +330,18 @@ std::expected<inode_index_t, FsError> PpFS::_getParentInodeFromPath(std::string_
         }
         std::string_view next_name = path.substr(1, next_slash - 1);
 
-        auto entry_res = _directoryManager->getEntries(current_inode);
+        std::array<DirectoryEntry, 1000> entries_buffer;
+        static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+        auto entry_res = _directoryManager->getEntries(current_inode, 0, 0, entries);
         if (!entry_res.has_value()) {
             return std::unexpected(entry_res.error());
         }
-        const auto& entries = entry_res.value();
 
         bool found = false;
-        for (const auto& entry : entries) {
-            if (next_name != entry.name.data())
+        for (size_t i = 0; i < entries.size(); ++i) {
+            if (next_name != entries[i].name.data())
                 continue;
-            current_inode = entry.inode;
+            current_inode = entries[i].inode;
             found = true;
             break;
         }
@@ -352,15 +359,16 @@ std::expected<inode_index_t, FsError> PpFS::_getInodeFromParent(
     size_t last_slash = path.find_last_of('/');
     std::string_view name = path.substr(last_slash + 1);
 
-    auto entries_res = _directoryManager->getEntries(parent_inode);
+    std::array<DirectoryEntry, 1000> entries_buffer;
+    static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+    auto entries_res = _directoryManager->getEntries(parent_inode, 0, 0, entries);
     if (!entries_res.has_value()) {
         return std::unexpected(entries_res.error());
     }
-    const auto& entries = entries_res.value();
 
-    for (const auto& entry : entries) {
-        if (name == entry.name.data()) {
-            return entry.inode;
+    for (size_t i = 0; i < entries.size(); ++i) {
+        if (name == entries[i].name.data()) {
+            return entries[i].inode;
         }
     }
     return std::unexpected(FsError::PpFS_NotFound);
@@ -457,13 +465,14 @@ std::expected<void, FsError> PpFS::_checkIfInUseRecursive(inode_index_t inode)
     }
 
     // If directory, check entries recursively
-    auto entries_res = _directoryManager->getEntries(inode);
+    std::array<DirectoryEntry, 1000> entries_buffer;
+    static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+    auto entries_res = _directoryManager->getEntries(inode, 0, 0, entries);
     if (!entries_res.has_value()) {
         return std::unexpected(entries_res.error());
     }
-    const auto& entries = entries_res.value();
-    for (const auto& entry : entries) {
-        auto check_res = _checkIfInUseRecursive(entry.inode);
+    for (size_t i = 0; i < entries.size(); ++i) {
+        auto check_res = _checkIfInUseRecursive(entries[i].inode);
         if (!check_res.has_value()) {
             return std::unexpected(check_res.error());
         }
@@ -480,13 +489,14 @@ std::expected<void, FsError> PpFS::_removeRecursive(inode_index_t parent, inode_
     }
     Inode inode_data = inode_res.value();
     if (inode_data.type == InodeType::Directory) {
-        auto entries_res = _directoryManager->getEntries(inode);
+        std::array<DirectoryEntry, 1000> entries_buffer;
+        static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+        auto entries_res = _directoryManager->getEntries(inode, 0, 0, entries);
         if (!entries_res.has_value()) {
             return std::unexpected(entries_res.error());
         }
-        const auto& entries = entries_res.value();
-        for (const auto& entry : entries) {
-            auto remove_res = _removeRecursive(inode, entry.inode);
+        for (size_t i = 0; i < entries.size(); ++i) {
+            auto remove_res = _removeRecursive(inode, entries[i].inode);
             if (!remove_res.has_value()) {
                 return std::unexpected(remove_res.error());
             }
@@ -550,8 +560,8 @@ std::expected<void, FsError> PpFS::_unprotectedRemove(std::string_view path, boo
     return {};
 }
 
-std::expected<std::vector<std::uint8_t>, FsError> PpFS::_unprotectedRead(
-    file_descriptor_t fd, std::size_t bytes_to_read)
+std::expected<void, FsError> PpFS::_unprotectedRead(
+    file_descriptor_t fd, std::size_t bytes_to_read, static_vector<std::uint8_t>& data)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -577,17 +587,21 @@ std::expected<std::vector<std::uint8_t>, FsError> PpFS::_unprotectedRead(
         return std::unexpected(FsError::PpFS_InvalidRequest);
     }
 
-    auto read_res = _fileIO->readFile(open_file->inode, inode, open_file->position, bytes_to_read);
+    if (data.capacity() < bytes_to_read) {
+        return std::unexpected(FsError::PpFS_InvalidRequest);
+    }
+
+    auto read_res = _fileIO->readFile(open_file->inode, inode, open_file->position, bytes_to_read, data);
     if (!read_res.has_value()) {
         return std::unexpected(read_res.error());
     }
-    open_file->position += read_res.value().size();
+    open_file->position += data.size();
 
-    return read_res;
+    return {};
 }
 
 std::expected<size_t, FsError> PpFS::_unprotectedWrite(
-    file_descriptor_t fd, std::vector<std::uint8_t> buffer)
+    file_descriptor_t fd, const static_vector<std::uint8_t>& buffer)
 
 {
     if (!isInitialized()) {
@@ -624,7 +638,7 @@ std::expected<size_t, FsError> PpFS::_unprotectedWrite(
         return std::unexpected(write_res.error());
     }
 
-    open_file->position = offset + buffer.size();
+    open_file->position = offset + write_res.value();
 
     return write_res.value();
 }
@@ -708,8 +722,8 @@ std::expected<void, FsError> PpFS::_unprotectedCreateDirectory(std::string_view 
     return {};
 }
 
-std::expected<std::vector<std::string>, FsError> PpFS::_unprotectedReadDirectory(
-    std::string_view path)
+std::expected<void, FsError> PpFS::_unprotectedReadDirectory(
+    std::string_view path, static_vector<DirectoryEntry>& entries)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -724,22 +738,15 @@ std::expected<std::vector<std::string>, FsError> PpFS::_unprotectedReadDirectory
     }
     inode_index_t dir_inode = dir_inode_res.value();
 
-    auto entries_res = _directoryManager->getEntries(dir_inode);
+    auto entries_res = _directoryManager->getEntries(dir_inode, 0, 0, entries);
     if (!entries_res.has_value()) {
         return std::unexpected(entries_res.error());
     }
-    const auto& entries = entries_res.value();
-    std::vector<std::string> names;
-    names.reserve(entries.size());
-
-    for (const auto& entry : entries) {
-        names.emplace_back(entry.name.data());
-    }
-    return names;
+    return {};
 }
 
-std::expected<std::vector<std::string>, FsError> PpFS::_unprotectedReadDirectory(
-    file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset)
+std::expected<void, FsError> PpFS::_unprotectedReadDirectory(
+    file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
@@ -751,18 +758,11 @@ std::expected<std::vector<std::string>, FsError> PpFS::_unprotectedReadDirectory
     }
     OpenFile* open_file = open_table_res.value();
 
-    auto entries_res = _directoryManager->getEntries(open_file->inode, elements, offset);
+    auto entries_res = _directoryManager->getEntries(open_file->inode, elements, offset, entries);
     if (!entries_res.has_value()) {
         return std::unexpected(entries_res.error());
     }
-    const auto& entries = entries_res.value();
-    std::vector<std::string> names;
-    names.reserve(entries.size());
-
-    for (const auto& entry : entries) {
-        names.emplace_back(entry.name.data());
-    }
-    return names;
+    return {};
 }
 
 std::expected<std::size_t, FsError> PpFS::_unprotectedGetFileCount() const

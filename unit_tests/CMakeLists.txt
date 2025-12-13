@@ -10,7 +10,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(${NAME}
-        # test_ppfs.cpp
+        test_ppfs.cpp
         # test_ppfs_fat.cpp  Commented out because PpFS classes collide
         test_stack_disk.cpp
         test_hamming_block_device.cpp
@@ -19,34 +19,34 @@ add_executable(${NAME}
         test_inode_manager.cpp
         test_block_manager.cpp
         test_super_block_manager.cpp
-        # test_directory_manager.cpp
+        test_directory_manager.cpp
         test_rs_block_device.cpp
         test_crc_block_device.cpp
         test_bits.cpp
         test_file_io.cpp
-        # test_helpers.cpp
-        # test_ppfs_low_level.cpp
-        # test_ppfs_parametrized_format.cpp
-        # test_ppfs_parametrized_init.cpp
-        # test_ppfs_parametrized_io.cpp
-        # test_ppfs_parametrized_multi.cpp
-        # test_ppfs_parametrized_hamming.cpp
-        # test_ppfs_parametrized_crc.cpp
-        # test_ppfs_parametrized_none.cpp
-        # test_ppfs_parametrized_reed_solomon.cpp
+        test_helpers.cpp
+        test_ppfs_low_level.cpp
+        test_ppfs_parametrized_format.cpp
+        test_ppfs_parametrized_init.cpp
+        test_ppfs_parametrized_io.cpp
+        test_ppfs_parametrized_multi.cpp
+        test_ppfs_parametrized_hamming.cpp
+        test_ppfs_parametrized_crc.cpp
+        test_ppfs_parametrized_none.cpp
+        test_ppfs_parametrized_reed_solomon.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC
         disk
         GTest::gtest_main
-        #directory_manager
-        #filesystem
+        directory_manager
+        filesystem
         super_block_manager
         block_manager
         inode_manager
         bitmap
         blockdevice
-        #ecc_helpers
+        ecc_helpers
         file_io
 )
 

@@ -1,9 +1,12 @@
+#include "common/static_vector.hpp"
+#include "directory_manager/directory.hpp"
 #include "test_ppfs_parametrized_helpers.hpp"
 #include "super_block_manager/super_block.hpp"
-#include <gtest/gtest.h>
 #include <algorithm>
-#include <set>
+#include <array>
 #include <cstring>
+#include <gtest/gtest.h>
+#include <set>
 
 INSTANTIATE_TEST_SUITE_P(
     PpFSMulti,
@@ -28,11 +31,15 @@ TEST_P(PpFSParametrizedTest, CreateMultipleDirectories)
     }
     
     // Verify all directories exist by reading root
-    auto read_res = fs->readDirectory("/");
+    std::array<DirectoryEntry, 1000> dir_buf;
+    static_vector<DirectoryEntry> entries(dir_buf.data(), dir_buf.size());
+    auto read_res = fs->readDirectory("/", entries);
     ASSERT_TRUE(read_res.has_value());
     
-    auto entries = read_res.value();
-    std::set<std::string> entry_set(entries.begin(), entries.end());
+    std::set<std::string> entry_set;
+    for (size_t i = 0; i < entries.size(); ++i) {
+        entry_set.insert(std::string(entries[i].name.data()));
+    }
     
     for (const auto& dir : dirs) {
         std::string dir_name = dir.substr(1); // Remove leading '/'
@@ -66,10 +73,14 @@ TEST_P(PpFSParametrizedTest, CreateMultipleFiles)
     }
     
     // Verify root files
-    auto read_root = fs->readDirectory("/");
+    std::array<DirectoryEntry, 1000> root_buf;
+    static_vector<DirectoryEntry> root_entries(root_buf.data(), root_buf.size());
+    auto read_root = fs->readDirectory("/", root_entries);
     ASSERT_TRUE(read_root.has_value());
-    auto root_entries = read_root.value();
-    std::set<std::string> root_set(root_entries.begin(), root_entries.end());
+    std::set<std::string> root_set;
+    for (size_t i = 0; i < root_entries.size(); ++i) {
+        root_set.insert(std::string(root_entries[i].name.data()));
+    }
     
     for (const auto& file : root_files) {
         std::string file_name = file.substr(1);
@@ -78,10 +89,14 @@ TEST_P(PpFSParametrizedTest, CreateMultipleFiles)
     }
     
     // Verify subdirectory files
-    auto read_subdir = fs->readDirectory("/subdir");
+    std::array<DirectoryEntry, 1000> subdir_buf;
+    static_vector<DirectoryEntry> subdir_entries(subdir_buf.data(), subdir_buf.size());
+    auto read_subdir = fs->readDirectory("/subdir", subdir_entries);
     ASSERT_TRUE(read_subdir.has_value());
-    auto subdir_entries = read_subdir.value();
-    std::set<std::string> subdir_set(subdir_entries.begin(), subdir_entries.end());
+    std::set<std::string> subdir_set;
+    for (size_t i = 0; i < subdir_entries.size(); ++i) {
+        subdir_set.insert(std::string(subdir_entries[i].name.data()));
+    }
     
     for (const auto& file : subdir_files) {
         std::string file_name = file.substr(file.find_last_of('/') + 1);
@@ -102,14 +117,18 @@ TEST_P(PpFSParametrizedTest, ReadDirectory_MultipleEntries)
     ASSERT_TRUE(fs->createDirectory("/dir2").has_value());
     ASSERT_TRUE(fs->create("/file3.txt").has_value());
     
-    auto read_res = fs->readDirectory("/");
+    std::array<DirectoryEntry, 1000> dir_buf;
+    static_vector<DirectoryEntry> entries(dir_buf.data(), dir_buf.size());
+    auto read_res = fs->readDirectory("/", entries);
     ASSERT_TRUE(read_res.has_value());
     
-    auto entries = read_res.value();
     ASSERT_GE(entries.size(), 5)
         << "Should have at least 5 entries for " << GetParam().test_name;
     
-    std::set<std::string> entry_set(entries.begin(), entries.end());
+    std::set<std::string> entry_set;
+    for (size_t i = 0; i < entries.size(); ++i) {
+        entry_set.insert(std::string(entries[i].name.data()));
+    }
     ASSERT_TRUE(entry_set.find("file1.txt") != entry_set.end());
     ASSERT_TRUE(entry_set.find("file2.txt") != entry_set.end());
     ASSERT_TRUE(entry_set.find("file3.txt") != entry_set.end());
@@ -140,7 +159,10 @@ TEST_P(PpFSParametrizedTest, WriteRead_MultipleFiles)
         ASSERT_TRUE(open_res.has_value());
         file_descriptor_t fd = open_res.value();
         
-        auto write_res = fs->write(fd, data);
+        std::array<uint8_t, 2048> write_buf;
+        static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), data.size());
+        std::memcpy(write_data.data(), data.data(), data.size());
+        auto write_res = fs->write(fd, write_data);
         ASSERT_TRUE(write_res.has_value())
             << "Write failed for " << path << " for " << GetParam().test_name;
         
@@ -154,15 +176,18 @@ TEST_P(PpFSParametrizedTest, WriteRead_MultipleFiles)
         ASSERT_TRUE(open_res.has_value());
         file_descriptor_t fd = open_res.value();
         
-        auto read_res = fs->read(fd, expected_data.size());
+        std::array<uint8_t, 2048> read_buf;
+        static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+        auto read_res = fs->read(fd, expected_data.size(), read_data);
         ASSERT_TRUE(read_res.has_value())
             << "Read failed for " << path << " for " << GetParam().test_name;
         
-        auto read_data = read_res.value();
         ASSERT_EQ(read_data.size(), expected_data.size())
             << "Size mismatch for " << path << " for " << GetParam().test_name;
-        ASSERT_EQ(read_data, expected_data)
-            << "Data mismatch for " << path << " for " << GetParam().test_name;
+        for (size_t i = 0; i < expected_data.size(); ++i) {
+            ASSERT_EQ(read_data[i], expected_data[i])
+                << "Data mismatch at index " << i << " for " << path << " for " << GetParam().test_name;
+        }
         
         auto close_res = fs->close(fd);
         ASSERT_TRUE(close_res.has_value());
@@ -189,20 +214,44 @@ TEST_P(PpFSParametrizedTest, NestedDirectoryStructure)
     }
     
     // Verify each level
-    auto read_level1 = fs->readDirectory("/level1");
+    std::array<DirectoryEntry, 1000> level1_buf;
+    static_vector<DirectoryEntry> level1_entries(level1_buf.data(), level1_buf.size());
+    auto read_level1 = fs->readDirectory("/level1", level1_entries);
     ASSERT_TRUE(read_level1.has_value());
-    auto level1_entries = read_level1.value();
-    ASSERT_TRUE(std::find(level1_entries.begin(), level1_entries.end(), "level2") != level1_entries.end());
+    bool found_level2 = false;
+    for (size_t i = 0; i < level1_entries.size(); ++i) {
+        if (std::string(level1_entries[i].name.data()) == "level2") {
+            found_level2 = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(found_level2);
     
-    auto read_level2 = fs->readDirectory("/level1/level2");
+    std::array<DirectoryEntry, 1000> level2_buf;
+    static_vector<DirectoryEntry> level2_entries(level2_buf.data(), level2_buf.size());
+    auto read_level2 = fs->readDirectory("/level1/level2", level2_entries);
     ASSERT_TRUE(read_level2.has_value());
-    auto level2_entries = read_level2.value();
-    ASSERT_TRUE(std::find(level2_entries.begin(), level2_entries.end(), "level3") != level2_entries.end());
+    bool found_level3 = false;
+    for (size_t i = 0; i < level2_entries.size(); ++i) {
+        if (std::string(level2_entries[i].name.data()) == "level3") {
+            found_level3 = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(found_level3);
     
-    auto read_level3 = fs->readDirectory("/level1/level2/level3");
+    std::array<DirectoryEntry, 1000> level3_buf;
+    static_vector<DirectoryEntry> level3_entries(level3_buf.data(), level3_buf.size());
+    auto read_level3 = fs->readDirectory("/level1/level2/level3", level3_entries);
     ASSERT_TRUE(read_level3.has_value());
-    auto level3_entries = read_level3.value();
-    ASSERT_TRUE(std::find(level3_entries.begin(), level3_entries.end(), "level4") != level3_entries.end());
+    bool found_level4 = false;
+    for (size_t i = 0; i < level3_entries.size(); ++i) {
+        if (std::string(level3_entries[i].name.data()) == "level4") {
+            found_level4 = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(found_level4);
 }
 
 TEST_P(PpFSParametrizedTest, FilesInMultipleDirectories)
@@ -233,7 +282,10 @@ TEST_P(PpFSParametrizedTest, FilesInMultipleDirectories)
         ASSERT_TRUE(open_res.has_value());
         file_descriptor_t fd = open_res.value();
         
-        auto write_res = fs->write(fd, data);
+        std::array<uint8_t, 100> write_buf;
+        static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), data.size());
+        std::memcpy(write_data.data(), data.data(), data.size());
+        auto write_res = fs->write(fd, write_data);
         ASSERT_TRUE(write_res.has_value());
         
         auto close_res = fs->close(fd);
@@ -246,12 +298,15 @@ TEST_P(PpFSParametrizedTest, FilesInMultipleDirectories)
         ASSERT_TRUE(open_res.has_value());
         file_descriptor_t fd = open_res.value();
         
-        auto read_res = fs->read(fd, expected_data.size());
+        std::array<uint8_t, 100> read_buf;
+        static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+        auto read_res = fs->read(fd, expected_data.size(), read_data);
         ASSERT_TRUE(read_res.has_value());
         
-        auto read_data = read_res.value();
-        ASSERT_EQ(read_data, expected_data)
-            << "Data mismatch for " << path << " for " << GetParam().test_name;
+        for (size_t i = 0; i < expected_data.size(); ++i) {
+            ASSERT_EQ(read_data[i], expected_data[i])
+                << "Data mismatch at index " << i << " for " << path << " for " << GetParam().test_name;
+        }
         
         auto close_res = fs->close(fd);
         ASSERT_TRUE(close_res.has_value());
@@ -277,17 +332,31 @@ TEST_P(PpFSParametrizedTest, RemoveFilesFromMultipleDirectories)
     ASSERT_TRUE(fs->remove("/dir2/file3.txt").has_value());
     
     // Verify files are removed
-    auto read_dir1 = fs->readDirectory("/dir1");
+    std::array<DirectoryEntry, 1000> dir1_buf;
+    static_vector<DirectoryEntry> dir1_entries(dir1_buf.data(), dir1_buf.size());
+    auto read_dir1 = fs->readDirectory("/dir1", dir1_entries);
     ASSERT_TRUE(read_dir1.has_value());
-    auto dir1_entries = read_dir1.value();
-    ASSERT_TRUE(std::find(dir1_entries.begin(), dir1_entries.end(), "file1.txt") == dir1_entries.end());
-    ASSERT_TRUE(std::find(dir1_entries.begin(), dir1_entries.end(), "file2.txt") != dir1_entries.end());
+    bool found_file1 = false, found_file2 = false;
+    for (size_t i = 0; i < dir1_entries.size(); ++i) {
+        std::string name(dir1_entries[i].name.data());
+        if (name == "file1.txt") found_file1 = true;
+        if (name == "file2.txt") found_file2 = true;
+    }
+    ASSERT_FALSE(found_file1);
+    ASSERT_TRUE(found_file2);
     
-    auto read_dir2 = fs->readDirectory("/dir2");
+    std::array<DirectoryEntry, 1000> dir2_buf;
+    static_vector<DirectoryEntry> dir2_entries(dir2_buf.data(), dir2_buf.size());
+    auto read_dir2 = fs->readDirectory("/dir2", dir2_entries);
     ASSERT_TRUE(read_dir2.has_value());
-    auto dir2_entries = read_dir2.value();
-    ASSERT_TRUE(std::find(dir2_entries.begin(), dir2_entries.end(), "file3.txt") == dir2_entries.end());
-    ASSERT_TRUE(std::find(dir2_entries.begin(), dir2_entries.end(), "file4.txt") != dir2_entries.end());
+    bool found_file3 = false, found_file4 = false;
+    for (size_t i = 0; i < dir2_entries.size(); ++i) {
+        std::string name(dir2_entries[i].name.data());
+        if (name == "file3.txt") found_file3 = true;
+        if (name == "file4.txt") found_file4 = true;
+    }
+    ASSERT_FALSE(found_file3);
+    ASSERT_TRUE(found_file4);
 }
 
 TEST_P(PpFSParametrizedTest, RemoveDirectoriesRecursive)
@@ -316,10 +385,18 @@ TEST_P(PpFSParametrizedTest, RemoveDirectoriesRecursive)
         << "Recursive remove failed for " << GetParam().test_name;
     
     // Verify directory is removed
-    auto read_root = fs->readDirectory("/");
+    std::array<DirectoryEntry, 1000> root_buf;
+    static_vector<DirectoryEntry> root_entries(root_buf.data(), root_buf.size());
+    auto read_root = fs->readDirectory("/", root_entries);
     ASSERT_TRUE(read_root.has_value());
-    auto root_entries = read_root.value();
-    ASSERT_TRUE(std::find(root_entries.begin(), root_entries.end(), "parent") == root_entries.end());
+    bool found_parent = false;
+    for (size_t i = 0; i < root_entries.size(); ++i) {
+        if (std::string(root_entries[i].name.data()) == "parent") {
+            found_parent = true;
+            break;
+        }
+    }
+    ASSERT_FALSE(found_parent);
     
     // Verify file count decreased
     auto count_after = fs->getFileCount();
@@ -381,7 +458,10 @@ TEST_P(PpFSParametrizedTest, OpenMultipleFiles)
         ASSERT_TRUE(open_res.has_value());
         fds.push_back(open_res.value());
         
-        auto write_res = fs->write(fds[i], file_data[i]);
+        std::array<uint8_t, 2048> write_buf;
+        static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), file_data[i].size());
+        std::memcpy(write_data.data(), file_data[i].data(), file_data[i].size());
+        auto write_res = fs->write(fds[i], write_data);
         ASSERT_TRUE(write_res.has_value())
             << "Write failed for " << files[i] << " for " << GetParam().test_name;
     }
@@ -391,13 +471,16 @@ TEST_P(PpFSParametrizedTest, OpenMultipleFiles)
         auto seek_res = fs->seek(fds[i], 0);
         ASSERT_TRUE(seek_res.has_value());
         
-        auto read_res = fs->read(fds[i], file_data[i].size());
+        std::array<uint8_t, 2048> read_buf;
+        static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+        auto read_res = fs->read(fds[i], file_data[i].size(), read_data);
         ASSERT_TRUE(read_res.has_value())
             << "Read failed for " << files[i] << " for " << GetParam().test_name;
         
-        auto read_data = read_res.value();
-        ASSERT_EQ(read_data, file_data[i])
-            << "Data mismatch for " << files[i] << " for " << GetParam().test_name;
+        for (size_t j = 0; j < file_data[i].size(); ++j) {
+            ASSERT_EQ(read_data[j], file_data[i][j])
+                << "Data mismatch at index " << j << " for " << files[i] << " for " << GetParam().test_name;
+        }
     }
     
     // Close all files
@@ -431,7 +514,10 @@ TEST_P(PpFSParametrizedTest, ErrorCorrection_MultipleFiles)
         ASSERT_TRUE(open_res.has_value());
         file_descriptor_t fd = open_res.value();
         
-        auto write_res = fs->write(fd, file_data[i]);
+        std::array<uint8_t, 2048> write_buf;
+        static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), file_data[i].size());
+        std::memcpy(write_data.data(), file_data[i].data(), file_data[i].size());
+        auto write_res = fs->write(fd, write_data);
         ASSERT_TRUE(write_res.has_value());
         
         auto close_res = fs->close(fd);
@@ -440,10 +526,12 @@ TEST_P(PpFSParametrizedTest, ErrorCorrection_MultipleFiles)
     
     // Inject errors (different approach for Hamming vs RS)
     // Read superblock to find data region
-    auto sb_read = disk.read(0, sizeof(SuperBlock));
+    std::array<uint8_t, 512> sb_buf;
+    static_vector<uint8_t> sb_data(sb_buf.data(), sb_buf.size());
+    auto sb_read = disk.read(0, sizeof(SuperBlock), sb_data);
     ASSERT_TRUE(sb_read.has_value());
     SuperBlock sb;
-    std::memcpy(&sb, sb_read.value().data(), sizeof(SuperBlock));
+    std::memcpy(&sb, sb_data.data(), sizeof(SuperBlock));
     
     size_t data_region = findDataBlockRegion(disk, sb);
     
@@ -471,13 +559,16 @@ TEST_P(PpFSParametrizedTest, ErrorCorrection_MultipleFiles)
         ASSERT_TRUE(open_res.has_value());
         file_descriptor_t fd = open_res.value();
         
-        auto read_res = fs->read(fd, file_data[i].size());
+        std::array<uint8_t, 2048> read_buf;
+        static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+        auto read_res = fs->read(fd, file_data[i].size(), read_data);
         ASSERT_TRUE(read_res.has_value())
             << "Read failed for " << files[i] << " after error injection for " << GetParam().test_name;
         
-        auto read_data = read_res.value();
-        ASSERT_EQ(read_data, file_data[i])
-            << "Data should be correctly recovered for " << files[i] << " for " << GetParam().test_name;
+        for (size_t j = 0; j < file_data[i].size(); ++j) {
+            ASSERT_EQ(read_data[j], file_data[i][j])
+                << "Data should be correctly recovered at index " << j << " for " << files[i] << " for " << GetParam().test_name;
+        }
         
         auto close_res = fs->close(fd);
         ASSERT_TRUE(close_res.has_value());
