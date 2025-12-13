@@ -1,3 +1,4 @@
+#include <type_traits>
 
 template <typename T, typename U> constexpr auto divCeil(T numerator, U denominator)
 {

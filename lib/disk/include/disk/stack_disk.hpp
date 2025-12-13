@@ -6,9 +6,11 @@
 #include <expected>
 #include <vector>
 
-template <size_t power = 22> class StackDisk : public IDisk {
+static constexpr size_t DEFAULT_STACK_DISK_POWER = 22;
+
+template <size_t power = DEFAULT_STACK_DISK_POWER> class StackDisk : public IDisk {
     static constexpr size_t _size = 1 << power;
-    std::uint8_t _data[_size] = {};
+    std::uint8_t _data[_size] = { };
 
 public:
     StackDisk() = default;
