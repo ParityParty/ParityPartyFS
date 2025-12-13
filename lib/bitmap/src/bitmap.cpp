@@ -3,6 +3,7 @@
 #include "common/static_vector.hpp"
 
 #include <cmath>
+#include <array>
 
 DataLocation Bitmap::_getByteLocation(unsigned int bit_index)
 {
@@ -15,7 +16,8 @@ DataLocation Bitmap::_getByteLocation(unsigned int bit_index)
 std::expected<unsigned char, FsError> Bitmap::_getByte(unsigned int bit_index)
 {
     auto location = _getByteLocation(bit_index);
-    static_vector<uint8_t, 1> temp(1);
+    std::array<uint8_t, 1> temp_buffer;
+    static_vector<uint8_t> temp(temp_buffer.data(), 1);
     auto read_ret = _block_device.readBlock(location, 1, temp);
     if (!read_ret.has_value()) {
         return std::unexpected(read_ret.error());
@@ -46,22 +48,24 @@ std::expected<std::uint32_t, FsError> Bitmap::count(bool value)
     std::uint32_t count = 0;
     auto blocks_spanned = blocksSpanned();
     for (int block = 0; block < blocks_spanned - 1; block++) {
-        static_vector<uint8_t, MAX_BLOCK_SIZE> temp(MAX_BLOCK_SIZE);
+        std::array<uint8_t, MAX_BLOCK_SIZE> temp_buffer;
+        static_vector<uint8_t> temp(temp_buffer.data(), MAX_BLOCK_SIZE);
         auto block_data = _block_device.readBlock(
-            DataLocation { _start_block + block, 0 }, _block_device.dataSize());
+            DataLocation { _start_block + block, 0 }, _block_device.dataSize(), temp);
         if (!block_data.has_value()) {
             return std::unexpected(block_data.error());
         }
-        for (auto byte : block_data.value()) {
+        for (auto byte : temp) {
             for (std::uint8_t bit = 0; bit < 8; bit += 1) {
                 count += (byte & (1 << bit)) != 0;
             }
         }
     }
 
+    std::array<uint8_t, MAX_BLOCK_SIZE> last_block_buffer;
+    static_vector<uint8_t> last_block(last_block_buffer.data(), MAX_BLOCK_SIZE);
     auto last_block_ret = _block_device.readBlock(
-        { _start_block + blocks_spanned - 1, 0 }, _block_device.dataSize());
-    auto last_block = last_block_ret.value();
+        { _start_block + blocks_spanned - 1, 0 }, _block_device.dataSize(), last_block);
     if (!last_block_ret.has_value()) {
         return std::unexpected(last_block_ret.error());
     }
@@ -116,7 +120,8 @@ std::expected<void, FsError> Bitmap::setBit(unsigned int bit_index, bool value)
 
     auto location = _getByteLocation(bit_index);
 
-    auto write_ret = _block_device.writeBlock({ byte }, location);
+    static_vector<uint8_t> temp((uint8_t*)&byte, 1, 1);
+    auto write_ret = _block_device.writeBlock(temp, location);
     if (!write_ret.has_value()) {
         return std::unexpected(write_ret.error());
     }
@@ -137,13 +142,13 @@ std::expected<unsigned int, FsError> Bitmap::getFirstEq(bool value)
     int blocks_spanned = blocksSpanned();
 
     for (int block = 0; block < blocks_spanned; block++) {
+        std::array<uint8_t, MAX_BLOCK_SIZE> block_buffer;
+        static_vector<uint8_t> block_data(block_buffer.data(), MAX_BLOCK_SIZE);
         auto block_ret = _block_device.readBlock(
-            DataLocation(_start_block + block, 0), _block_device.dataSize());
+            DataLocation(_start_block + block, 0), _block_device.dataSize(), block_data);
         if (!block_ret.has_value()) {
             return std::unexpected(block_ret.error());
         }
-        const auto& block_data = block_ret.value();
-
         for (int i = 0; i < _block_device.dataSize() * 8; i++) {
             if (block * _block_device.dataSize() * 8 + i >= _bit_count) {
                 // there is no more value in bitmap
@@ -161,7 +166,9 @@ std::expected<void, FsError> Bitmap::setAll(bool value)
 {
     auto blocks_spanned = blocksSpanned();
     std::uint8_t value_byte = value ? 0xff : 0x00;
-    auto block_data = std::vector<std::uint8_t>(_block_device.dataSize(), value_byte);
+    std::array<uint8_t, MAX_BLOCK_SIZE> block_buffer;
+    static_vector<uint8_t> block_data(block_buffer.data(), MAX_BLOCK_SIZE, _block_device.dataSize());
+    std::fill(block_data.begin(), block_data.end(), value_byte);
     for (int block = 0; block < blocks_spanned; block++) {
         auto ret = _block_device.writeBlock(block_data, { _start_block + block, 0 });
         if (!ret.has_value()) {

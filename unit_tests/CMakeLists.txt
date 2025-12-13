@@ -15,7 +15,7 @@ add_executable(${NAME}
         test_stack_disk.cpp
         test_hamming_block_device.cpp
         test_parity_block_device.cpp
-        # test_bitmap.cpp
+        test_bitmap.cpp
         # test_inode_manager.cpp
         # test_block_manager.cpp
         test_super_block_manager.cpp
@@ -44,7 +44,7 @@ target_link_libraries(${NAME} PUBLIC
         super_block_manager
         #block_manager
         #inode_manager
-        #bitmap
+        bitmap
         blockdevice
         #ecc_helpers
         #file_io
