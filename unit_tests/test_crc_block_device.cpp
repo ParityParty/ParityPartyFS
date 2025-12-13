@@ -11,9 +11,9 @@ TEST(CrcPolynomial, ExplicitImplicitDifference)
 {
     auto poly = CrcPolynomial::MsgExplicit(0xfff);
     auto poly2 = CrcPolynomial::MsgImplicit(0xfff);
-    std::array<bool, MAX_POLYNOMIAL_DEGREE> coeffs1_buffer, coeffs2_buffer;
-    static_vector<bool> coeffs1(coeffs1_buffer.data(), MAX_POLYNOMIAL_DEGREE);
-    static_vector<bool> coeffs2(coeffs2_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    std::array<bool, MAX_CRC_POLYNOMIAL_DEGREE> coeffs1_buffer, coeffs2_buffer;
+    static_vector<bool> coeffs1(coeffs1_buffer.data(), MAX_CRC_POLYNOMIAL_DEGREE);
+    static_vector<bool> coeffs2(coeffs2_buffer.data(), MAX_CRC_POLYNOMIAL_DEGREE);
     poly.getCoefficients(coeffs1);
     poly2.getCoefficients(coeffs2);
     ASSERT_NE(coeffs1.size(), coeffs2.size());
@@ -23,9 +23,9 @@ TEST(CrcPolynomial, Conversion)
 {
     auto poly1 = CrcPolynomial::MsgImplicit(0xad0424f3);
     auto poly2 = CrcPolynomial::MsgExplicit(0x15a0849e7);
-    std::array<bool, MAX_POLYNOMIAL_DEGREE> coeffs1_buffer, coeffs2_buffer;
-    static_vector<bool> coeffs1(coeffs1_buffer.data(), MAX_POLYNOMIAL_DEGREE);
-    static_vector<bool> coeffs2(coeffs2_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    std::array<bool, MAX_CRC_POLYNOMIAL_DEGREE> coeffs1_buffer, coeffs2_buffer;
+    static_vector<bool> coeffs1(coeffs1_buffer.data(), MAX_CRC_POLYNOMIAL_DEGREE);
+    static_vector<bool> coeffs2(coeffs2_buffer.data(), MAX_CRC_POLYNOMIAL_DEGREE);
     poly1.getCoefficients(coeffs1);
     poly2.getCoefficients(coeffs2);
     ASSERT_EQ(coeffs1.size(), coeffs2.size());
@@ -44,8 +44,8 @@ TEST(CrcPolynomial, division)
     std::array<bool, 64> bits_buffer;
     static_vector<bool> bits(bits_buffer.data(), 64);
     BitHelpers::ulongToBits(num, bits);
-    std::array<bool, MAX_POLYNOMIAL_DEGREE> remainder_buffer;
-    static_vector<bool> remainder(remainder_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    std::array<bool, MAX_CRC_POLYNOMIAL_DEGREE> remainder_buffer;
+    static_vector<bool> remainder(remainder_buffer.data(), MAX_CRC_POLYNOMIAL_DEGREE);
     poly1.divide(bits, remainder);
     ASSERT_EQ(remainder.size(), 3);
     EXPECT_TRUE(remainder[0]);
@@ -61,8 +61,8 @@ TEST(CrcPolynomial, division2)
     std::array<bool, 64> bits_buffer;
     static_vector<bool> bits(bits_buffer.data(), 64);
     BitHelpers::ulongToBits(num, bits);
-    std::array<bool, MAX_POLYNOMIAL_DEGREE> remainder_buffer;
-    static_vector<bool> remainder(remainder_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    std::array<bool, MAX_CRC_POLYNOMIAL_DEGREE> remainder_buffer;
+    static_vector<bool> remainder(remainder_buffer.data(), MAX_CRC_POLYNOMIAL_DEGREE);
     poly1.divide(bits, remainder);
     ASSERT_EQ(remainder.size(), 3);
     EXPECT_FALSE(remainder[0]);

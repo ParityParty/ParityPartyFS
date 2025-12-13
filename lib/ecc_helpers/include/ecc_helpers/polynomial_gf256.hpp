@@ -1,14 +1,18 @@
 #pragma once
 #include "gf256.hpp"
+#include "common/static_vector.hpp"
 #include <iostream>
-#include <vector>
+#include <array>
+
+#define MAX_GF256_POLYNOMIAL_DEGREE 255
 /**
  * Represents a polynomial over the finite field GF(256), used for Reed-Solomon error correction.
  */
 class PolynomialGF256 {
 public:
     PolynomialGF256() = default;
-    explicit PolynomialGF256(const std::vector<GF256>& coeffs);
+    explicit PolynomialGF256(const static_vector<GF256>& coeffs);
+    PolynomialGF256(std::initializer_list<GF256> coeffs);
 
     PolynomialGF256 operator+(const PolynomialGF256& other) const;
     PolynomialGF256 operator*(const PolynomialGF256& other) const;
@@ -24,17 +28,20 @@ public:
 
     GF256 evaluate(GF256 x) const;
 
-    std::vector<GF256> slice(size_t from, size_t to) const;
-    std::vector<GF256> slice(size_t from) const;
+    void slice(size_t from, size_t to, static_vector<GF256>& result) const;
+    void slice(size_t from, static_vector<GF256>& result) const;
 
-    size_t degree();
+    size_t degree() const;
 
     void print(std::ostream& os = std::cout) const;
 
-    PolynomialGF256 derivative();
+    PolynomialGF256 derivative() const;
+
+    size_t size() const { return _size; }
 
 private:
-    std::vector<GF256> coeffs;
+    std::array<GF256, MAX_GF256_POLYNOMIAL_DEGREE + 1> coeffs;
+    size_t _size;
 
     void trim();
 };

@@ -24,8 +24,8 @@ std::expected<void, FsError> CrcBlockDevice::_readAndCheckRaw(
     block_bits.resize(block_bits.size() - amount_unused_bits);
 
     // Convert to std::vector<bool> for divide() call
-    std::array<bool, MAX_POLYNOMIAL_DEGREE> remainder_buffer;
-    static_vector<bool> remainder(remainder_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    std::array<bool, MAX_CRC_POLYNOMIAL_DEGREE> remainder_buffer;
+    static_vector<bool> remainder(remainder_buffer.data(), MAX_CRC_POLYNOMIAL_DEGREE);
     _polynomial.divide(block_bits, remainder);
 
     // reminder should be 0
@@ -54,8 +54,8 @@ std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
         block_bits[i] = false;
     }
 
-    std::array<bool, MAX_POLYNOMIAL_DEGREE> remainder_buffer;
-    static_vector<bool> remainder(remainder_buffer.data(), MAX_POLYNOMIAL_DEGREE);
+    std::array<bool, MAX_CRC_POLYNOMIAL_DEGREE> remainder_buffer;
+    static_vector<bool> remainder(remainder_buffer.data(), MAX_CRC_POLYNOMIAL_DEGREE);
     _polynomial.divide(block_bits, remainder);
     for (int i = 0; i < _polynomial.getDegree(); i++) {
         BitHelpers::setBit(block, dataSize() * 8 + i, remainder[i]);

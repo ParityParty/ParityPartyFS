@@ -93,12 +93,19 @@ void ReedSolomonBlockDevice::_encodeBlock(
     int t = 2 * _correctable_bytes;
 
     std::vector<std::uint8_t> data_vec(data.begin(), data.end());
-    auto message = PolynomialGF256(gf256_utils::bytes_to_gf(data_vec));
+    auto gf_vec = gf256_utils::bytes_to_gf(data_vec);
+    std::array<GF256, MAX_RS_BLOCK_SIZE> gf_buffer;
+    static_vector<GF256> gf_static(gf_buffer.data(), MAX_RS_BLOCK_SIZE, gf_vec.size());
+    std::copy(gf_vec.begin(), gf_vec.end(), gf_static.begin());
+    auto message = PolynomialGF256(gf_static);
     auto shifted_message = message.multiply_by_xk(t);
 
     auto encoded = shifted_message + shifted_message.mod(_generator);
 
-    auto encoded_bytes = gf256_utils::gf_to_bytes(encoded.slice(0, _raw_block_size));
+    std::array<GF256, MAX_RS_BLOCK_SIZE> encoded_slice_buffer;
+    static_vector<GF256> encoded_slice(encoded_slice_buffer.data(), MAX_RS_BLOCK_SIZE);
+    encoded.slice(0, _raw_block_size, encoded_slice);
+    auto encoded_bytes = gf256_utils::gf_to_bytes(std::vector<GF256>(encoded_slice.begin(), encoded_slice.end()));
     auto& mutable_raw_block = const_cast<static_vector<std::uint8_t>&>(raw_block);
     mutable_raw_block.resize(encoded_bytes.size());
     std::copy_n(encoded_bytes.begin(), encoded_bytes.size(), mutable_raw_block.begin());
@@ -110,7 +117,11 @@ void ReedSolomonBlockDevice::_fixBlockAndExtract(
     using namespace gf256_utils;
 
     std::vector<std::uint8_t> raw_vec(raw_block.begin(), raw_block.end());
-    auto code_word = PolynomialGF256(bytes_to_gf(raw_vec));
+    auto gf_vec = bytes_to_gf(raw_vec);
+    std::array<GF256, MAX_RS_BLOCK_SIZE> gf_buffer;
+    static_vector<GF256> gf_static(gf_buffer.data(), MAX_RS_BLOCK_SIZE, gf_vec.size());
+    std::copy(gf_vec.begin(), gf_vec.end(), gf_static.begin());
+    auto code_word = PolynomialGF256(gf_static);
 
     // Calculate syndromes
     std::array<GF256, MAX_RS_BLOCK_SIZE> syndromes_buffer;
@@ -161,7 +172,10 @@ void ReedSolomonBlockDevice::_fixBlockAndExtract(
         _logger->logEvent(ErrorCorrectionEvent("ReedSolomon", block_index));
     }
 
-    auto correct_data = gf256_utils::gf_to_bytes(code_word.slice(0));
+    std::array<GF256, MAX_RS_BLOCK_SIZE> correct_slice_buffer;
+    static_vector<GF256> correct_slice(correct_slice_buffer.data(), MAX_RS_BLOCK_SIZE);
+    code_word.slice(0, correct_slice);
+    auto correct_data = gf256_utils::gf_to_bytes(std::vector<GF256>(correct_slice.begin(), correct_slice.end()));
     std::array<uint8_t, MAX_RS_BLOCK_SIZE> correct_buffer;
     static_vector<uint8_t> correct_vec(correct_buffer.data(), MAX_RS_BLOCK_SIZE, correct_data.size());
     std::copy_n(correct_data.begin(), correct_data.size(), correct_vec.begin());
@@ -173,8 +187,10 @@ void ReedSolomonBlockDevice::_fixBlockAndExtract(
 void ReedSolomonBlockDevice::_extractMessage(
     PolynomialGF256 p, static_vector<std::uint8_t>& data)
 {
-    auto message_bytes = gf256_utils::gf_to_bytes(
-        p.slice(2 * _correctable_bytes, _raw_block_size));
+    std::array<GF256, MAX_RS_BLOCK_SIZE> message_slice_buffer;
+    static_vector<GF256> message_slice(message_slice_buffer.data(), MAX_RS_BLOCK_SIZE);
+    p.slice(2 * _correctable_bytes, _raw_block_size, message_slice);
+    auto message_bytes = gf256_utils::gf_to_bytes(std::vector<GF256>(message_slice.begin(), message_slice.end()));
     data.resize(message_bytes.size());
     std::copy_n(message_bytes.begin(), message_bytes.size(), data.begin());
 }
@@ -213,10 +229,11 @@ void ReedSolomonBlockDevice::_forney(
 PolynomialGF256 ReedSolomonBlockDevice::_calculateOmega(
     const static_vector<GF256>& syndromes, PolynomialGF256& sigma)
 {
-    std::vector<GF256> syndromes_vec(syndromes.begin(), syndromes.end());
-    PolynomialGF256 S(syndromes_vec);
-    auto omega = (S * sigma).slice(0, syndromes.size());
-    return PolynomialGF256(omega);
+    PolynomialGF256 S(syndromes);
+    std::array<GF256, MAX_RS_BLOCK_SIZE> omega_slice_buffer;
+    static_vector<GF256> omega_slice(omega_slice_buffer.data(), MAX_RS_BLOCK_SIZE);
+    (S * sigma).slice(0, syndromes.size(), omega_slice);
+    return PolynomialGF256(omega_slice);
 }
 
 PolynomialGF256 ReedSolomonBlockDevice::_berlekampMassey(const static_vector<GF256>& syndromes)

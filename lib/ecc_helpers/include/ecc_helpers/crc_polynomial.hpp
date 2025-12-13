@@ -3,7 +3,7 @@
 
 #include <array>
 
-#define MAX_POLYNOMIAL_DEGREE 65
+#define  MAX_CRC_POLYNOMIAL_DEGREE 65
 
 /**
  * Class representing polynomial used in crc error detection
@@ -12,7 +12,7 @@ class CrcPolynomial {
     /**
      * Coefficients with most significant bit first, with explicit +1
      */
-    std::array<bool, MAX_POLYNOMIAL_DEGREE> _coefficients;
+    std::array<bool,  MAX_CRC_POLYNOMIAL_DEGREE + 1> _coefficients;
     unsigned int _n;
     unsigned long int _explicitPolynomial;
 
@@ -23,7 +23,7 @@ class CrcPolynomial {
      */
     static unsigned int _findDegree(unsigned long int coefficients);
 
-    CrcPolynomial(const std::array<bool, MAX_POLYNOMIAL_DEGREE>& coefficients, unsigned int n,
+    CrcPolynomial(const std::array<bool,  MAX_CRC_POLYNOMIAL_DEGREE + 1>& coefficients, unsigned int n,
         unsigned long int explicitPolynomial);
 
 public:
