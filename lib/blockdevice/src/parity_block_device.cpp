@@ -1,6 +1,8 @@
 #include "blockdevice/parity_block_device.hpp"
+#include "common/static_vector.hpp"
 #include "data_collection/data_colection.hpp"
 
+#include <array>
 #include <cstdint>
 #include <memory>
 
@@ -19,20 +21,27 @@ size_t ParityBlockDevice::rawBlockSize() const { return _raw_block_size; }
 size_t ParityBlockDevice::numOfBlocks() const { return _disk.size() / _raw_block_size; }
 std::expected<void, FsError> ParityBlockDevice::formatBlock(unsigned int block_index)
 {
-    auto res = _disk.write(block_index, std::vector<std::uint8_t>(_raw_block_size, 0));
+    std::array<uint8_t, MAX_BLOCK_SIZE> zero_buffer;
+    static_vector<uint8_t> zero_data(zero_buffer.data(), MAX_BLOCK_SIZE, _raw_block_size);
+    std::fill(zero_data.begin(), zero_data.end(), 0);
+    auto res = _disk.write(block_index * _raw_block_size, zero_data);
     return res.has_value() ? std::expected<void, FsError>() : std::unexpected(res.error());
 }
 
 std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
-    const std::vector<std::uint8_t>& data, DataLocation data_location)
+    const static_vector<std::uint8_t>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), _data_size - data_location.offset);
 
-    auto raw_block = _disk.read(data_location.block_index, _raw_block_size);
-    if (!raw_block.has_value())
-        return std::unexpected(raw_block.error());
+    std::array<uint8_t, MAX_BLOCK_SIZE> raw_block_buffer;
+    static_vector<uint8_t> raw_block(raw_block_buffer.data(), MAX_BLOCK_SIZE);
+    raw_block.resize(_raw_block_size);
+    auto read_res = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size, raw_block);
+    if (!read_res.has_value())
+        return std::unexpected(read_res.error());
 
-    bool parity = _checkParity(raw_block.value());
+    std::vector<std::uint8_t> raw_vec(raw_block.begin(), raw_block.end());
+    bool parity = _checkParity(raw_vec);
     if (!parity) {
         if (_logger) {
             _logger->logEvent(ErrorDetectionEvent("Parity", data_location.block_index));
@@ -40,15 +49,15 @@ std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
         return std::unexpected(FsError::BlockDevice_CorrectionError);
     }
 
-    std::copy(
-        data.begin(), data.begin() + to_write, raw_block.value().begin() + data_location.offset);
+    std::copy_n(data.begin(), to_write, raw_block.begin() + data_location.offset);
 
-    parity = _checkParity(raw_block.value());
+    std::vector<std::uint8_t> updated_vec(raw_block.begin(), raw_block.end());
+    parity = _checkParity(updated_vec);
 
     if (!parity)
-        raw_block.value()[_raw_block_size - 1] ^= static_cast<std::uint8_t>(1);
+        raw_block[_raw_block_size - 1] ^= static_cast<std::uint8_t>(1);
 
-    return _disk.write(_raw_block_size * data_location.block_index, raw_block.value());
+    return _disk.write(_raw_block_size * data_location.block_index, raw_block);
 }
 
 std::expected<void, FsError> ParityBlockDevice::readBlock(
@@ -56,11 +65,15 @@ std::expected<void, FsError> ParityBlockDevice::readBlock(
 {
     to_read = std::min(to_read, _data_size - data_location.offset);
 
-    auto raw_block = _disk.read(data_location.block_index, _raw_block_size);
-    if (!raw_block.has_value())
-        return std::unexpected(raw_block.error());
+    std::array<uint8_t, MAX_BLOCK_SIZE> raw_block_buffer;
+    static_vector<uint8_t> raw_block(raw_block_buffer.data(), MAX_BLOCK_SIZE);
+    raw_block.resize(_raw_block_size);
+    auto read_res = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size, raw_block);
+    if (!read_res.has_value())
+        return std::unexpected(read_res.error());
 
-    bool parity = _checkParity(raw_block.value());
+    std::vector<std::uint8_t> raw_vec(raw_block.begin(), raw_block.end());
+    bool parity = _checkParity(raw_vec);
     if (!parity) {
         if (_logger) {
             _logger->logEvent(ErrorDetectionEvent("Parity", data_location.block_index));
@@ -68,9 +81,9 @@ std::expected<void, FsError> ParityBlockDevice::readBlock(
         return std::unexpected(FsError::BlockDevice_CorrectionError);
     }
 
-    auto data = raw_block.value();
-    return std::vector<std::uint8_t>(
-        data.begin() + data_location.offset, data.begin() + data_location.offset + to_read);
+    data.resize(to_read);
+    std::copy_n(raw_block.begin() + data_location.offset, to_read, data.begin());
+    return {};
 }
 
 bool ParityBlockDevice::_checkParity(std::vector<std::uint8_t> data)

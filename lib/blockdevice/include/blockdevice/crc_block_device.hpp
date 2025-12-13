@@ -1,6 +1,7 @@
 #pragma once
 
 #include "blockdevice/iblock_device.hpp"
+#include "common/static_vector.hpp"
 #include "ecc_helpers/crc_polynomial.hpp"
 #include <memory>
 
@@ -25,16 +26,17 @@ class CrcBlockDevice : public IBlockDevice {
      * @return void if successful, error otherwise
      */
     [[nodiscard]] std::expected<void, FsError> _calculateAndWrite(
-        std::vector<std::uint8_t>& block, block_index_t block_index);
+        static_vector<std::uint8_t>& block, block_index_t block_index);
 
     /**
      * reads whole block with redundancy bits and checks integrity
      *
      * @param block index of a block to read
-     * @return block with redundancy bits on success, error otherwise
+     * @param block_buffer buffer to read into, must have capacity >= rawBlockSize
+     * @return void on success, error otherwise
      */
-    [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _readAndCheckRaw(
-        block_index_t block);
+    [[nodiscard]] std::expected<void, FsError> _readAndCheckRaw(
+        block_index_t block, static_vector<std::uint8_t>& block_buffer);
 
 public:
     /**
@@ -60,7 +62,7 @@ public:
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
     std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
+        const static_vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * Reads a sequence of bytes from the device at a specified data location.
@@ -71,8 +73,8 @@ public:
      * @param bytes_to_read Number of bytes to read starting from the specified location.
      * @return On success, returns the bytes read; otherwise returns a FsError.
      */
-    std::expected<std::vector<std::uint8_t>, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read) override;
+    std::expected<void, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /**
      * Returns the physical (raw) block size of the underlying device.

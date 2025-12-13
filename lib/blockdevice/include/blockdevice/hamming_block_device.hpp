@@ -1,7 +1,7 @@
 #pragma once
 
-#include "iblock_device.hpp"
-#include "static_vector.hpp"
+#include "blockdevice/iblock_device.hpp"
+#include "common/static_vector.hpp"
 
 #include <memory>
 #include <optional>
@@ -39,7 +39,7 @@ public:
      */
 
     [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
+        const static_vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * @brief Reads a block of data from the device and performs Hamming error correction.

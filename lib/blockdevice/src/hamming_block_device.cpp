@@ -1,7 +1,9 @@
 #include "blockdevice/hamming_block_device.hpp"
 #include "common/bit_helpers.hpp"
+#include "common/static_vector.hpp"
 #include "data_collection/data_colection.hpp"
 
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -19,6 +21,7 @@ HammingBlockDevice::HammingBlockDevice(
 std::expected<void, FsError> HammingBlockDevice::_readAndFixBlock(
     int block_index, static_vector<uint8_t>& data)
 {
+    data.resize(_block_size);
     auto read_result = _disk.read(block_index * _block_size, _block_size, data);
     if (!read_result.has_value()) {
         return std::unexpected(read_result.error());
@@ -39,7 +42,9 @@ std::expected<void, FsError> HammingBlockDevice::_readAndFixBlock(
         bool flipped_bit_value = !BitHelpers::getBit(data, error_position);
 
         BitHelpers::setBit(data, error_position, flipped_bit_value);
-        static_vector<uint8_t, 1> temp(1, data[error_position / 8]);
+        std::array<uint8_t, 1> temp_buffer;
+        static_vector<uint8_t> temp(temp_buffer.data(), 1, 1);
+        temp[0] = data[error_position / 8];
         auto disk_result = _disk.write(block_index * _block_size + error_position / 8, temp);
         if (!disk_result.has_value()) {
             return std::unexpected(disk_result.error());
@@ -109,17 +114,19 @@ void HammingBlockDevice::_encodeData(
 }
 
 std::expected<size_t, FsError> HammingBlockDevice::writeBlock(
-    const buffer<std::uint8_t>& data, DataLocation data_location)
+    const static_vector<std::uint8_t>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), _data_size - data_location.offset);
 
-    static_vector<uint8_t, MAX_BLOCK_SIZE> raw_block(_block_size);
+    std::array<uint8_t, MAX_BLOCK_SIZE> raw_block_buffer;
+    static_vector<uint8_t> raw_block(raw_block_buffer.data(), MAX_BLOCK_SIZE);
     auto read_fix_res = _readAndFixBlock(data_location.block_index, raw_block);
     if (!read_fix_res.has_value()) {
         return std::unexpected(read_fix_res.error());
     }
 
-    static_vector<uint8_t, MAX_BLOCK_SIZE> decoded_data(_block_size);
+    std::array<uint8_t, MAX_BLOCK_SIZE> decoded_data_buffer;
+    static_vector<uint8_t> decoded_data(decoded_data_buffer.data(), MAX_BLOCK_SIZE);
     _extractData(raw_block, decoded_data);
     std::copy(data.begin(), data.begin() + to_write, decoded_data.begin() + data_location.offset);
 
@@ -139,24 +146,27 @@ std::expected<void, FsError> HammingBlockDevice::readBlock(
 {
     bytes_to_read = std::min(_data_size - data_location.offset, bytes_to_read);
 
-    static_vector<uint8_t, MAX_BLOCK_SIZE> raw_block(_block_size);
+    std::array<uint8_t, MAX_BLOCK_SIZE> raw_block_buffer;
+    static_vector<uint8_t> raw_block(raw_block_buffer.data(), MAX_BLOCK_SIZE);
     auto read_fix_res = _readAndFixBlock(data_location.block_index, raw_block);
     if (!read_fix_res.has_value()) {
         return std::unexpected(read_fix_res.error());
     }
-    static_vector<uint8_t, MAX_BLOCK_SIZE> decoded_data(_block_size);
+    std::array<uint8_t, MAX_BLOCK_SIZE> decoded_data_buffer;
+    static_vector<uint8_t> decoded_data(decoded_data_buffer.data(), MAX_BLOCK_SIZE);
 
     _extractData(raw_block, decoded_data);
 
-    data.resize(0);
-    data.insert(data.end(), decoded_data.begin() + data_location.offset,
-        decoded_data.begin() + data_location.offset + bytes_to_read);
+    data.resize(bytes_to_read);
+    std::copy_n(decoded_data.begin() + data_location.offset, bytes_to_read, data.begin());
     return {};
 }
 
 std::expected<void, FsError> HammingBlockDevice::formatBlock(unsigned int block_index)
 {
-    static_vector<uint8_t, MAX_BLOCK_SIZE> zero_data(_block_size, std::uint8_t(0));
+    std::array<uint8_t, MAX_BLOCK_SIZE> zero_data_buffer;
+    static_vector<uint8_t> zero_data(zero_data_buffer.data(), MAX_BLOCK_SIZE, _block_size);
+    std::fill(zero_data.begin(), zero_data.end(), std::uint8_t(0));
     auto write_result = _disk.write(block_index * _block_size, zero_data);
     return write_result.has_value() ? std::expected<void, FsError> {}
                                     : std::unexpected(write_result.error());

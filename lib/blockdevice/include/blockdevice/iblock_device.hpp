@@ -5,6 +5,7 @@
 #include <expected>
 #include <vector>
 
+#include "common/static_vector.hpp"
 #include "disk/idisk.hpp"
 
 /**
@@ -46,7 +47,7 @@ public:
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
     virtual std::expected<size_t, FsError> writeBlock(
-        const buffer<std::uint8_t>& data, DataLocation data_location)
+        const static_vector<std::uint8_t>& data, DataLocation data_location)
         = 0;
 
     /**

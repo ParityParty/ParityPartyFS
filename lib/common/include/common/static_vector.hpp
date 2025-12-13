@@ -32,6 +32,8 @@ public:
 
     T* begin() { return _buffer; }
     T* end() { return _buffer + _size; }
+    const T* begin() const { return _buffer; }
+    const T* end() const { return _buffer + _size; }
 
     T* data() { return _buffer; }
     const T* data() const { return _buffer; }

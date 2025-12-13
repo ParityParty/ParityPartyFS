@@ -34,7 +34,7 @@ public:
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
     std::expected<size_t, FsError> writeBlock(
-        const buffer<std::uint8_t>& data, DataLocation data_location) override;
+        const static_vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * Reads a portion of data from a block on the disk.

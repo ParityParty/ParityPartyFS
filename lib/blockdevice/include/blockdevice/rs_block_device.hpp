@@ -1,5 +1,6 @@
 #pragma once
 #include "blockdevice/iblock_device.hpp"
+#include "common/static_vector.hpp"
 #include "ecc_helpers/polynomial_gf256.hpp"
 #include <memory>
 
@@ -36,8 +37,8 @@ public:
         std::shared_ptr<Logger> logger = nullptr);
 
     /** Writes data to a block at the specified location. */
-    virtualstd::expected<size_t, FsError> writeBlock(
-        const buffer<std::uint8_t>& data, DataLocation data_location);
+    virtual std::expected<size_t, FsError> writeBlock(
+        const static_vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /** Reads a block from the specified location, returning only the requested bytes. */
     virtual std::expected<void, FsError> readBlock(

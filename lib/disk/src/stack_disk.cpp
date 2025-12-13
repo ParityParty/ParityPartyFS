@@ -11,7 +11,7 @@ std::expected<void, FsError> StackDisk::read(
     if (address + size > _size) {
         return std::unexpected(FsError::Disk_OutOfBounds);
     }
-    if (data.capacity() > size)
+    if (data.capacity() < size)
         return std::unexpected(FsError::Disk_InvalidRequest);
 
     data.resize(size);

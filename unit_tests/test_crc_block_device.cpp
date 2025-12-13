@@ -1,7 +1,9 @@
 #include "blockdevice/crc_block_device.hpp"
 #include "common/bit_helpers.hpp"
+#include "common/static_vector.hpp"
 #include "disk/stack_disk.hpp"
 
+#include <array>
 #include <gtest/gtest.h>
 
 TEST(CrcPolynomial, ExplicitImplicitDifference)
@@ -62,13 +64,18 @@ TEST(CrcBlockDevice, ReadsAndWrites)
     CrcBlockDevice crc(poly, disk, 256);
 
     auto data_size = crc.dataSize();
-    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0x55));
+    std::array<uint8_t, 512> data_buffer;
+    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x55));
+    static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
-    auto read_ret = crc.readBlock({ 0, 0 }, data_size);
+    
+    std::array<uint8_t, 512> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_ret = crc.readBlock({ 0, 0 }, data_size, read_data);
     ASSERT_TRUE(read_ret.has_value());
     for (int i = 0; i < data_size; i++) {
-        EXPECT_EQ(data[i], read_ret.value()[i]);
+        EXPECT_EQ(data[i], read_data[i]);
     }
 }
 
@@ -79,14 +86,21 @@ TEST(CrcBlockDevice, FindsError)
     CrcBlockDevice crc(poly, disk, 256);
 
     auto data_size = crc.dataSize();
-    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0x00));
+    std::array<uint8_t, 512> data_buffer;
+    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x00));
+    static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
 
     // change one bit
-    ASSERT_TRUE(disk.write(1, { static_cast<std::uint8_t>(0x01) }).has_value());
+    std::array<uint8_t, 1> write_buffer = { static_cast<std::uint8_t>(0x01) };
+    static_vector<uint8_t> write_data(write_buffer.data(), 1, 1);
+    ASSERT_TRUE(disk.write(1, write_data).has_value());
 
-    auto read_ret = crc.readBlock({ 0, 0 }, data_size);
+    std::array<uint8_t, 512> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_ret = crc.readBlock({ 0, 0 }, data_size, read_data);
+    EXPECT_FALSE(read_ret.has_value());
     EXPECT_EQ(read_ret.error(), FsError::BlockDevice_CorrectionError);
 }
 
@@ -99,16 +113,27 @@ TEST(CrcBlockDevice, FindEnoughErrors)
     CrcBlockDevice crc(poly, disk, 512);
 
     auto data_size = crc.dataSize();
-    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0x00));
+    std::array<uint8_t, 1024> data_buffer;
+    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x00));
+    static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
 
     // change 3 bits
-    ASSERT_TRUE(disk.write(1, { static_cast<std::uint8_t>(0x01) }).has_value());
-    ASSERT_TRUE(disk.write(111, { static_cast<std::uint8_t>(0x08) }).has_value());
-    ASSERT_TRUE(disk.write(200, { static_cast<std::uint8_t>(0x02) }).has_value());
+    std::array<uint8_t, 1> write_buffer1 = { static_cast<std::uint8_t>(0x01) };
+    static_vector<uint8_t> write_data1(write_buffer1.data(), 1, 1);
+    ASSERT_TRUE(disk.write(1, write_data1).has_value());
+    std::array<uint8_t, 1> write_buffer2 = { static_cast<std::uint8_t>(0x08) };
+    static_vector<uint8_t> write_data2(write_buffer2.data(), 1, 1);
+    ASSERT_TRUE(disk.write(111, write_data2).has_value());
+    std::array<uint8_t, 1> write_buffer3 = { static_cast<std::uint8_t>(0x02) };
+    static_vector<uint8_t> write_data3(write_buffer3.data(), 1, 1);
+    ASSERT_TRUE(disk.write(200, write_data3).has_value());
 
-    auto read_ret = crc.readBlock({ 0, 0 }, data_size);
+    std::array<uint8_t, 1024> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_ret = crc.readBlock({ 0, 0 }, data_size, read_data);
+    EXPECT_FALSE(read_ret.has_value());
     EXPECT_EQ(read_ret.error(), FsError::BlockDevice_CorrectionError);
 }
 
@@ -121,17 +146,29 @@ TEST(CrcBlockDevice, FindEvenMoreErrors)
     CrcBlockDevice crc(poly, disk, 512);
 
     auto data_size = crc.dataSize();
-    std::vector<std::uint8_t> data(data_size, static_cast<std::uint8_t>(0x00));
+    std::array<uint8_t, 1024> data_buffer;
+    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x00));
+    static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
 
-    // change 3 bits
-    ASSERT_TRUE(disk.write(1, { static_cast<std::uint8_t>(0x01) }).has_value());
-    ASSERT_TRUE(disk.write(111, { static_cast<std::uint8_t>(0x08) }).has_value());
-    ASSERT_TRUE(disk.write(200, { static_cast<std::uint8_t>(0x02) }).has_value());
-    ASSERT_TRUE(disk.write(11, { static_cast<std::uint8_t>(0x08) }).has_value());
-    ASSERT_TRUE(disk.write(20, { static_cast<std::uint8_t>(0x02) }).has_value());
+    // change 5 bits
+    std::array<uint8_t, 1> write_buffer;
+    write_buffer[0] = static_cast<std::uint8_t>(0x01);
+    static_vector<uint8_t> write_data(write_buffer.data(), 1, 1);
+    ASSERT_TRUE(disk.write(1, write_data).has_value());
+    write_buffer[0] = static_cast<std::uint8_t>(0x08);
+    ASSERT_TRUE(disk.write(111, write_data).has_value());
+    write_buffer[0] = static_cast<std::uint8_t>(0x02);
+    ASSERT_TRUE(disk.write(200, write_data).has_value());
+    write_buffer[0] = static_cast<std::uint8_t>(0x08);
+    ASSERT_TRUE(disk.write(11, write_data).has_value());
+    write_buffer[0] = static_cast<std::uint8_t>(0x02);
+    ASSERT_TRUE(disk.write(20, write_data).has_value());
 
-    auto read_ret = crc.readBlock({ 0, 0 }, data_size);
+    std::array<uint8_t, 1024> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_ret = crc.readBlock({ 0, 0 }, data_size, read_data);
+    EXPECT_FALSE(read_ret.has_value());
     EXPECT_EQ(read_ret.error(), FsError::BlockDevice_CorrectionError);
 }

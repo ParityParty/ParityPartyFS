@@ -1,8 +1,10 @@
 #include "blockdevice/rs_block_device.hpp"
 
+#include "common/static_vector.hpp"
 #include "data_collection/data_colection.hpp"
 #include "ecc_helpers/gf256_utils.hpp"
 
+#include <array>
 #include <iostream>
 
 size_t ReedSolomonBlockDevice::numOfBlocks() const { return _disk.size() / _raw_block_size; }
@@ -13,7 +15,9 @@ size_t ReedSolomonBlockDevice::rawBlockSize() const { return _raw_block_size; }
 
 std::expected<void, FsError> ReedSolomonBlockDevice::formatBlock(unsigned int block_index)
 {
-    std::vector<std::uint8_t> zero_data(_raw_block_size, std::uint8_t(0));
+    std::array<uint8_t, MAX_BLOCK_SIZE> zero_data_buffer;
+    static_vector<uint8_t> zero_data(zero_data_buffer.data(), MAX_BLOCK_SIZE, _raw_block_size);
+    std::fill(zero_data.begin(), zero_data.end(), std::uint8_t(0));
     auto write_result = _disk.write(block_index * _raw_block_size, zero_data);
     return write_result.has_value() ? std::expected<void, FsError> {}
                                     : std::unexpected(write_result.error());
@@ -23,15 +27,20 @@ std::expected<void, FsError> ReedSolomonBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data)
 {
     bytes_to_read = std::min(dataSize() - data_location.offset, bytes_to_read);
-    auto raw_block = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size);
-    if (!raw_block.has_value()) {
-        return std::unexpected(raw_block.error());
+    std::array<uint8_t, MAX_BLOCK_SIZE> raw_block_buffer;
+    static_vector<uint8_t> raw_block(raw_block_buffer.data(), MAX_BLOCK_SIZE);
+    raw_block.resize(_raw_block_size);
+    auto read_res = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size, raw_block);
+    if (!read_res.has_value()) {
+        return std::unexpected(read_res.error());
     }
 
-    auto decoded_data = _fixBlockAndExtract(raw_block.value(), data_location.block_index);
+    std::vector<std::uint8_t> raw_vec(raw_block.begin(), raw_block.end());
+    auto decoded_data = _fixBlockAndExtract(raw_vec, data_location.block_index);
 
-    return std::vector<std::uint8_t>(decoded_data.begin() + data_location.offset,
-        decoded_data.begin() + data_location.offset + bytes_to_read);
+    data.resize(bytes_to_read);
+    std::copy_n(decoded_data.begin() + data_location.offset, bytes_to_read, data.begin());
+    return {};
 }
 
 ReedSolomonBlockDevice::ReedSolomonBlockDevice(
@@ -44,22 +53,30 @@ ReedSolomonBlockDevice::ReedSolomonBlockDevice(
     _generator = _calculateGenerator();
 }
 std::expected<size_t, FsError> ReedSolomonBlockDevice::writeBlock(
-    const buffer<std::uint8_t>& data, DataLocation data_location)
+    const static_vector<std::uint8_t>& data, DataLocation data_location)
 {
     size_t to_write = std::min(data.size(), dataSize() - data_location.offset);
 
-    auto raw_block = _disk.read(_raw_block_size * data_location.block_index, _raw_block_size);
-    if (!raw_block.has_value()) {
-        return std::unexpected(raw_block.error());
+    std::array<uint8_t, MAX_BLOCK_SIZE> raw_block_buffer;
+    static_vector<uint8_t> raw_block(raw_block_buffer.data(), MAX_BLOCK_SIZE);
+    raw_block.resize(_raw_block_size);
+    auto read_res = _disk.read(_raw_block_size * data_location.block_index, _raw_block_size, raw_block);
+    if (!read_res.has_value()) {
+        return std::unexpected(read_res.error());
     }
 
-    auto decoded = _fixBlockAndExtract(raw_block.value(), data_location.block_index);
+    std::vector<std::uint8_t> raw_vec(raw_block.begin(), raw_block.end());
+    auto decoded = _fixBlockAndExtract(raw_vec, data_location.block_index);
 
     std::copy(data.begin(), data.begin() + to_write, decoded.begin() + data_location.offset);
 
     auto new_encoded_block = _encodeBlock(decoded);
 
-    auto disk_result = _disk.write(data_location.block_index * _raw_block_size, new_encoded_block);
+    std::array<uint8_t, MAX_BLOCK_SIZE> encoded_buffer;
+    static_vector<uint8_t> encoded_block(encoded_buffer.data(), MAX_BLOCK_SIZE, new_encoded_block.size());
+    std::copy_n(new_encoded_block.begin(), new_encoded_block.size(), encoded_block.begin());
+
+    auto disk_result = _disk.write(data_location.block_index * _raw_block_size, encoded_block);
 
     if (!disk_result.has_value())
         return std::unexpected(disk_result.error());
@@ -129,7 +146,10 @@ std::vector<std::uint8_t> ReedSolomonBlockDevice::_fixBlockAndExtract(
     }
 
     auto correct_data = gf256_utils::gf_to_bytes(code_word.slice(0));
-    auto disk_result = _disk.write(block_index * _raw_block_size, correct_data);
+    std::array<uint8_t, MAX_BLOCK_SIZE> correct_buffer;
+    static_vector<uint8_t> correct_vec(correct_buffer.data(), MAX_BLOCK_SIZE, correct_data.size());
+    std::copy_n(correct_data.begin(), correct_data.size(), correct_vec.begin());
+    auto disk_result = _disk.write(block_index * _raw_block_size, correct_vec);
 
     return _extractMessage(code_word);
 }
