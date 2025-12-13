@@ -1,6 +1,6 @@
 #pragma once
 
-#define MAX_BLOCK_SIZE 1024
+#define MAX_BLOCK_SIZE 4096
 
 #include <expected>
 #include <vector>

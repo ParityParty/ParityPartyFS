@@ -16,13 +16,13 @@ add_executable(${NAME}
         test_hamming_block_device.cpp
         test_parity_block_device.cpp
         test_bitmap.cpp
-        # test_inode_manager.cpp
-        # test_block_manager.cpp
+        test_inode_manager.cpp
+        test_block_manager.cpp
         test_super_block_manager.cpp
         # test_directory_manager.cpp
         test_rs_block_device.cpp
         test_crc_block_device.cpp
-        # test_bits.cpp
+        test_bits.cpp
         # test_file_io.cpp
         # test_helpers.cpp
         # test_ppfs_low_level.cpp
@@ -42,8 +42,8 @@ target_link_libraries(${NAME} PUBLIC
         #directory_manager
         #filesystem
         super_block_manager
-        #block_manager
-        #inode_manager
+        block_manager
+        inode_manager
         bitmap
         blockdevice
         #ecc_helpers

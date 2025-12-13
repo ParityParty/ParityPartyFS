@@ -1,5 +1,5 @@
 #include "inode_manager/inode_manager.hpp"
-#include "static_vector.hpp"
+#include "common/static_vector.hpp"
 
 InodeManager::InodeManager(IBlockDevice& block_device, SuperBlock& superblock)
     : _block_device(block_device)
@@ -27,29 +27,27 @@ std::expected<void, FsError> InodeManager::_writeInode(inode_index_t index, cons
     if (_block_device.dataSize() - start.offset < sizeof(Inode)) {
         // Data won't fit in one block
         // We write the unaligned part here before writing the rest
-        std::vector<std::uint8_t> data_vector(data, data + _block_device.dataSize() - start.offset);
+        static_vector<uint8_t> data_vector(data, sizeof(Inode), sizeof(Inode));
         auto write_res = _block_device.writeBlock(data_vector, start);
         if (!write_res.has_value()) {
             return std::unexpected(write_res.error());
         }
-        bytes_written = _block_device.dataSize() - start.offset;
+        bytes_written += write_res.value();
         start.offset = 0;
         start.block_index++;
-        data += bytes_written;
+        data += write_res.value();
     }
 
     while (bytes_written < sizeof(Inode)) {
         int bytes_left = sizeof(Inode) - bytes_written;
-        int bytes_to_write
-            = bytes_left > _block_device.dataSize() ? _block_device.dataSize() : bytes_left;
-        std::vector<std::uint8_t> data_vector(data, data + bytes_to_write);
+        static_vector<std::uint8_t> data_vector(data, bytes_left, bytes_left);
         auto write_res = _block_device.writeBlock(data_vector, start);
         if (!write_res.has_value()) {
             return std::unexpected(write_res.error());
         }
         start.block_index++;
-        bytes_written += bytes_to_write;
-        data += bytes_to_write;
+        bytes_written += write_res.value();
+        data += write_res.value();
     }
 
     return {};
@@ -57,35 +55,35 @@ std::expected<void, FsError> InodeManager::_writeInode(inode_index_t index, cons
 
 std::expected<Inode, FsError> InodeManager::_readInode(inode_index_t index)
 {
-    std::vector<std::uint8_t> data_vector;
-    data_vector.reserve(sizeof(Inode));
+    Inode inode;
+    size_t bytes_read = 0;
 
     auto start = _getInodeLocation(index);
     if (_block_device.dataSize() - start.offset < sizeof(Inode)) {
         // Data doesn't fit in one block
         // We read the unaligned part here before reading the rest
-        auto read_res = _block_device.readBlock(start, _block_device.dataSize() - start.offset);
+        static_vector<uint8_t> data_vector(reinterpret_cast<uint8_t*>(&inode), sizeof(Inode), sizeof(Inode));
+        auto read_res = _block_device.readBlock(start, sizeof(Inode), data_vector);
         if (!read_res.has_value()) {
             return std::unexpected(read_res.error());
         }
         start.offset = 0;
         start.block_index++;
-        data_vector.insert(data_vector.end(), read_res.value().begin(), read_res.value().end());
+        bytes_read += data_vector.size();
     }
 
-    while (data_vector.size() < sizeof(Inode)) {
-        int bytes_left = sizeof(Inode) - data_vector.size();
-        int bytes_to_read
-            = bytes_left > _block_device.dataSize() ? _block_device.dataSize() : bytes_left;
+    while (bytes_read < sizeof(Inode)) {
+        int bytes_left = sizeof(Inode) - bytes_read;
 
-        auto read_res = _block_device.readBlock(start, bytes_to_read);
+        static_vector<uint8_t> data_vector(reinterpret_cast<uint8_t*>(&inode) + bytes_read, bytes_left, 0);
+        auto read_res = _block_device.readBlock(start, bytes_left, data_vector);
         if (!read_res.has_value()) {
             return std::unexpected(read_res.error());
         }
-        data_vector.insert(data_vector.end(), read_res.value().begin(), read_res.value().end());
+        bytes_read += data_vector.size();
         start.block_index++;
     }
-    return *reinterpret_cast<Inode*>(data_vector.data());
+    return inode;
 }
 
 std::expected<inode_index_t, FsError> InodeManager::create(Inode& inode)
