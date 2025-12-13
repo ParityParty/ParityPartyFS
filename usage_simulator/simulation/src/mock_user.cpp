@@ -41,7 +41,7 @@ void SingleDirMockUser::_writeToFile()
         return;
     }
     auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     file->size += write_size;
 
     _logger->logEvent(WriteEvent(write_size, duration));
@@ -77,7 +77,7 @@ void SingleDirMockUser::_readFromFile()
         return;
     }
     auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     _logger->logEvent(ReadEvent(read_size, duration));
     for (auto b : read_ret.value()) {
         if (b != id) {

@@ -9,7 +9,10 @@
 #include <iostream>
 #include <thread>
 
-int main(int argc, char* argv[])
+class ProgressBar
+
+    int
+    main(int argc, char* argv[])
 {
     // Load configuration from file or use defaults
     SimulationConfig sim_config;
@@ -18,11 +21,11 @@ int main(int argc, char* argv[])
         sim_config = SimulationConfig::loadFromFile(argv[1]);
         std::cout << "Configuration loaded from: " << argv[1] << std::endl;
     } else {
-        std::cout << "Usage: " << argv[0] << " <config_file>" << std::endl;
+        std::cout << "Usage: " << argv[0] << " <config_file> <logs_folder>" << std::endl;
         std::cout << "Using default configuration" << std::endl;
     }
 
-    std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::Medium);
+    std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::None, argv[2]);
     StackDisk disk;
     PpFS fs(disk, logger);
     if (!fs.format(FsConfig {

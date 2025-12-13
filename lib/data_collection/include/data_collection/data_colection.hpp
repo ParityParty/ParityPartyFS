@@ -3,6 +3,9 @@
 
 #include <chrono>
 #include <cstddef>
+#include <fstream>
+#include <iostream>
+#include <map>
 #include <string>
 
 class IEvent {
@@ -14,9 +17,9 @@ public:
 };
 
 struct ReadEvent : public IEvent {
-    ReadEvent(size_t read_size, std::chrono::duration<long, std::milli> time_ms);
+    ReadEvent(size_t read_size, std::chrono::duration<long, std::micro> time_ms);
     size_t read_size;
-    std::chrono::duration<long, std::milli> time_ms;
+    std::chrono::duration<long, std::micro> time;
 
     std::string prettyPrint() const override;
     std::string toCsv() const override;
@@ -24,15 +27,17 @@ struct ReadEvent : public IEvent {
 };
 
 struct WriteEvent : public IEvent {
-    WriteEvent(size_t write_size, std::chrono::duration<long, std::milli> time_ms);
+    WriteEvent(size_t write_size, std::chrono::duration<long, std::micro> time_ms);
     size_t write_size;
-    std::chrono::duration<long, std::milli> time_ms;
+    std::chrono::duration<long, std::micro> time;
     std::string prettyPrint() const override;
     std::string toCsv() const override;
     std::string fileName() const override;
 };
 
 struct BitFlipEvent : public IEvent {
+    size_t byte_index;
+    BitFlipEvent(size_t byte_index);
     std::string prettyPrint() const override;
     std::string toCsv() const override;
     std::string fileName() const override;
@@ -58,9 +63,10 @@ struct ErrorDetectionEvent : public IEvent {
 
 class Logger {
 public:
-    enum class LogLevel : std::uint8_t { Error, Medium, All };
+    enum class LogLevel : std::uint8_t { None, Error, Medium, All };
 
-    Logger(LogLevel log_level = LogLevel::Error);
+    Logger(LogLevel log_level, const std::string& log_folder_path);
+    ~Logger();
     void step();
     void logEvent(const IEvent& event);
     void logError(std::string_view msg);
@@ -68,5 +74,7 @@ public:
 
 private:
     int _step = 0;
-    LogLevel _logLevel;
+    LogLevel _log_level;
+    std::string _log_folder_path;
+    std::map<std::string, std::ofstream> _files;
 };

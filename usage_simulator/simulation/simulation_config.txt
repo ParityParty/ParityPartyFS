@@ -2,24 +2,24 @@
 
 # Filesystem configuration
 block_size=256
-ecc_type=Hamming
+ecc_type=ReedSolomon
 rs_correctable_bytes=3
 use_journal=false
 
 # Bit flipper configuration
-bit_flip_probability=0.01
+bit_flip_probability=0.1
 bit_flip_seed=1
 
 # Mock user configuration
 num_users=10
-max_write_size=500
-max_read_size=500
+max_write_size=5000
+max_read_size=5000
 avg_steps_between_ops=90
-create_weight=2
+create_weight=3
 write_weight=10
 read_weight=9
 delete_weight=2
 
 # Simulation configuration
-max_iterations=10000
+max_iterations=100000
 log_level=Medium
