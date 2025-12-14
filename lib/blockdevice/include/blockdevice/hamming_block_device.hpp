@@ -45,7 +45,8 @@ public:
      * @brief Reads a block of data from the device and performs Hamming error correction.
      * @param data_location Data location specifying block index and offset.
      * @param bytes_to_read Number of bytes to read.
-     * @return Expected vector of decoded data bytes, or a FsError on failure.
+     * @param data Output buffer to fill with read data, must have sufficient capacity
+     * @return void on success, error otherwise
      *
      * If size of requested bytes exceeds the data size available on the block, it will be
      * truncated.

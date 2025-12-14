@@ -100,6 +100,10 @@ std::expected<size_t, FsError> CrcBlockDevice::writeBlock(
 std::expected<void, FsError> CrcBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data)
 {
+    data.resize(0);
+    if (data.capacity() < bytes_to_read) {
+        return std::unexpected(FsError::Disk_InvalidRequest);
+    }
     std::array<uint8_t, MAX_BLOCK_SIZE> block_buffer;
     static_vector<uint8_t> block(block_buffer.data(), MAX_BLOCK_SIZE);
     auto read_ret = _readAndCheckRaw(data_location.block_index, block);

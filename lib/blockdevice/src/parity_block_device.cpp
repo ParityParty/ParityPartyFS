@@ -63,6 +63,10 @@ std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
 std::expected<void, FsError> ParityBlockDevice::readBlock(
     DataLocation data_location, size_t to_read, static_vector<uint8_t>& data)
 {
+    data.resize(0);
+    if (data.capacity() < to_read) {
+        return std::unexpected(FsError::Disk_InvalidRequest);
+    }
     to_read = std::min(to_read, _data_size - data_location.offset);
 
     std::array<uint8_t, MAX_BLOCK_SIZE> raw_block_buffer;

@@ -41,9 +41,9 @@ public:
      * If the requested bytes exceed the block size, they will be truncated.
      * @param data_location The block index and offset specifying where to start reading.
      * @param bytes_to_read The number of bytes requested to be read.
-     * @return On success, returns a vector of bytes read; otherwise returns a FsError.
+     * @param data Output buffer to fill with read data, must have sufficient capacity
+     * @return void on success, error otherwise
      */
-
     [[nodiscard]] std::expected<void, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 

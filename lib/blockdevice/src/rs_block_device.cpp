@@ -26,6 +26,10 @@ std::expected<void, FsError> ReedSolomonBlockDevice::formatBlock(unsigned int bl
 std::expected<void, FsError> ReedSolomonBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data)
 {
+    data.resize(0);
+    if (data.capacity() < bytes_to_read) {
+        return std::unexpected(FsError::Disk_InvalidRequest);
+    }
     bytes_to_read = std::min(dataSize() - data_location.offset, bytes_to_read);
     std::array<uint8_t, MAX_RS_BLOCK_SIZE> raw_block_buffer;
     static_vector<uint8_t> raw_block(raw_block_buffer.data(), MAX_RS_BLOCK_SIZE);

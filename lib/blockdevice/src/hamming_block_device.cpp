@@ -144,6 +144,10 @@ std::expected<size_t, FsError> HammingBlockDevice::writeBlock(
 std::expected<void, FsError> HammingBlockDevice::readBlock(
     DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data)
 {
+    data.resize(0);
+    if (data.capacity() < bytes_to_read) {
+        return std::unexpected(FsError::Disk_InvalidRequest);
+    }
     bytes_to_read = std::min(_data_size - data_location.offset, bytes_to_read);
 
     std::array<uint8_t, MAX_BLOCK_SIZE> raw_block_buffer;

@@ -58,7 +58,8 @@ public:
      *
      * @param data_location The source location (block index and offset) on the device.
      * @param bytes_to_read Number of bytes to read starting from the specified location.
-     * @return On success, returns the bytes read; otherwise returns a FsError.
+     * @param data Output buffer to fill with read data, must have sufficient capacity
+     * @return void on success, error otherwise
      */
     [[nodiscard]] virtual std::expected<void, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data)
