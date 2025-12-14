@@ -33,7 +33,7 @@ public:
      * @param data_location The block index and offset specifying where to write the data.
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
-    [[nodiscard]] std::expected<size_t, FsError> writeBlock(
+    [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
         const static_vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
@@ -44,7 +44,7 @@ public:
      * @param data Output buffer to fill with read data, must have sufficient capacity
      * @return void on success, error otherwise
      */
-    [[nodiscard]] std::expected<void, FsError> readBlock(
+    [[nodiscard]] virtual std::expected<void, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /**

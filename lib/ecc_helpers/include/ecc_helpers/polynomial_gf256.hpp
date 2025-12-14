@@ -4,7 +4,7 @@
 #include <iostream>
 #include <array>
 
-#define MAX_GF256_POLYNOMIAL_DEGREE 255
+#define MAX_GF256_POLYNOMIAL_SIZE 256
 /**
  * Represents a polynomial over the finite field GF(256), used for Reed-Solomon error correction.
  */
@@ -40,7 +40,7 @@ public:
     size_t size() const { return _size; }
 
 private:
-    std::array<GF256, MAX_GF256_POLYNOMIAL_DEGREE + 1> coeffs;
+    std::array<GF256, MAX_GF256_POLYNOMIAL_SIZE> coeffs;
     size_t _size;
 
     void trim();

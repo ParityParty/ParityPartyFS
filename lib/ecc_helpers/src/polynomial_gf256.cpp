@@ -8,7 +8,7 @@ PolynomialGF256::PolynomialGF256(const static_vector<GF256>& coeffs_input)
 }
 
 PolynomialGF256::PolynomialGF256(std::initializer_list<GF256> init)
-    : _size(std::min(init.size(), static_cast<size_t>(MAX_GF256_POLYNOMIAL_DEGREE + 1))) {
+    : _size(std::min(init.size(), static_cast<size_t>(MAX_GF256_POLYNOMIAL_SIZE))) {
     std::copy(init.begin(), init.begin() + _size, coeffs.begin());
     trim();
 }
@@ -20,8 +20,8 @@ void PolynomialGF256::trim() {
 
 PolynomialGF256 PolynomialGF256::operator+(const PolynomialGF256& other) const {
     size_t n = std::max(_size, other._size);
-    std::array<GF256, MAX_GF256_POLYNOMIAL_DEGREE + 1> result_buffer;
-    static_vector<GF256> result(result_buffer.data(), MAX_GF256_POLYNOMIAL_DEGREE + 1, n);
+    std::array<GF256, MAX_GF256_POLYNOMIAL_SIZE> result_buffer;
+    static_vector<GF256> result(result_buffer.data(), MAX_GF256_POLYNOMIAL_SIZE, n);
     for (size_t i = 0; i < n; ++i) {
         GF256 a = (i < _size) ? coeffs[i] : GF256(0);
         GF256 b = (i < other._size) ? other.coeffs[i] : GF256(0);
@@ -43,8 +43,8 @@ PolynomialGF256 PolynomialGF256::operator*(const PolynomialGF256& other) const {
         return PolynomialGF256();
 
     size_t result_size = _size + other._size - 1;
-    std::array<GF256, MAX_GF256_POLYNOMIAL_DEGREE + 1> result_buffer;
-    static_vector<GF256> result(result_buffer.data(), MAX_GF256_POLYNOMIAL_DEGREE + 1, result_size);
+    std::array<GF256, MAX_GF256_POLYNOMIAL_SIZE> result_buffer;
+    static_vector<GF256> result(result_buffer.data(), MAX_GF256_POLYNOMIAL_SIZE, result_size);
     std::fill(result.begin(), result.end(), GF256(0));
 
     for (size_t i = 0; i < _size; ++i) {
@@ -70,7 +70,7 @@ GF256 PolynomialGF256::operator[](size_t i) const {
 
 GF256& PolynomialGF256::operator[](size_t i) {
     if (i >= _size) {
-        if (i >= MAX_GF256_POLYNOMIAL_DEGREE + 1)
+        if (i >= MAX_GF256_POLYNOMIAL_SIZE)
             throw std::out_of_range("Polynomial index out of range");
         for (size_t j = _size; j <= i; ++j)
             coeffs[j] = GF256(0);
@@ -80,8 +80,8 @@ GF256& PolynomialGF256::operator[](size_t i) {
 }
 
 PolynomialGF256 PolynomialGF256::multiply_by_xk(size_t k) const {
-    std::array<GF256, MAX_GF256_POLYNOMIAL_DEGREE + 1> result_buffer;
-    static_vector<GF256> result(result_buffer.data(), MAX_GF256_POLYNOMIAL_DEGREE + 1, k + _size);
+    std::array<GF256, MAX_GF256_POLYNOMIAL_SIZE> result_buffer;
+    static_vector<GF256> result(result_buffer.data(), MAX_GF256_POLYNOMIAL_SIZE, k + _size);
     for (size_t i = 0; i < k; ++i)
         result[i] = GF256(0);
     for (size_t i = 0; i < _size; ++i)
@@ -101,8 +101,8 @@ PolynomialGF256 PolynomialGF256::mod(const PolynomialGF256& divisor) const {
         size_t shift = remainder._size - divisor._size;
         GF256 factor = remainder.coeffs[remainder._size - 1] / divisor_lead;
 
-        std::array<GF256, MAX_GF256_POLYNOMIAL_DEGREE + 1> temp_buffer;
-        static_vector<GF256> temp(temp_buffer.data(), MAX_GF256_POLYNOMIAL_DEGREE + 1, shift + divisor._size);
+        std::array<GF256, MAX_GF256_POLYNOMIAL_SIZE> temp_buffer;
+        static_vector<GF256> temp(temp_buffer.data(), MAX_GF256_POLYNOMIAL_SIZE, shift + divisor._size);
         for (size_t i = 0; i < shift; ++i)
             temp[i] = GF256(0);
         for (size_t i = 0; i < divisor._size; ++i)
@@ -169,8 +169,8 @@ void PolynomialGF256::print(std::ostream& os) const {
 
 PolynomialGF256 PolynomialGF256::derivative() const {
     size_t deriv_size = _size > 0 ? _size - 1 : 0;
-    std::array<GF256, MAX_GF256_POLYNOMIAL_DEGREE + 1> deriv_buffer;
-    static_vector<GF256> deriv(deriv_buffer.data(), MAX_GF256_POLYNOMIAL_DEGREE + 1, deriv_size);
+    std::array<GF256, MAX_GF256_POLYNOMIAL_SIZE> deriv_buffer;
+    static_vector<GF256> deriv(deriv_buffer.data(), MAX_GF256_POLYNOMIAL_SIZE, deriv_size);
     for (size_t i = 1; i < _size; i++) {
         if (i % 2)
             deriv[i - 1] = coeffs[i];

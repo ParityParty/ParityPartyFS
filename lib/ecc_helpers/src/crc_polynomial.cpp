@@ -16,7 +16,7 @@ unsigned int CrcPolynomial::_findDegree(unsigned long int coefficients)
     return counter - 1;
 }
 
-CrcPolynomial::CrcPolynomial(const std::array<bool,  MAX_CRC_POLYNOMIAL_DEGREE + 1>& coefficients,
+CrcPolynomial::CrcPolynomial(const std::array<bool,  MAX_CRC_POLYNOMIAL_SIZE>& coefficients,
     unsigned int n, unsigned long int explicitPolynomial)
     : _coefficients(coefficients)
     , _n(n)
@@ -32,7 +32,7 @@ CrcPolynomial CrcPolynomial::MsgExplicit(unsigned long int polynomial)
     static_vector<bool> poly_with_zeros(poly_with_zeros_buffer.data(), 64);
     BitHelpers::ulongToBits(polynomial, poly_with_zeros);
     size_t start_idx = poly_with_zeros.size() - n - 1;
-    std::array<bool,  MAX_CRC_POLYNOMIAL_DEGREE + 1> poly {};
+    std::array<bool,  MAX_CRC_POLYNOMIAL_SIZE> poly {};
     std::copy(poly_with_zeros.begin() + start_idx,
         poly_with_zeros.end(), poly.begin());
 
@@ -48,7 +48,7 @@ CrcPolynomial CrcPolynomial::MsgImplicit(unsigned long int polynomial)
     static_vector<bool> poly_with_zeros(poly_with_zeros_buffer.data(), 64);
     BitHelpers::ulongToBits(polynomial, poly_with_zeros);
     size_t start_idx = poly_with_zeros.size() - n - 1;
-    std::array<bool,  MAX_CRC_POLYNOMIAL_DEGREE + 1> poly {};
+    std::array<bool,  MAX_CRC_POLYNOMIAL_SIZE> poly {};
     std::copy(poly_with_zeros.begin() + start_idx,
         poly_with_zeros.end(), poly.begin());
 

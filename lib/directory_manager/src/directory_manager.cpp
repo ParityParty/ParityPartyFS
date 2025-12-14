@@ -25,31 +25,13 @@ DirectoryManager::DirectoryManager(
 
     Inode dir_inode = inode_result.value();
 
-    size_t bytes_to_read = elements * sizeof(DirectoryEntry);
-    if (elements == 0)
-        bytes_to_read = dir_inode.file_size;
-
-    // Check capacity
-    size_t expected_count = bytes_to_read / sizeof(DirectoryEntry);
-    if (buf.capacity() < expected_count) {
-        return std::unexpected(FsError::DirectoryManager_InvalidRequest);
+    size_t size = elements;
+    if (elements == 0) {
+        size_t max_entries = dir_inode.file_size / sizeof(DirectoryEntry);
+        size = max_entries - offset;
     }
 
-    // Read raw bytes
-    std::array<uint8_t, MAX_BLOCK_SIZE * 10> read_buffer; // Large enough for directory data
-    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
-    auto read_res = _file_io.readFile(
-        inode, dir_inode, offset * sizeof(DirectoryEntry), bytes_to_read, read_data);
-    if (!read_res.has_value()) {
-        return std::unexpected(read_res.error());
-    }
-
-    // Convert to DirectoryEntry and fill buf
-    size_t count = read_data.size() / sizeof(DirectoryEntry);
-    buf.resize(count);
-    std::memcpy(buf.data(), read_data.data(), read_data.size());
-
-    return {};
+    return _readDirectoryData(inode, dir_inode, buf, offset, size);
 }
 
 std::expected<void, FsError> DirectoryManager::addEntry(
