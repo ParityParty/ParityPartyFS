@@ -85,8 +85,8 @@ void SingleDirMockUser::_readFromFile()
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    _logger->logEvent(ReadEvent(read_size, duration));
-    for (auto b : read_ret.value()) {
+    _logger->logEvent(ReadEvent(read_data.size(), duration));
+    for (auto b : read_data) {
         if (b != id) {
             _logger->logError("Data contains an error");
             break;
