@@ -101,7 +101,7 @@ TEST(DirectoryManager, RemoveFirstOfMultipleEntries)
     EXPECT_EQ(got, expected);
 }
 
-TEST(DirectoryManager, AddDuplicateNameFails)
+TEST(DirectoryManager, checkNameUniqueNameTaken)
 {
     StackDisk disk;
     RawBlockDevice dev(1024, disk);
@@ -126,14 +126,37 @@ TEST(DirectoryManager, AddDuplicateNameFails)
     e1.inode = 10;
     strcpy(e1.name.data(), "dup");
 
-    DirectoryEntry e2;
-    e2.inode = 20;
-    strcpy(e2.name.data(), "dup");
 
     ASSERT_TRUE(dm.addEntry(dir, e1).has_value());
-    auto res = dm.addEntry(dir, e2);
+    auto res = dm.checkNameUnique(dir, "dup");
     ASSERT_FALSE(res.has_value());
     ASSERT_EQ(res.error(), FsError::DirectoryManager_NameTaken);
+}
+
+TEST(DirectoryManager, checkNameUniqueNameNotTaken)
+{
+    StackDisk disk;
+    RawBlockDevice dev(1024, disk);
+    SuperBlock superblock {
+        .total_inodes = 1,
+        .block_bitmap_address = 2,
+        .inode_bitmap_address = 0,
+        .inode_table_address = 1,
+        .first_data_blocks_address = 3,
+        .last_data_block_address = 1024,
+        .block_size = 1024,
+    };
+    InodeManager im(dev, superblock);
+    BlockManager bm(superblock, dev);
+    FileIO fio(dev, bm, im);
+    DirectoryManager dm(dev, im, fio);
+
+    ASSERT_TRUE(im.format());
+    inode_index_t dir = 0; // root directory inode
+
+    auto res = dm.checkNameUnique(dir, "dup");
+    ASSERT_TRUE(res.has_value());
+
 }
 
 TEST(DirectoryManager, RemoveNonexistentEntryFails)

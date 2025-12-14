@@ -4,6 +4,7 @@
 #include "common/static_vector.hpp"
 #include "directory_manager/idirectory_manager.hpp"
 #include "file_io/file_io.hpp"
+#include <optional>
 
 class DirectoryManager : public IDirectoryManager {
     IBlockDevice& _block_device;
@@ -11,9 +12,9 @@ class DirectoryManager : public IDirectoryManager {
     FileIO& _file_io;
 
     [[nodiscard]] std::expected<void, FsError> _readDirectoryData(
-        inode_index_t inode_index, Inode& dir_inode, static_vector<DirectoryEntry>& buf);
+        inode_index_t inode_index, Inode& dir_inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size);
     int _findEntryIndexByName(const static_vector<DirectoryEntry>& entries, char const* name);
-    int _findEntryIndexByInode(const static_vector<DirectoryEntry>& entries, inode_index_t inode);
+    std::optional<std::pair<size_t, DirectoryEntry>> _findEntryByInode(const static_vector<DirectoryEntry>& entries, inode_index_t inode);
     [[nodiscard]] std::expected<Inode, FsError> _getDirectoryInode(inode_index_t inode_index);
 
 public:
@@ -28,6 +29,6 @@ public:
     [[nodiscard]] virtual std::expected<void, FsError> removeEntry(
         inode_index_t directory, inode_index_t entry) override;
 
-    [[nodiscard]] virtual std::expected<Inode, FsError> checkNameUnique(
+    [[nodiscard]] virtual std::expected<void, FsError> checkNameUnique(
         inode_index_t directory, const char* name) override;
 };
