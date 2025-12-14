@@ -81,7 +81,7 @@ TEST(PpFS, DirEntriesRoot)
 
     std::array<DirectoryEntry, 1000> entries_buffer;
     static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
-    auto entries_res = ppfs->getDirectoryEntries(0, entries);
+    auto entries_res = ppfs->getDirectoryEntries(0, entries, 0, 0);
     ASSERT_TRUE(entries_res.has_value());
     EXPECT_EQ(entries.size(), 0);
 }
@@ -96,7 +96,7 @@ TEST(PpFS, DirEntriesAfterFileCreate)
 
     std::array<DirectoryEntry, 1000> entries_buffer;
     static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
-    auto entries_res = ppfs->getDirectoryEntries(0, entries);
+    auto entries_res = ppfs->getDirectoryEntries(0, entries, 0, 0);
     ASSERT_TRUE(entries_res.has_value());
     ASSERT_EQ(entries.size(), 1);
     EXPECT_EQ(std::string_view(entries[0].name.data()), "x")

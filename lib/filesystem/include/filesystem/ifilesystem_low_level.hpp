@@ -39,10 +39,12 @@ public:
      *
      * @param inode inode of the directory
      * @param buf buffer to fill with directory entries, must have sufficient capacity
+     * @param offset entry offset to start reading from
+     * @param size maximum number of entries to read (0 = all remaining entries)
      * @return void on success, error otherwise
      */
     [[nodiscard]] virtual std::expected<void, FsError> getDirectoryEntries(
-        inode_index_t inode, static_vector<DirectoryEntry>& buf)
+        inode_index_t inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size)
         = 0;
 
     /**
