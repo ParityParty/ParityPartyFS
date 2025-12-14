@@ -139,6 +139,19 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
 std::expected<void, FsError> DirectoryManager::checkNameUnique(
     inode_index_t directory, const char* name)
 {
+    auto unique_res = getInodeByName(directory, name);
+    if (!unique_res.has_value() && unique_res.error() != FsError::PpFS_NotFound) {
+        return std::unexpected(unique_res.error());
+    }
+    if (unique_res.has_value()) {
+        return std::unexpected(FsError::DirectoryManager_NameTaken);
+    }
+    return {};
+}
+
+std::expected<inode_index_t, FsError> DirectoryManager::getInodeByName(
+    inode_index_t directory, const char* name)
+{
     auto inode_result = _getDirectoryInode(directory);
     if (!inode_result.has_value()) {
         return std::unexpected(inode_result.error());
@@ -155,20 +168,25 @@ std::expected<void, FsError> DirectoryManager::checkNameUnique(
     if (!read_res.has_value()) 
         return std::unexpected(read_res.error());
 
-    auto unique_res = _findEntryIndexByName(entries, name);
+    auto unique_res = _findEntryByName(entries, name);
 
-    if (unique_res != -1)
-        return std::unexpected(FsError::DirectoryManager_NameTaken);
+    if (unique_res.has_value())
+        return unique_res.value().second.inode;
 
     checked += entries.size();
 }
-    return {};
+    return std::unexpected(FsError::PpFS_NotFound);
 }
 
 std::expected<void, FsError> DirectoryManager::_readDirectoryData(inode_index_t inode_index,
     Inode& dir_inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size)
 {
-    size = std::min(size, dir_inode.file_size - offset);
+    size_t max_entries = dir_inode.file_size / sizeof(DirectoryEntry);
+    if (offset >= max_entries) {
+        buf.resize(0);
+        return {};
+    }
+    size = std::min(size, max_entries - offset);
     if (buf.capacity() < size)
         return std::unexpected(FsError::DirectoryManager_InvalidRequest);
 
@@ -183,16 +201,16 @@ std::expected<void, FsError> DirectoryManager::_readDirectoryData(inode_index_t 
     return {};
 }
 
-int DirectoryManager::_findEntryIndexByName(
+std::optional<std::pair<size_t, DirectoryEntry>> DirectoryManager::_findEntryByName(
     const static_vector<DirectoryEntry>& entries, char const* name)
 {
     for (size_t i = 0; i < entries.size(); ++i) {
         if (std::strlen(name) == std::strlen(entries[i].name.data())
             && std::strncmp(entries[i].name.data(), name, std::strlen(name)) == 0) {
-            return static_cast<int>(i);
+            return std::make_pair(i, entries[i]);
         }
     }
-    return -1;
+    return {};
 }
 
  std::optional<std::pair<size_t, DirectoryEntry>> DirectoryManager::_findEntryByInode(

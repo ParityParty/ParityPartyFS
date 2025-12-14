@@ -13,7 +13,7 @@ class DirectoryManager : public IDirectoryManager {
 
     [[nodiscard]] std::expected<void, FsError> _readDirectoryData(
         inode_index_t inode_index, Inode& dir_inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size);
-    int _findEntryIndexByName(const static_vector<DirectoryEntry>& entries, char const* name);
+    std::optional<std::pair<size_t, DirectoryEntry>> _findEntryByName(const static_vector<DirectoryEntry>& entries, char const* name);
     std::optional<std::pair<size_t, DirectoryEntry>> _findEntryByInode(const static_vector<DirectoryEntry>& entries, inode_index_t inode);
     [[nodiscard]] std::expected<Inode, FsError> _getDirectoryInode(inode_index_t inode_index);
 
@@ -30,5 +30,8 @@ public:
         inode_index_t directory, inode_index_t entry) override;
 
     [[nodiscard]] virtual std::expected<void, FsError> checkNameUnique(
+        inode_index_t directory, const char* name) override;
+
+    [[nodiscard]] virtual std::expected<inode_index_t, FsError> getInodeByName(
         inode_index_t directory, const char* name) override;
 };

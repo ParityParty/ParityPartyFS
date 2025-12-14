@@ -330,25 +330,18 @@ std::expected<inode_index_t, FsError> PpFS::_getParentInodeFromPath(std::string_
         }
         std::string_view next_name = path.substr(1, next_slash - 1);
 
-        std::array<DirectoryEntry, 1000> entries_buffer;
-        static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
-        auto entry_res = _directoryManager->getEntries(current_inode, 0, 0, entries);
-        if (!entry_res.has_value()) {
-            return std::unexpected(entry_res.error());
-        }
+        // Create null-terminated string from string_view for getInodeByName
+        std::array<char, 128> name_buffer;
+        size_t name_len = std::min(next_name.size(), name_buffer.size() - 1);
+        std::memcpy(name_buffer.data(), next_name.data(), name_len);
+        name_buffer[name_len] = '\0';
 
-        bool found = false;
-        for (size_t i = 0; i < entries.size(); ++i) {
-            if (next_name != entries[i].name.data())
-                continue;
-            current_inode = entries[i].inode;
-            found = true;
-            break;
+        auto inode_res = _directoryManager->getInodeByName(current_inode, name_buffer.data());
+        if (!inode_res.has_value()) {
+            return std::unexpected(inode_res.error());
         }
-
-        if (!found) {
-            return std::unexpected(FsError::PpFS_NotFound);
-        }
+        current_inode = inode_res.value();
+        
         path = path.substr(next_slash);
     }
 }
@@ -359,19 +352,17 @@ std::expected<inode_index_t, FsError> PpFS::_getInodeFromParent(
     size_t last_slash = path.find_last_of('/');
     std::string_view name = path.substr(last_slash + 1);
 
-    std::array<DirectoryEntry, 1000> entries_buffer;
-    static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
-    auto entries_res = _directoryManager->getEntries(parent_inode, 0, 0, entries);
-    if (!entries_res.has_value()) {
-        return std::unexpected(entries_res.error());
-    }
+    // Create null-terminated string from string_view for getInodeByName
+    std::array<char, 128> name_buffer;
+    size_t name_len = std::min(name.size(), name_buffer.size() - 1);
+    std::memcpy(name_buffer.data(), name.data(), name_len);
+    name_buffer[name_len] = '\0';
 
-    for (size_t i = 0; i < entries.size(); ++i) {
-        if (name == entries[i].name.data()) {
-            return entries[i].inode;
-        }
+    auto inode_res = _directoryManager->getInodeByName(parent_inode, name_buffer.data());
+    if (!inode_res.has_value()) {
+        return std::unexpected(inode_res.error());
     }
-    return std::unexpected(FsError::PpFS_NotFound);
+    return inode_res.value();
 }
 
 std::expected<inode_index_t, FsError> PpFS::_getInodeFromPath(std::string_view path)

@@ -59,4 +59,14 @@ struct IDirectoryManager {
     [[nodiscard]] virtual std::expected<void, FsError> checkNameUnique(
         inode_index_t directory, const char* name)
         = 0;
+
+    /**
+     * Get inode of a directory entry by name.
+     *
+     * @param directory inode of directory to get entry from
+     * @param name of the entry to get
+     * @return inode of the entry on success, error otherwise (PpFS_NotFound if entry is not found)
+     */
+    [[nodiscard]] virtual std::expected<inode_index_t, FsError> getInodeByName(
+        inode_index_t directory, const char* name)  = 0;
 };
