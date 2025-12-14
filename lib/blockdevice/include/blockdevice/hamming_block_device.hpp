@@ -51,7 +51,7 @@ public:
      * If size of requested bytes exceeds the data size available on the block, it will be
      * truncated.
      */
-    [[nodiscard]] std::expected<void, FsError> readBlock(
+    [[nodiscard]] virtual std::expected<void, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /**

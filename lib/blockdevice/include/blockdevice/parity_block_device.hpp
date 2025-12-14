@@ -21,7 +21,7 @@ public:
      * Writes data with an appended parity byte.
      * If data corruption is detected, returns an error.
      */
-    [[nodiscard]] std::expected<size_t, FsError> writeBlock(
+    [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
         const static_vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
@@ -29,7 +29,7 @@ public:
      * If data corruption is detected, returns an error.
      */
 
-    [[nodiscard]] std::expected<void, FsError> readBlock(
+    [[nodiscard]] virtual std::expected<void, FsError> readBlock(
         DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /** Formats a block (fills it with zeros and valid parity). */
