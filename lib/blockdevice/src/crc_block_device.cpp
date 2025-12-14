@@ -22,8 +22,7 @@ std::expected<void, FsError> CrcBlockDevice::_readAndCheckRaw(
     BitHelpers::blockToBits(block_buffer, block_bits);
     auto amount_unused_bits = (_block_size - dataSize()) * 8 - _polynomial.getDegree();
     block_bits.resize(block_bits.size() - amount_unused_bits);
-
-    // Convert to std::vector<bool> for divide() call
+    
     std::array<bool, MAX_CRC_POLYNOMIAL_DEGREE> remainder_buffer;
     static_vector<bool> remainder(remainder_buffer.data(), MAX_CRC_POLYNOMIAL_DEGREE);
     _polynomial.divide(block_bits, remainder);
