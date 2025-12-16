@@ -75,7 +75,7 @@ inline void PrintTo(const TestConfig& config, std::ostream* os) { *os << config.
 
 class PpFSParametrizedTest : public ::testing::TestWithParam<TestConfig> {
 protected:
-    StackDisk disk;
+    StackDisk<> disk;
     std::unique_ptr<PpFS> fs;
     FsConfig config;
 
@@ -172,7 +172,7 @@ inline std::vector<TestConfig> generateTestConfigs()
 }
 
 // Error injection helper functions
-inline void injectBitFlip(StackDisk& disk, size_t byte_offset, uint8_t bit_mask)
+inline void injectBitFlip(StackDisk<>& disk, size_t byte_offset, uint8_t bit_mask)
 {
     auto read_res = disk.read(byte_offset, 1);
     ASSERT_TRUE(read_res.has_value());
@@ -184,7 +184,7 @@ inline void injectBitFlip(StackDisk& disk, size_t byte_offset, uint8_t bit_mask)
     ASSERT_TRUE(write_res.has_value());
 }
 
-inline void injectByteError(StackDisk& disk, size_t byte_offset, uint8_t corrupt_value)
+inline void injectByteError(StackDisk<>& disk, size_t byte_offset, uint8_t corrupt_value)
 {
     auto read_res = disk.read(byte_offset, 1);
     ASSERT_TRUE(read_res.has_value());
@@ -196,7 +196,7 @@ inline void injectByteError(StackDisk& disk, size_t byte_offset, uint8_t corrupt
     ASSERT_TRUE(write_res.has_value());
 }
 
-inline void injectRandomBitFlip(StackDisk& disk, size_t start_offset, size_t end_offset)
+inline void injectRandomBitFlip(StackDisk<>& disk, size_t start_offset, size_t end_offset)
 {
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -207,7 +207,7 @@ inline void injectRandomBitFlip(StackDisk& disk, size_t start_offset, size_t end
     injectBitFlip(disk, byte_offset, bit_mask);
 }
 
-inline void injectRandomByteError(StackDisk& disk, size_t start_offset, size_t end_offset)
+inline void injectRandomByteError(StackDisk<>& disk, size_t start_offset, size_t end_offset)
 {
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -247,7 +247,7 @@ inline std::vector<uint8_t> createIncrementalPattern(size_t size)
 }
 
 // Helper to find data block region on disk
-inline size_t findDataBlockRegion(StackDisk& disk, const SuperBlock& sb)
+inline size_t findDataBlockRegion(StackDisk<>& disk, const SuperBlock& sb)
 {
     return sb.first_data_blocks_address * sb.block_size;
 }

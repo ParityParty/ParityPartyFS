@@ -35,7 +35,7 @@ std::expected<void, FsError> BlockManager::format()
     if (auto ret = _bitmap.setAll(false); !ret.has_value()) {
         return std::unexpected(ret.error());
     }
-    return { };
+    return {};
 }
 
 std::expected<void, FsError> BlockManager::reserve(block_index_t block)
@@ -53,7 +53,7 @@ std::expected<void, FsError> BlockManager::reserve(block_index_t block)
     if (!write_ret.has_value()) {
         return std::unexpected(write_ret.error());
     }
-    return { };
+    return {};
 }
 
 std::expected<void, FsError> BlockManager::free(block_index_t block)
@@ -72,7 +72,7 @@ std::expected<void, FsError> BlockManager::free(block_index_t block)
         return std::unexpected(write_ret.error());
     }
 
-    return { };
+    return {};
 }
 
 std::expected<block_index_t, FsError> BlockManager::getFree()
@@ -89,4 +89,4 @@ std::expected<block_index_t, FsError> BlockManager::getFree()
 
 std::expected<std::uint32_t, FsError> BlockManager::numFree() { return _bitmap.count(false); }
 
-std::expected<unsigned int, FsError> BlockManager::numTotal() { return _num_data_blocks; }
+std::expected<std::uint32_t, FsError> BlockManager::numTotal() { return _num_data_blocks; }
