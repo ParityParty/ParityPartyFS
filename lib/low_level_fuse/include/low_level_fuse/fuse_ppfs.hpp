@@ -9,7 +9,7 @@ class FusePpFS : public FuseWrapper<FusePpFS> {
 private:
     PpFSLowLevel& _ppfs;
 
-    std::expected<void, FsError> _get_stats(fuse_ino_t ino, struct stat* stbuf);
+    [[nodiscard]] std::expected<void, FsError> _get_stats(fuse_ino_t ino, struct stat* stbuf);
     static int _map_fs_error_to_errno(FsError err);
 
 public:

@@ -1,5 +1,9 @@
 #pragma once
-#include <vector>
+#include "common/static_vector.hpp"
+
+#include <array>
+
+#define  MAX_CRC_POLYNOMIAL_SIZE 65
 
 /**
  * Class representing polynomial used in crc error detection
@@ -8,7 +12,7 @@ class CrcPolynomial {
     /**
      * Coefficients with most significant bit first, with explicit +1
      */
-    std::vector<bool> _coefficients;
+    std::array<bool,  MAX_CRC_POLYNOMIAL_SIZE> _coefficients;
     unsigned int _n;
     unsigned long int _explicitPolynomial;
 
@@ -19,7 +23,7 @@ class CrcPolynomial {
      */
     static unsigned int _findDegree(unsigned long int coefficients);
 
-    CrcPolynomial(const std::vector<bool>& coefficients, unsigned int n,
+    CrcPolynomial(const std::array<bool,  MAX_CRC_POLYNOMIAL_SIZE>& coefficients, unsigned int n,
         unsigned long int explicitPolynomial);
 
 public:
@@ -46,9 +50,9 @@ public:
      * @param other Coefficients of other polynomial
      * @return remainder after division other/self
      */
-    std::vector<bool> divide(const std::vector<bool>& other);
+    void divide(const static_vector<bool>& other, static_vector<bool>& remainder);
 
-    std::vector<bool> getCoefficients() const;
+    void getCoefficients(static_vector<bool>& coeffs) const;
     unsigned int getDegree() const;
     unsigned long int getExplicitPolynomial() const;
 };

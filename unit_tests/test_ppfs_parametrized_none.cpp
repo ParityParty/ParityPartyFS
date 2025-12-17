@@ -28,7 +28,10 @@ TEST_P(PpFSParametrizedNoneTest, ErrorCorrection_None_NoCorrection)
 
     // Write data
     size_t data_size = GetParam().block_size;
-    auto write_data = createTestData(data_size, 0xAA);
+    auto write_data_vec = createTestData(data_size, 0xAA);
+    std::array<uint8_t, 4096> write_buf;
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_data_vec.size());
+    std::memcpy(write_data.data(), write_data_vec.data(), write_data_vec.size());
 
     auto write_res = fs->write(fd, write_data);
     ASSERT_TRUE(write_res.has_value());
@@ -38,10 +41,12 @@ TEST_P(PpFSParametrizedNoneTest, ErrorCorrection_None_NoCorrection)
 
     // Corrupt data on disk (None ECC doesn't detect/correct)
     // Read superblock to find data region
-    auto sb_read = disk.read(0, sizeof(SuperBlock));
+    std::array<uint8_t, 512> sb_buf;
+    static_vector<uint8_t> sb_data(sb_buf.data(), sb_buf.size());
+    auto sb_read = disk.read(0, sizeof(SuperBlock), sb_data);
     ASSERT_TRUE(sb_read.has_value());
     SuperBlock sb;
-    std::memcpy(&sb, sb_read.value().data(), sizeof(SuperBlock));
+    std::memcpy(&sb, sb_data.data(), sizeof(SuperBlock));
 
     size_t data_region = findDataBlockRegion(disk, sb);
     injectBitFlip(disk, data_region + 100, 0x04);
@@ -51,7 +56,9 @@ TEST_P(PpFSParametrizedNoneTest, ErrorCorrection_None_NoCorrection)
     ASSERT_TRUE(open_res2.has_value());
     file_descriptor_t fd2 = open_res2.value();
 
-    auto read_res = fs->read(fd2, data_size);
+    std::array<uint8_t, 4096> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_res = fs->read(fd2, data_size, read_data);
     // None ECC doesn't detect errors, so read may succeed with corrupted data
     // This is expected behavior
 

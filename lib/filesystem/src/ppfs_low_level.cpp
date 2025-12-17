@@ -1,6 +1,7 @@
 #include "filesystem/ppfs_low_level.hpp"
+#include "common/static_vector.hpp"
 #include "filesystem/mutex_wrapper.hpp"
-
+#include <array>
 #include <cstring>
 
 PpFSLowLevel::PpFSLowLevel(IDisk& disk)
@@ -21,11 +22,11 @@ std::expected<inode_index_t, FsError> PpFSLowLevel::lookup(
         _mutex, [&]() { return _unprotectedLookup(parent_index, name); });
 }
 
-std::expected<std::vector<DirectoryEntry>, FsError> PpFSLowLevel::getDirectoryEntries(
-    inode_index_t inode)
+std::expected<void, FsError> PpFSLowLevel::getDirectoryEntries(
+    inode_index_t inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size)
 {
-    return mutex_wrapper<std::vector<DirectoryEntry>>(
-        _mutex, [&]() { return _unprotectedGetDirectoryEntries(inode); });
+    return mutex_wrapper<void>(
+        _mutex, [&]() { return _unprotectedGetDirectoryEntries(inode, buf, offset, size); });
 }
 
 std::expected<inode_index_t, FsError> PpFSLowLevel::createDirectoryByParent(
@@ -114,14 +115,14 @@ std::expected<inode_index_t, FsError> PpFSLowLevel::_unprotectedCreateDirectoryB
     return new_inode_index;
 }
 
-std::expected<std::vector<DirectoryEntry>, FsError> PpFSLowLevel::_unprotectedGetDirectoryEntries(
-    inode_index_t inode)
+std::expected<void, FsError> PpFSLowLevel::_unprotectedGetDirectoryEntries(
+    inode_index_t inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
     }
 
-    return _directoryManager->getEntries(inode);
+    return _directoryManager->getEntries(inode, static_cast<std::uint32_t>(size), static_cast<std::uint32_t>(offset), buf);
 }
 
 std::expected<file_descriptor_t, FsError> PpFSLowLevel::_unprotectedOpenByInode(

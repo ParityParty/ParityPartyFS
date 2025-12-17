@@ -1,3 +1,5 @@
+#include "common/static_vector.hpp"
+#include "directory_manager/directory.hpp"
 #include "filesystem/ifilesystem.hpp"
 #include "inode_manager/inode.hpp"
 
@@ -19,7 +21,7 @@ public:
      * @param inode_index inode of the object to query
      * @return attributes on success, error otherwise
      */
-    virtual std::expected<FileAttributes, FsError> getAttributes(inode_index_t inode_index) = 0;
+    [[nodiscard]] virtual std::expected<FileAttributes, FsError> getAttributes(inode_index_t inode_index) = 0;
 
     /**
      * Lookup a child entry inside a directory
@@ -28,18 +30,21 @@ public:
      * @param name name of the entry to find
      * @return inode of the found entry on success, error otherwise
      */
-    virtual std::expected<inode_index_t, FsError> lookup(
+    [[nodiscard]] virtual std::expected<inode_index_t, FsError> lookup(
         inode_index_t parent_index, std::string_view name)
         = 0;
 
     /**
      * Read entries of a directory
      *
-     * @param path Absolute path to directory
-     * @return list of filenames and inodes on success, error otherwise
+     * @param inode inode of the directory
+     * @param buf buffer to fill with directory entries, must have sufficient capacity
+     * @param offset entry offset to start reading from
+     * @param size maximum number of entries to read (0 = all remaining entries)
+     * @return void on success, error otherwise
      */
-    virtual std::expected<std::vector<DirectoryEntry>, FsError> getDirectoryEntries(
-        inode_index_t inode)
+    [[nodiscard]] virtual std::expected<void, FsError> getDirectoryEntries(
+        inode_index_t inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size)
         = 0;
 
     /**
@@ -49,7 +54,7 @@ public:
      * @param parent inode of the directory to create file in
      * @return inode of the new directory on success, error otherwise
      */
-    virtual std::expected<inode_index_t, FsError> createDirectoryByParent(
+    [[nodiscard]] virtual std::expected<inode_index_t, FsError> createDirectoryByParent(
         inode_index_t parent, std::string_view name)
         = 0;
 
@@ -64,7 +69,7 @@ public:
      * @return file descriptor to be used with read, write, close operations on success,
      * error otherwise
      */
-    virtual std::expected<file_descriptor_t, FsError> openByInode(
+    [[nodiscard]] virtual std::expected<file_descriptor_t, FsError> openByInode(
         inode_index_t inode, OpenMode mode)
         = 0;
 
@@ -77,7 +82,7 @@ public:
      * @param parent inode of the directory to create file in
      * @return inode of the new file on success, error otherwise
      */
-    virtual std::expected<inode_index_t, FsError> createWithParentInode(
+    [[nodiscard]] virtual std::expected<inode_index_t, FsError> createWithParentInode(
         std::string_view name, inode_index_t parent)
         = 0;
 
@@ -89,7 +94,7 @@ public:
      * @param recursive whether to remove directories recursively
      * @return success value on success, error otherwise
      */
-    virtual std::expected<void, FsError> removeByNameAndParent(
+    [[nodiscard]] virtual std::expected<void, FsError> removeByNameAndParent(
         inode_index_t inode, std::string_view name, bool recursive = false)
         = 0;
 
@@ -103,5 +108,5 @@ public:
      * @param new_size desired file size
      * @return success on success, error otherwise
      */
-    virtual std::expected<void, FsError> truncate(inode_index_t inode, size_t new_size) = 0;
+    [[nodiscard]] virtual std::expected<void, FsError> truncate(inode_index_t inode, size_t new_size) = 0;
 };

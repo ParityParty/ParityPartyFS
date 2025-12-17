@@ -3,9 +3,11 @@
 #include "blockdevice/iblock_device.hpp"
 #include "blockdevice/raw_block_device.hpp"
 #include "blockdevice/rs_block_device.hpp"
+#include "common/static_vector.hpp"
 #include "disk/stack_disk.hpp"
 
 #include <benchmark/benchmark.h>
+#include <array>
 #include <cmath>
 template <class... Args> static void BM_BlockDevice_Read(benchmark::State& state, Args&&... args)
 {
@@ -26,15 +28,20 @@ template <class... Args> static void BM_BlockDevice_Read(benchmark::State& state
     IBlockDevice& device = block_devices.at(std::get<0>(args_tuple));
     state.counters["BytesRead"] = benchmark::Counter(
         0, benchmark::Counter::kIsIterationInvariantRate, benchmark::Counter::OneK::kIs1024);
+    
+    // Allocate buffer for reading
+    size_t max_read_size = device.dataSize();
+    std::array<std::uint8_t, 4096> read_buffer; 
+    static_vector<std::uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    
     for (auto _ : state) {
-        auto ret = device.readBlock({ 0, 0 }, state.range(0));
+        auto ret = device.readBlock({ 0, 0 }, static_cast<size_t>(state.range(0)), read_data);
         if (!ret.has_value()) {
             state.SkipWithError("readBlock failed");
         }
-        auto data = ret.value();
-        benchmark::DoNotOptimize(data);
+        benchmark::DoNotOptimize(read_data);
         benchmark::ClobberMemory();
-        state.counters["BytesRead"] += device.dataSize();
+        state.counters["BytesRead"] += read_data.size();
     }
 }
 BENCHMARK_CAPTURE(BM_BlockDevice_Read, raw_test, std::string("raw"))
@@ -69,17 +76,22 @@ template <class... Args> static void BM_BlockDevice_Write(benchmark::State& stat
     IBlockDevice& device = block_devices.at(std::get<0>(args_tuple));
     state.counters["BytesWritten"] = benchmark::Counter(
         0, benchmark::Counter::kIsIterationInvariantRate, benchmark::Counter::OneK::kIs1024);
-    std::vector<std::uint8_t> data(state.range(0), std::uint8_t { 0x55 });
+    
+    // Allocate buffer for writing
+    size_t write_size = static_cast<size_t>(state.range(0));
+    std::array<std::uint8_t, 4096> write_buffer;
+    std::fill(write_buffer.begin(), write_buffer.begin() + write_size, std::uint8_t { 0x55 });
+    static_vector<std::uint8_t> write_data(write_buffer.data(), write_buffer.size(), write_size);
+    
     for (auto _ : state) {
-        auto ret = device.writeBlock(data, { 1, 0 });
+        auto ret = device.writeBlock(write_data, { 1, 0 });
         if (!ret.has_value()) {
-            state.SkipWithError("readBlock failed");
+            state.SkipWithError("writeBlock failed");
         }
-        auto data = ret.value();
-        benchmark::DoNotOptimize(data);
+        benchmark::DoNotOptimize(write_data);
         benchmark::DoNotOptimize(disk);
         benchmark::ClobberMemory();
-        state.counters["BytesWritten"] += state.range(0);
+        state.counters["BytesWritten"] += ret.value();
     }
 }
 BENCHMARK_CAPTURE(BM_BlockDevice_Write, raw_test, std::string("raw"))

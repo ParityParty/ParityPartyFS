@@ -28,7 +28,10 @@ TEST_P(PpFSParametrizedCrcTest, ErrorDetection_CRC_SingleBitFlip)
 
     // Write data
     size_t data_size = GetParam().block_size;
-    auto write_data = createTestData(data_size, 0xAA);
+    auto write_data_vec = createTestData(data_size, 0xAA);
+    std::array<uint8_t, 4096> write_buf;
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_data_vec.size());
+    std::memcpy(write_data.data(), write_data_vec.data(), write_data_vec.size());
 
     auto write_res = fs->write(fd, write_data);
     ASSERT_TRUE(write_res.has_value());
@@ -37,10 +40,12 @@ TEST_P(PpFSParametrizedCrcTest, ErrorDetection_CRC_SingleBitFlip)
     ASSERT_TRUE(close_res.has_value());
 
     // Corrupt data on disk - CRC detects but doesn't correct
-    auto sb_read = disk.read(0, sizeof(SuperBlock));
+    std::array<uint8_t, 512> sb_buf;
+    static_vector<uint8_t> sb_data(sb_buf.data(), sb_buf.size());
+    auto sb_read = disk.read(0, sizeof(SuperBlock), sb_data);
     ASSERT_TRUE(sb_read.has_value());
     SuperBlock sb;
-    std::memcpy(&sb, sb_read.value().data(), sizeof(SuperBlock));
+    std::memcpy(&sb, sb_data.data(), sizeof(SuperBlock));
 
     size_t data_region = findDataBlockRegion(disk, sb);
 
@@ -52,7 +57,9 @@ TEST_P(PpFSParametrizedCrcTest, ErrorDetection_CRC_SingleBitFlip)
     ASSERT_TRUE(open_res2.has_value());
     file_descriptor_t fd2 = open_res2.value();
 
-    auto read_res = fs->read(fd2, data_size);
+    std::array<uint8_t, 4096> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_res = fs->read(fd2, data_size, read_data);
     ASSERT_FALSE(read_res.has_value())
         << "CRC should detect single bit flip for " << GetParam().test_name;
     ASSERT_EQ(read_res.error(), FsError::BlockDevice_CorrectionError)
@@ -78,7 +85,10 @@ TEST_P(PpFSParametrizedCrcTest, ErrorDetection_CRC_MultipleBitFlips)
 
     // Write data
     size_t data_size = GetParam().block_size;
-    auto write_data = createTestData(data_size, 0x42);
+    auto write_data_vec = createTestData(data_size, 0x42);
+    std::array<uint8_t, 4096> write_buf;
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_data_vec.size());
+    std::memcpy(write_data.data(), write_data_vec.data(), write_data_vec.size());
 
     auto write_res = fs->write(fd, write_data);
     ASSERT_TRUE(write_res.has_value());
@@ -87,10 +97,12 @@ TEST_P(PpFSParametrizedCrcTest, ErrorDetection_CRC_MultipleBitFlips)
     ASSERT_TRUE(close_res.has_value());
 
     // Corrupt multiple bits on disk
-    auto sb_read = disk.read(0, sizeof(SuperBlock));
+    std::array<uint8_t, 512> sb_buf;
+    static_vector<uint8_t> sb_data(sb_buf.data(), sb_buf.size());
+    auto sb_read = disk.read(0, sizeof(SuperBlock), sb_data);
     ASSERT_TRUE(sb_read.has_value());
     SuperBlock sb;
-    std::memcpy(&sb, sb_read.value().data(), sizeof(SuperBlock));
+    std::memcpy(&sb, sb_data.data(), sizeof(SuperBlock));
 
     size_t data_region = findDataBlockRegion(disk, sb);
     injectBitFlip(disk, data_region + GetParam().block_size + 30, 0x02);
@@ -102,7 +114,9 @@ TEST_P(PpFSParametrizedCrcTest, ErrorDetection_CRC_MultipleBitFlips)
     ASSERT_TRUE(open_res2.has_value());
     file_descriptor_t fd2 = open_res2.value();
 
-    auto read_res = fs->read(fd2, data_size);
+    std::array<uint8_t, 4096> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_res = fs->read(fd2, data_size, read_data);
     ASSERT_FALSE(read_res.has_value())
         << "CRC should detect multiple bit flips for " << GetParam().test_name;
     ASSERT_EQ(read_res.error(), FsError::BlockDevice_CorrectionError)

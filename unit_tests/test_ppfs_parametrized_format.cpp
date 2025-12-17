@@ -1,7 +1,9 @@
+#include "common/static_vector.hpp"
 #include "test_ppfs_parametrized_helpers.hpp"
 #include "super_block_manager/super_block.hpp"
-#include <gtest/gtest.h>
+#include <array>
 #include <cstring>
+#include <gtest/gtest.h>
 
 INSTANTIATE_TEST_SUITE_P(
     PpFSFormat,
@@ -33,10 +35,11 @@ TEST_P(PpFSParametrizedTest, Format_ProducesValidSuperblock)
     ASSERT_TRUE(format_res.has_value());
     
     // Verify superblock signature
-    auto read_res = disk.read(0, sizeof(SuperBlock));
+    std::array<uint8_t, 512> read_buf; // SuperBlock should fit
+    static_vector<uint8_t> data(read_buf.data(), read_buf.size());
+    auto read_res = disk.read(0, sizeof(SuperBlock), data);
     ASSERT_TRUE(read_res.has_value());
     
-    const auto& data = read_res.value();
     SuperBlock sb;
     std::memcpy(&sb, data.data(), sizeof(SuperBlock));
     

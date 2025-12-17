@@ -1,7 +1,9 @@
 #include "block_manager/block_manager.hpp"
 #include "blockdevice/hamming_block_device.hpp"
 #include "blockdevice/raw_block_device.hpp"
+#include "common/static_vector.hpp"
 #include "disk/stack_disk.hpp"
+#include <array>
 #include <gtest/gtest.h>
 
 TEST(BlockManager, Compiles)
@@ -26,11 +28,13 @@ TEST(BlockManager, Formats)
     auto free_ret = block_manager.numFree();
     ASSERT_TRUE(free_ret.has_value());
     EXPECT_EQ(free_ret.value(), 7); // one block for bitmap, 7 data blocks
-    auto read_ret = (disk.read(512, 1));
+    std::array<uint8_t, 1> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), 1);
+    auto read_ret = disk.read(512, 1, read_data);
     ASSERT_TRUE(read_ret.has_value());
     // 7 bits free 8th unknown
     EXPECT_TRUE(
-        static_cast<int>(read_ret.value()[0]) == 1 || static_cast<int>(read_ret.value()[0]) == 0);
+        static_cast<int>(read_data[0]) == 1 || static_cast<int>(read_data[0]) == 0);
 }
 
 TEST(BlockManager, FormatsMore)
@@ -46,9 +50,11 @@ TEST(BlockManager, FormatsMore)
     auto free_ret = block_manager.numFree();
     ASSERT_TRUE(free_ret.has_value());
     EXPECT_EQ(free_ret.value(), 8); // one byte for bitmap, 8 data blocks
-    auto read_ret = (disk.read(512, 1));
+    std::array<uint8_t, 1> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), 1);
+    auto read_ret = disk.read(512, 1, read_data);
     ASSERT_TRUE(read_ret.has_value());
-    EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0);
+    EXPECT_EQ(static_cast<int>(read_data[0]), 0);
 }
 
 TEST(BlockManager, FindsFreeEasy)
@@ -94,9 +100,11 @@ TEST(BlockManager, Reserves)
     ASSERT_TRUE(block_manager.format().has_value());
     ASSERT_TRUE(block_manager.reserve(2).has_value());
     ASSERT_TRUE(block_manager.reserve(4).has_value());
-    auto read_ret = disk.read(512, 1);
+    std::array<uint8_t, 1> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), 1);
+    auto read_ret = disk.read(512, 1, read_data);
     ASSERT_TRUE(read_ret.has_value());
-    EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0b10100000);
+    EXPECT_EQ(static_cast<int>(read_data[0]), 0b10100000);
 }
 
 TEST(BlockManager, Frees)
@@ -110,15 +118,17 @@ TEST(BlockManager, Frees)
     ASSERT_TRUE(block_manager.format().has_value());
     ASSERT_TRUE(block_manager.reserve(2).has_value());
     ASSERT_TRUE(block_manager.reserve(4).has_value());
-    auto read_ret = disk.read(512, 1);
+    std::array<uint8_t, 1> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), 1);
+    auto read_ret = disk.read(512, 1, read_data);
     ASSERT_TRUE(read_ret.has_value());
-    EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0b10100000);
+    EXPECT_EQ(static_cast<int>(read_data[0]), 0b10100000);
 
     ASSERT_TRUE(block_manager.free(4).has_value());
 
-    read_ret = disk.read(512, 1);
+    read_ret = disk.read(512, 1, read_data);
     ASSERT_TRUE(read_ret.has_value());
-    EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0b10000000);
+    EXPECT_EQ(static_cast<int>(read_data[0]), 0b10000000);
 }
 
 TEST(BlockManager, Counts)
@@ -133,9 +143,11 @@ TEST(BlockManager, Counts)
     ASSERT_TRUE(block_manager.format().has_value());
     ASSERT_TRUE(block_manager.reserve(2).has_value());
     ASSERT_TRUE(block_manager.reserve(4).has_value());
-    auto read_ret = disk.read(512, 1);
+    std::array<uint8_t, 1> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), 1);
+    auto read_ret = disk.read(512, 1, read_data);
     ASSERT_TRUE(read_ret.has_value());
-    EXPECT_EQ(static_cast<int>(read_ret.value()[0]), 0b10100000);
+    EXPECT_EQ(static_cast<int>(read_data[0]), 0b10100000);
 
     // Make new manager to count
 

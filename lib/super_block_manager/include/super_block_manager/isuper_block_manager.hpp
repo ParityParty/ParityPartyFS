@@ -17,7 +17,7 @@ struct ISuperBlockManager {
      *
      * @return Superblock on success, error otherwise
      */
-    virtual std::expected<SuperBlock, FsError> get() = 0;
+    [[nodiscard]] virtual std::expected<SuperBlock, FsError> get() = 0;
 
     /**
      * Writes a new superblock to disk, creating a zero version.
@@ -26,11 +26,11 @@ struct ISuperBlockManager {
      * @param new_super_block SuperBlock to be written.
      * @return void on success; DiskError on failure.
      */
-    virtual std::expected<void, FsError> put(SuperBlock new_super_block) = 0;
+    [[nodiscard]] virtual std::expected<void, FsError> put(SuperBlock new_super_block) = 0;
 
     /**
      * Returns first and last block index that is not occupied by superblock.
      * Last block is exclusive (the first index occupied by suberblock).
      */
-    virtual std::expected<BlockRange, FsError> getFreeBlocksIndexes() = 0;
+    [[nodiscard]] virtual std::expected<BlockRange, FsError> getFreeBlocksIndexes() = 0;
 };
