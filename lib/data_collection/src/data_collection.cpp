@@ -95,10 +95,15 @@ Logger::Logger(const LogLevel log_level, const std::string& log_folder_path)
     , _log_folder_path(log_folder_path)
 {
     _files["read"] = std::ofstream(_log_folder_path + "/read.csv", std::ios::out);
+    _files["read"] << "step, size, time" << std::endl;
     _files["write"] = std::ofstream(_log_folder_path + "/write.csv");
+    _files["write"] << "step, size, time" << std::endl;
     _files["flip"] = std::ofstream(_log_folder_path + "/flip.csv");
+    _files["flip"] << "step, address" << std::endl;
     _files["correction"] = std::ofstream(_log_folder_path + "/correction.csv");
+    _files["correction"] << "step, ecc_type, block" << std::endl;
     _files["detection"] = std::ofstream(_log_folder_path + "/detection.csv");
+    _files["detection"] << "step, ecc_type, block" << std::endl;
     _files["error"] = std::ofstream(_log_folder_path + "/error");
 }
 Logger::~Logger()

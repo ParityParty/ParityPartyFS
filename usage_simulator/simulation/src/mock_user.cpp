@@ -10,7 +10,9 @@ void SingleDirMockUser::_createFile()
     auto fn = new FileNode(ss.str(), false, 0, std::vector<FileNode*>());
     auto ret = _fs.create(fn->name);
     if (!ret.has_value()) {
-        _logger->logError(toString(ret.error()));
+        if (ret.error() != FsError::InodeManager_NoMoreFreeInodes) {
+            _logger->logError(toString(ret.error()));
+        }
     } else {
         _root->children.push_back(fn);
         _logger->logMsg((std::stringstream()
@@ -37,15 +39,16 @@ void SingleDirMockUser::_writeToFile()
     auto start = std::chrono::high_resolution_clock::now();
     auto write_ret = _fs.write(open_ret.value(), std::vector<uint8_t>(write_size, id));
     if (!write_ret.has_value()) {
-        _logger->logError(toString(write_ret.error()));
-        return;
+        if (write_ret.error() != FsError::BlockManager_NoMoreFreeBlocks) {
+            _logger->logError(toString(write_ret.error()));
+        }
+    } else {
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        file->size += write_size;
+
+        _logger->logEvent(WriteEvent(write_size, duration));
     }
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    file->size += write_size;
-
-    _logger->logEvent(WriteEvent(write_size, duration));
-
     auto close_ret = _fs.close(open_ret.value());
     if (!close_ret.has_value()) {
         _logger->logError(toString(close_ret.error()));
@@ -74,15 +77,15 @@ void SingleDirMockUser::_readFromFile()
     auto read_ret = _fs.read(open_ret.value(), read_size);
     if (!read_ret.has_value()) {
         _logger->logError(toString(read_ret.error()));
-        return;
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    _logger->logEvent(ReadEvent(read_size, duration));
-    for (auto b : read_ret.value()) {
-        if (b != id) {
-            _logger->logError("Data contains an error");
-            break;
+    } else {
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        _logger->logEvent(ReadEvent(read_size, duration));
+        for (auto b : read_ret.value()) {
+            if (b != id) {
+                _logger->logError("Data contains an error");
+                break;
+            }
         }
     }
     auto close_ret = _fs.close(open_ret.value());
