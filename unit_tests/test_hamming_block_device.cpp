@@ -6,7 +6,7 @@
 #include <random>
 
 // Helper: flip a random bit in the StackDisk's memory
-void flipBit(StackDisk& disk, size_t bitIndex)
+void flipBit(StackDisk<>& disk, size_t bitIndex)
 {
     size_t byteIndex = bitIndex / 8;
     size_t bitInByte = bitIndex % 8;
