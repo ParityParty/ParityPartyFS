@@ -19,7 +19,7 @@ std::string ReadEvent::prettyPrint() const
 std::string ReadEvent::toCsv() const
 {
     std::stringstream ss;
-    ss << read_size << ", " << time.count();
+    ss << read_size << "," << time.count();
     return ss.str();
 }
 std::string ReadEvent::fileName() const { return "read"; }
@@ -37,7 +37,7 @@ std::string WriteEvent::prettyPrint() const
 std::string WriteEvent::toCsv() const
 {
     std::stringstream ss;
-    ss << write_size << ", " << time.count();
+    ss << write_size << "," << time.count();
     return ss.str();
 }
 std::string WriteEvent::fileName() const { return "write"; }
@@ -86,7 +86,7 @@ std::string ErrorDetectionEvent::prettyPrint() const
 std::string ErrorDetectionEvent::toCsv() const
 {
     std::stringstream ss;
-    ss << ecc_type << ", " << block_index;
+    ss << ecc_type << "," << block_index;
     return ss.str();
 }
 std::string ErrorDetectionEvent::fileName() const { return "detection"; }
@@ -95,16 +95,17 @@ Logger::Logger(const LogLevel log_level, const std::string& log_folder_path)
     , _log_folder_path(log_folder_path)
 {
     _files["read"] = std::ofstream(_log_folder_path + "/read.csv", std::ios::out);
-    _files["read"] << "step, size, time" << std::endl;
+    _files["read"] << "step,size,time" << std::endl;
     _files["write"] = std::ofstream(_log_folder_path + "/write.csv");
-    _files["write"] << "step, size, time" << std::endl;
+    _files["write"] << "step,size,time" << std::endl;
     _files["flip"] = std::ofstream(_log_folder_path + "/flip.csv");
-    _files["flip"] << "step, address" << std::endl;
+    _files["flip"] << "step,address" << std::endl;
     _files["correction"] = std::ofstream(_log_folder_path + "/correction.csv");
-    _files["correction"] << "step, ecc_type, block" << std::endl;
+    _files["correction"] << "step,ecc_type,block" << std::endl;
     _files["detection"] = std::ofstream(_log_folder_path + "/detection.csv");
-    _files["detection"] << "step, ecc_type, block" << std::endl;
-    _files["error"] = std::ofstream(_log_folder_path + "/error");
+    _files["detection"] << "step,ecc_type,block" << std::endl;
+    _files["error"] = std::ofstream(_log_folder_path + "/error.csv");
+    _files["error"] << "step,message" << std::endl;
 }
 Logger::~Logger()
 {
@@ -116,7 +117,7 @@ Logger::~Logger()
 void Logger::step() { _step++; }
 void Logger::logEvent(const IEvent& event)
 {
-    _files[event.fileName()] << _step << ", " << event.toCsv() << std::endl;
+    _files[event.fileName()] << _step << "," << event.toCsv() << std::endl;
     if (_log_level == LogLevel::None || _log_level == LogLevel::Error) {
         return;
     }
@@ -125,7 +126,7 @@ void Logger::logEvent(const IEvent& event)
 }
 void Logger::logError(std::string_view msg)
 {
-    _files["error"] << _step << ", " << msg << std::endl;
+    _files["error"] << _step << "," << msg << std::endl;
 
     if (_log_level == LogLevel::None) {
         return;
