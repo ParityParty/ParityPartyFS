@@ -1,13 +1,13 @@
 # Simulation Configuration (key=value format)
 
 # Filesystem configuration
-block_size=256
-ecc_type=ReedSolomon
-rs_correctable_bytes=3
+block_size=1024
+ecc_type=Hamming
+rs_correctable_bytes=2
 use_journal=false
 
 # Bit flipper configuration
-bit_flip_probability=0.1
+bit_flip_probability=0.001
 bit_flip_seed=1
 
 # Mock user configuration

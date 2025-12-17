@@ -1,5 +1,5 @@
 #include "data_collection/data_colection.hpp"
-#include "disk/stack_disk.hpp"
+#include "disk/heap_disk.hpp"
 #include "filesystem/ppfs.hpp"
 #include "simulation/bit_flipper.hpp"
 #include "simulation/mock_user.hpp"
@@ -9,10 +9,7 @@
 #include <iostream>
 #include <thread>
 
-class ProgressBar
-
-    int
-    main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
     // Load configuration from file or use defaults
     SimulationConfig sim_config;
@@ -25,8 +22,8 @@ class ProgressBar
         std::cout << "Using default configuration" << std::endl;
     }
 
-    std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::None, argv[2]);
-    StackDisk disk;
+    std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::Medium, argv[2]);
+    HeapDisk disk(1 << 30);
     PpFS fs(disk, logger);
     if (!fs.format(FsConfig {
                        .total_size = disk.size(),
