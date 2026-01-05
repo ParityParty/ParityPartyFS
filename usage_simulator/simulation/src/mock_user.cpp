@@ -34,20 +34,23 @@ void SingleDirMockUser::_writeToFile()
     auto open_ret = _fs.open(file->name, OpenMode::Append);
     if (!open_ret.has_value()) {
         _logger->logError(toString(open_ret.error()));
+        _logger->logEvent(ReadEvent(
+            0, std::chrono::duration<long, std::micro>::zero(), IoOperationResult::ExplicitError));
         return;
     }
     auto start = std::chrono::high_resolution_clock::now();
     auto write_ret = _fs.write(open_ret.value(), std::vector<uint8_t>(write_size, id));
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     if (!write_ret.has_value()) {
         if (write_ret.error() != FsError::BlockManager_NoMoreFreeBlocks) {
             _logger->logError(toString(write_ret.error()));
+            _logger->logEvent(WriteEvent(write_size, duration, IoOperationResult::ExplicitError));
         }
     } else {
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         file->size += write_size;
 
-        _logger->logEvent(WriteEvent(write_size, duration));
+        _logger->logEvent(WriteEvent(write_size, duration, IoOperationResult::Success));
     }
     auto close_ret = _fs.close(open_ret.value());
     if (!close_ret.has_value()) {
@@ -71,22 +74,28 @@ void SingleDirMockUser::_readFromFile()
     auto open_ret = _fs.open(file->name, OpenMode::Normal);
     if (!open_ret.has_value()) {
         _logger->logError(toString(open_ret.error()));
+        _logger->logEvent(ReadEvent(
+            0, std::chrono::duration<long, std::micro>::zero(), IoOperationResult::ExplicitError));
         return;
     }
     auto start = std::chrono::high_resolution_clock::now();
     auto read_ret = _fs.read(open_ret.value(), read_size);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     if (!read_ret.has_value()) {
         _logger->logError(toString(read_ret.error()));
+        _logger->logEvent(ReadEvent(read_size, duration, IoOperationResult::ExplicitError));
     } else {
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-        _logger->logEvent(ReadEvent(read_size, duration));
+        bool has_error = false;
         for (auto b : read_ret.value()) {
             if (b != id) {
                 _logger->logError("Data contains an error");
+                has_error = true;
                 break;
             }
         }
+        _logger->logEvent(ReadEvent(read_size, duration,
+            has_error ? IoOperationResult::FalseSuccess : IoOperationResult::Success));
     }
     auto close_ret = _fs.close(open_ret.value());
     if (!close_ret.has_value()) {

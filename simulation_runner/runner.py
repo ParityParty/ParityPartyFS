@@ -5,9 +5,27 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Iterable
+from joblib import Parallel, delayed
 
 import matplotlib.pyplot as plt
 import pandas as pd
+
+SIMULATION_STEPS = 20000
+
+COMMON_CONFIG = {
+    "use_journal": "false",
+    "bit_flip_probability": "0.05",
+    "bit_flip_seed": "1",
+    "num_users": "10",
+    "max_write_size": "1000000",
+    "max_read_size": "1000000",
+    "avg_steps_between_ops": "90",
+    "create_weight": "3",
+    "write_weight": "10",
+    "read_weight": "9",
+    "delete_weight": "2",
+    "max_iterations": str(SIMULATION_STEPS),
+}
 
 CONFIGS = [
     {
@@ -15,109 +33,37 @@ CONFIGS = [
         "block_size": "1024",
         "ecc_type": "Crc",
         "rs_correctable_bytes": "2",
-        "use_journal": "false",
-        "bit_flip_probability": "0.02",
-        "bit_flip_seed": "1",
-        "num_users": "10",
-        "max_write_size": "1000000",
-        "max_read_size": "1000000",
-        "avg_steps_between_ops": "90",
-        "create_weight": "3",
-        "write_weight": "10",
-        "read_weight": "9",
-        "delete_weight": "2",
-        "max_iterations": "10000",
-    },
+    } | COMMON_CONFIG,
     {
         "name": "None1024",
         "block_size": "1024",
         "ecc_type": "None",
         "rs_correctable_bytes": "2",
-        "use_journal": "false",
-        "bit_flip_probability": "0.02",
-        "bit_flip_seed": "1",
-        "num_users": "10",
-        "max_write_size": "1000000",
-        "max_read_size": "1000000",
-        "avg_steps_between_ops": "90",
-        "create_weight": "3",
-        "write_weight": "10",
-        "read_weight": "9",
-        "delete_weight": "2",
-        "max_iterations": "10000",
-    },
+    } | COMMON_CONFIG,
     {
         "name": "Hamming1024",
         "block_size": "1024",
         "ecc_type": "Hamming",
         "rs_correctable_bytes": "2",
-        "use_journal": "false",
-        "bit_flip_probability": "0.02",
-        "bit_flip_seed": "1",
-        "num_users": "10",
-        "max_write_size": "1000000",
-        "max_read_size": "1000000",
-        "avg_steps_between_ops": "90",
-        "create_weight": "3",
-        "write_weight": "10",
-        "read_weight": "9",
-        "delete_weight": "2",
-        "max_iterations": "10000",
-    },
+    } | COMMON_CONFIG,
     {
         "name": "ReedSolomon256_2correctable",
         "block_size": "256",
         "ecc_type": "ReedSolomon",
         "rs_correctable_bytes": "2",
-        "use_journal": "false",
-        "bit_flip_probability": "0.02",
-        "bit_flip_seed": "2",
-        "num_users": "10",
-        "max_write_size": "1000000",
-        "max_read_size": "1000000",
-        "avg_steps_between_ops": "90",
-        "create_weight": "3",
-        "write_weight": "10",
-        "read_weight": "9",
-        "delete_weight": "2",
-        "max_iterations": "10000",
-    },
+    } | COMMON_CONFIG,
     {
         "name": "ReedSolomon256_1correctable",
         "block_size": "256",
         "ecc_type": "ReedSolomon",
         "rs_correctable_bytes": "1",
-        "use_journal": "false",
-        "bit_flip_probability": "0.02",
-        "bit_flip_seed": "2",
-        "num_users": "10",
-        "max_write_size": "1000000",
-        "max_read_size": "1000000",
-        "avg_steps_between_ops": "90",
-        "create_weight": "3",
-        "write_weight": "10",
-        "read_weight": "9",
-        "delete_weight": "2",
-        "max_iterations": "10000",
-    },
+    } | COMMON_CONFIG,
     {
         "name": "ReedSolomon256_3correctable",
         "block_size": "256",
         "ecc_type": "ReedSolomon",
         "rs_correctable_bytes": "3",
-        "use_journal": "false",
-        "bit_flip_probability": "0.02",
-        "bit_flip_seed": "2",
-        "num_users": "10",
-        "max_write_size": "1000000",
-        "max_read_size": "1000000",
-        "avg_steps_between_ops": "90",
-        "create_weight": "3",
-        "write_weight": "10",
-        "read_weight": "9",
-        "delete_weight": "2",
-        "max_iterations": "10000",
-    }
+    } | COMMON_CONFIG
 ]
 
 
@@ -182,72 +128,43 @@ def load_logs(logs_dir: Path) -> dict[str, pd.DataFrame]:
 def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
                            detection_df: pd.DataFrame, correction_df: pd.DataFrame,
                            config_name: str, out: Path) -> None:
-    """Plot successful reads, unsuccessful reads, and corrections over time.
-    
-    All reads: read.csv + detection.csv
-    Unsuccessful reads: detection.csv + errors with "Data contains an error"
-    Successful reads: all reads - unsuccessful reads
-    """
-    if read_df.empty and detection_df.empty:
-        print("  Warning: No read data available")
-        return
+    # steps with read operation
+    read_steps = read_df['step']
+    # result of corresponding read operation
+    results = read_df['result']
 
-    # Find reads with errors
-    read_steps_with_errors = set()
-    if not error_df.empty:
-        errors = error_df[
-            error_df["message"].str.contains("Data contains an error", na=False)]
-        read_steps_with_errors = set(errors["step"].unique())
+    steps = range(SIMULATION_STEPS + 1)
 
-    # All reads: read.csv + detection.csv
-    all_read_steps = set()
-    if not read_df.empty:
-        all_read_steps.update(read_df["step"].unique())
-    if not detection_df.empty:
-        all_read_steps.update(detection_df["step"].unique())
+    # number of operations indexed by step number
+    successes = pd.Series([0 for _ in steps])
+    explicit_errors = pd.Series([0 for _ in steps])
+    false_successes = pd.Series([0 for _ in steps])
+    corrections = pd.Series([0 for _ in steps])
 
-    # Unsuccessful reads: detection.csv + errors with "Data contains an error"
-    unsuccessful_steps = set()
-    if not detection_df.empty:
-        unsuccessful_steps.update(detection_df["step"].unique())
-    unsuccessful_steps.update(read_steps_with_errors)
+    for i in range(len(read_steps)):
+        if results[i] == 'success':
+            successes[read_steps[i]] += 1
+        elif results[i] == 'explicit_error':
+            explicit_errors[read_steps[i]] += 1
+        elif results[i] == 'false_success':
+            false_successes[read_steps[i]] += 1
 
-    # Successful reads: all reads - unsuccessful reads
-    successful_steps = all_read_steps - unsuccessful_steps
-
-    # Create sorted dataframes
-    if successful_steps:
-        successful_sorted = pd.DataFrame({"step": sorted(successful_steps)})
-        successful_sorted["cumulative_success"] = range(1, len(successful_sorted) + 1)
-    else:
-        successful_sorted = pd.DataFrame(columns=["step", "cumulative_success"])
-
-    if unsuccessful_steps:
-        unsuccessful_sorted = pd.DataFrame({"step": sorted(unsuccessful_steps)})
-        unsuccessful_sorted["cumulative_unsuccessful"] = range(1, len(unsuccessful_sorted) + 1)
-    else:
-        unsuccessful_sorted = pd.DataFrame(columns=["step", "cumulative_unsuccessful"])
-
-    # Calculate cumulative corrections
-    if not correction_df.empty:
-        correction_sorted = correction_df.sort_values("step").reset_index(drop=True)
-        correction_sorted["cumulative_corrections"] = range(1, len(correction_sorted) + 1)
-    else:
-        correction_sorted = pd.DataFrame(columns=["step", "cumulative_corrections"])
+    for correction_step in correction_df['step']:
+        corrections[correction_step] += 1
 
     fig, ax = plt.subplots(figsize=(10, 5))
 
-    if not successful_sorted.empty:
-        ax.plot(successful_sorted["step"], successful_sorted["cumulative_success"],
-                linewidth=2, color="green", alpha=0.8, label="Successful Reads")
+    ax.plot(steps, successes.cumsum(),
+            linewidth=2, color="green", alpha=0.8, label="Successful Reads")
 
-    if not unsuccessful_sorted.empty:
-        ax.plot(unsuccessful_sorted["step"], unsuccessful_sorted["cumulative_unsuccessful"],
-                linewidth=2, color="red", alpha=0.8, label="Unsuccessful Reads")
+    ax.plot(steps, explicit_errors.cumsum(),
+            linewidth=2, color="orange", alpha=0.8, label="Unsuccessful Reads")
 
-    if not correction_sorted.empty:
-        ax.plot(correction_sorted["step"], correction_sorted["cumulative_corrections"],
-                linewidth=2, color="blue", alpha=0.8, label="Corrections")
+    ax.plot(steps, false_successes.cumsum(),
+            linewidth=2, color="red", alpha=0.8, label="False successes")
+
+    ax.plot(steps, corrections.cumsum(),
+            linewidth=2, color="lightblue", alpha=0.8, label="Corrections")
 
     ax.set_xlabel("Simulation Step")
     ax.set_ylabel("Count")
@@ -256,13 +173,13 @@ def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
     ax.legend()
 
     # Add statistics annotation
-    total_reads = len(all_read_steps)
-    total_successful = len(successful_steps)
-    total_unsuccessful = len(unsuccessful_steps)
-    total_corrections = len(correction_sorted) if not correction_sorted.empty else 0
+    total_reads = len(read_steps)
+    total_successful = successes.sum()
+    total_unsuccessful = explicit_errors.sum() + false_successes.sum()
     success_rate = 100 * total_successful / total_reads if total_reads > 0 else 0
+    total_corrections = corrections.sum()
 
-    stats_text = f"Total Reads: {total_reads:,}\nSuccessful: {total_successful:,}\nUnsuccessful: {total_unsuccessful:,}\nCorrections: {total_corrections:,}\nSuccess Rate: {success_rate:.2f}%"
+    stats_text = f"Total Reads: {total_reads:,}\nSuccessful: {total_successful:,}\nUnsuccessful: {total_unsuccessful:,}\nTotal corrections: {total_corrections:,}\nSuccess Rate: {success_rate:.2f}%"
     ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
             ha="left", va="top",
             bbox=dict(boxstyle="round", facecolor="lightblue", alpha=0.8))
@@ -303,6 +220,13 @@ def run_simulation(config: dict[str, str], binary: Path, plots_dir: Path) -> Non
     print(f"  Cleaned up temporary logs")
 
 
+def run_single_config(config, binary, plots_dir):
+    try:
+        run_simulation(config, binary, plots_dir)
+    except Exception as e:
+        print(f"Error running {config['name']}: {e}", file=sys.stderr)
+
+
 def main() -> int:
     """Main entry point: find binary, run configs, generate plots."""
     print("ParityPartyFS Simulation Runner")
@@ -318,12 +242,7 @@ def main() -> int:
     plots_dir.mkdir(exist_ok=True)
     print(f"Plots will be saved to: {plots_dir.absolute()}\n")
 
-    for config in CONFIGS:
-        try:
-            run_simulation(config, binary, plots_dir)
-        except Exception as e:
-            print(f"Error running {config['name']}: {e}", file=sys.stderr)
-            continue
+    Parallel(n_jobs=-1)(delayed(run_single_config)(config, binary, plots_dir) for config in CONFIGS)
 
     print(f"\n{'=' * 60}")
     print(f"All done! Plots saved to {plots_dir.absolute()}")

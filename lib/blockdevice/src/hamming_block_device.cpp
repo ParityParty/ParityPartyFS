@@ -55,11 +55,6 @@ std::expected<std::vector<std::uint8_t>, FsError> HammingBlockDevice::_readAndFi
         }
     } else {
         if (error_position != 0) {
-            // Log error detection (uncorrectable)
-            if (_logger) {
-                ErrorDetectionEvent event("Hamming", block_index);
-                _logger->logEvent(event);
-            }
             return std::unexpected(FsError::BlockDevice_CorrectionError);
         }
     }
@@ -156,7 +151,7 @@ std::expected<void, FsError> HammingBlockDevice::formatBlock(unsigned int block_
 {
     std::vector<std::uint8_t> zero_data(_block_size, std::uint8_t(0));
     auto write_result = _disk.write(block_index * _block_size, zero_data);
-    return write_result.has_value() ? std::expected<void, FsError> {}
+    return write_result.has_value() ? std::expected<void, FsError> { }
                                     : std::unexpected(write_result.error());
 }
 
@@ -177,7 +172,7 @@ HammingDataBitsIterator::HammingDataBitsIterator(int block_size, int data_size)
 std::optional<unsigned int> HammingDataBitsIterator::next()
 {
     if (_data_bits_returned >= _data_size * 8) {
-        return {}; // No more data bits
+        return { }; // No more data bits
     }
     while ((_current_index & (_current_index - 1)) == 0) {
         _current_index++;
@@ -198,7 +193,7 @@ HammingUsedBitsIterator::HammingUsedBitsIterator(int block_size, int data_size)
 std::optional<unsigned int> HammingUsedBitsIterator::next()
 {
     if (_data_bits_returned >= _data_size * 8 && _next_parity_bit >= _block_size * 8) {
-        return {}; // No more data bytes
+        return { }; // No more data bytes
     }
 
     if (_data_bits_returned >= _data_size * 8) {

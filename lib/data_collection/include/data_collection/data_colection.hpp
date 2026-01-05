@@ -8,6 +8,14 @@
 #include <map>
 #include <string>
 
+enum class IoOperationResult {
+    Success,
+    // Read operation wasn't successful and method call returned an error
+    ExplicitError,
+    // Read operation wasn't successful but no error has been reported
+    FalseSuccess,
+};
+
 class IEvent {
 public:
     virtual ~IEvent() = default;
@@ -16,26 +24,32 @@ public:
     virtual std::string fileName() const = 0;
 };
 
-struct ReadEvent : public IEvent {
-    ReadEvent(size_t read_size, std::chrono::duration<long, std::micro> time_ms);
+struct ReadEvent : IEvent {
     size_t read_size;
     std::chrono::duration<long, std::micro> time;
+    IoOperationResult result;
 
+    ReadEvent(
+        size_t read_size, std::chrono::duration<long, std::micro> time, IoOperationResult result);
     std::string prettyPrint() const override;
     std::string toCsv() const override;
     std::string fileName() const override;
 };
 
-struct WriteEvent : public IEvent {
-    WriteEvent(size_t write_size, std::chrono::duration<long, std::micro> time_ms);
+struct WriteEvent : IEvent {
     size_t write_size;
     std::chrono::duration<long, std::micro> time;
+    IoOperationResult result;
+
+    WriteEvent(size_t write_size, std::chrono::duration<long, std::micro> time_ms,
+        IoOperationResult result);
+
     std::string prettyPrint() const override;
     std::string toCsv() const override;
     std::string fileName() const override;
 };
 
-struct BitFlipEvent : public IEvent {
+struct BitFlipEvent : IEvent {
     size_t byte_index;
     BitFlipEvent(size_t byte_index);
     std::string prettyPrint() const override;
@@ -43,17 +57,8 @@ struct BitFlipEvent : public IEvent {
     std::string fileName() const override;
 };
 
-struct ErrorCorrectionEvent : public IEvent {
+struct ErrorCorrectionEvent : IEvent {
     ErrorCorrectionEvent(std::string ecc_type, block_index_t block_index);
-    std::string ecc_type;
-    block_index_t block_index;
-    std::string prettyPrint() const override;
-    std::string toCsv() const override;
-    std::string fileName() const override;
-};
-
-struct ErrorDetectionEvent : public IEvent {
-    ErrorDetectionEvent(std::string ecc_type, block_index_t block_index);
     std::string ecc_type;
     block_index_t block_index;
     std::string prettyPrint() const override;
