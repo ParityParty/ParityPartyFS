@@ -2,7 +2,6 @@
 #include "blockdevice/iblock_device.hpp"
 #include <array>
 #include <cstring>
-#include <vector>
 
 // number of entries we read in one batch to find given entry
 #define ENTRY_BATCH_SIZE 256

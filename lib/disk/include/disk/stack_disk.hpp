@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <cstring>
 #include <expected>
-#include <vector>
 
 static constexpr size_t DEFAULT_STACK_DISK_POWER = 22;
 

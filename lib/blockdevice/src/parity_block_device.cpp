@@ -36,12 +36,12 @@ std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
     std::array<uint8_t, MAX_BLOCK_SIZE> raw_block_buffer;
     static_vector<uint8_t> raw_block(raw_block_buffer.data(), MAX_BLOCK_SIZE);
     raw_block.resize(_raw_block_size);
-    auto read_res = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size, raw_block);
+    auto read_res
+        = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size, raw_block);
     if (!read_res.has_value())
         return std::unexpected(read_res.error());
 
-    std::vector<std::uint8_t> raw_vec(raw_block.begin(), raw_block.end());
-    bool parity = _checkParity(raw_vec);
+    bool parity = _checkParity(raw_block);
     if (!parity) {
         if (_logger) {
             _logger->logEvent(ErrorDetectionEvent("Parity", data_location.block_index));
@@ -51,8 +51,7 @@ std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
 
     std::copy_n(data.begin(), to_write, raw_block.begin() + data_location.offset);
 
-    std::vector<std::uint8_t> updated_vec(raw_block.begin(), raw_block.end());
-    parity = _checkParity(updated_vec);
+    parity = _checkParity(raw_block);
 
     if (!parity)
         raw_block[_raw_block_size - 1] ^= static_cast<std::uint8_t>(1);
@@ -72,12 +71,12 @@ std::expected<void, FsError> ParityBlockDevice::readBlock(
     std::array<uint8_t, MAX_BLOCK_SIZE> raw_block_buffer;
     static_vector<uint8_t> raw_block(raw_block_buffer.data(), MAX_BLOCK_SIZE);
     raw_block.resize(_raw_block_size);
-    auto read_res = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size, raw_block);
+    auto read_res
+        = _disk.read(data_location.block_index * _raw_block_size, _raw_block_size, raw_block);
     if (!read_res.has_value())
         return std::unexpected(read_res.error());
 
-    std::vector<std::uint8_t> raw_vec(raw_block.begin(), raw_block.end());
-    bool parity = _checkParity(raw_vec);
+    bool parity = _checkParity(raw_block);
     if (!parity) {
         if (_logger) {
             _logger->logEvent(ErrorDetectionEvent("Parity", data_location.block_index));
@@ -90,7 +89,7 @@ std::expected<void, FsError> ParityBlockDevice::readBlock(
     return {};
 }
 
-bool ParityBlockDevice::_checkParity(std::vector<std::uint8_t> data)
+bool ParityBlockDevice::_checkParity(const static_vector<std::uint8_t>& data)
 {
     size_t ones = 0;
     for (auto b : data) {

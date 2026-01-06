@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
-#include <vector>
 
 struct IDisk {
     virtual ~IDisk() = default;

@@ -3,7 +3,6 @@
 #define MAX_BLOCK_SIZE 4096
 
 #include <expected>
-#include <vector>
 
 #include "common/static_vector.hpp"
 #include "disk/idisk.hpp"

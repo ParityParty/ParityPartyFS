@@ -66,11 +66,12 @@ private:
     std::shared_ptr<Logger> _logger; /**< Optional logger for error corrections. */
 
     /** Encodes data into a full RS block with parity bytes. */
-    void _encodeBlock(const static_vector<std::uint8_t>& raw_block, const static_vector<std::uint8_t>& data);
+    void _encodeBlock(
+        const static_vector<std::uint8_t>& raw_block, static_vector<std::uint8_t>& data);
 
     /** Fixes a block using Reed-Solomon decoding. After fixing, data is returned. */
-    void _fixBlockAndExtract(
-        static_vector<std::uint8_t> raw_block, const static_vector<std::uint8_t>& data, block_index_t block_index);
+    void _fixBlockAndExtract(static_vector<std::uint8_t> raw_block,
+        const static_vector<std::uint8_t>& data, block_index_t block_index);
 
     /** Computes the RS generator polynomial. */
     PolynomialGF256 _calculateGenerator();
@@ -80,7 +81,7 @@ private:
 
     /** Computes error values using Forney’s algorithm. */
     void _forney(const PolynomialGF256& omega, PolynomialGF256& sigma,
-        const std::vector<GF256>& error_locations, static_vector<GF256>& esrror_values);
+        const static_vector<GF256>& error_locations, static_vector<GF256>& error_values);
 
     /** Computes the error evaluator polynomial omega(x). */
     PolynomialGF256 _calculateOmega(const static_vector<GF256>& syndromes, PolynomialGF256& sigma);
@@ -89,5 +90,6 @@ private:
     PolynomialGF256 _berlekampMassey(const static_vector<GF256>& syndromes);
 
     /** Finds error locations (inverse of roots of sigma(x)). */
-    void _errorLocations(PolynomialGF256 error_location_polynomial, static_vector<GF256>& error_locations);
+    void _errorLocations(
+        PolynomialGF256 error_location_polynomial, static_vector<GF256>& error_locations);
 };

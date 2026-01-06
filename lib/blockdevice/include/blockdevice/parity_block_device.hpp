@@ -51,5 +51,5 @@ private:
     std::shared_ptr<Logger> _logger; /**< Optional logger for error detection. */
 
     /** Calculates overall parity of the block (used to detect bit flips). */
-    bool _checkParity(std::vector<std::uint8_t> data);
+    bool _checkParity(const static_vector<std::uint8_t>& data);
 };
