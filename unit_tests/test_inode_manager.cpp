@@ -1,6 +1,8 @@
 #include "blockdevice/raw_block_device.hpp"
+#include "common/static_vector.hpp"
 #include "disk/stack_disk.hpp"
 #include "inode_manager/inode_manager.hpp"
+#include <array>
 #include <gtest/gtest.h>
 
 TEST(InodeManager, Compiles)
@@ -22,7 +24,9 @@ TEST(InodeManager, FormatsInodeTable)
     };
     InodeManager inode_manager(device, superblock);
 
-    auto set_disk_0s_res = disk.write(0, std::vector<std::uint8_t>(1, 0x00));
+    std::array<uint8_t, 1> zero_buffer = { 0x00 };
+    static_vector<uint8_t> zero_data(zero_buffer.data(), 1, 1);
+    auto set_disk_0s_res = disk.write(0, zero_data);
     ASSERT_TRUE(set_disk_0s_res.has_value())
         << "Failed to initialize disk: " << toString(set_disk_0s_res.error());
 
@@ -30,12 +34,14 @@ TEST(InodeManager, FormatsInodeTable)
     ASSERT_TRUE(format_res.has_value())
         << "Failed to format inode table: " << toString(format_res.error());
 
-    auto bitmap_data_res = disk.read(0, 1);
+    std::array<uint8_t, 1> read_buffer;
+    static_vector<uint8_t> bitmap_data(read_buffer.data(), 1);
+    auto bitmap_data_res = disk.read(0, 1, bitmap_data);
     ASSERT_TRUE(bitmap_data_res.has_value())
         << "Failed to read bitmap from disk: " << toString(bitmap_data_res.error());
 
     // After formatting, all inodes but one (root) should be free
-    ASSERT_EQ(bitmap_data_res.value()[0], 0x7F);
+    ASSERT_EQ(bitmap_data[0], 0x7F);
 }
 
 TEST(InodeManager, CreatesAndGetsInode)
@@ -193,7 +199,6 @@ TEST(InodeManager, WorksForMultipleInodes)
 
         ASSERT_EQ(read_inode_res.value().file_size, inode.file_size);
     }
-
     auto free_count_res = inode_manager.numFree();
     ASSERT_TRUE(free_count_res.has_value())
         << "Failed to count free inodes: " << toString(free_count_res.error());

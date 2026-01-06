@@ -15,8 +15,8 @@ public:
     [[nodiscard]] virtual std::expected<inode_index_t, FsError> lookup(
         inode_index_t parent_index, std::string_view name) override;
 
-    [[nodiscard]] virtual std::expected<std::vector<DirectoryEntry>, FsError> getDirectoryEntries(
-        inode_index_t inode) override;
+    [[nodiscard]] virtual std::expected<void, FsError> getDirectoryEntries(
+        inode_index_t inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size) override;
 
     [[nodiscard]] virtual std::expected<inode_index_t, FsError> createDirectoryByParent(
         inode_index_t parent, std::string_view name) override;
@@ -40,8 +40,8 @@ private:
     [[nodiscard]] std::expected<inode_index_t, FsError> _unprotectedLookup(
         inode_index_t parent_index, std::string_view name);
 
-    [[nodiscard]] std::expected<std::vector<DirectoryEntry>, FsError>
-    _unprotectedGetDirectoryEntries(inode_index_t inode);
+    [[nodiscard]] std::expected<void, FsError>
+    _unprotectedGetDirectoryEntries(inode_index_t inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size);
 
     [[nodiscard]] std::expected<inode_index_t, FsError> _unprotectedCreateDirectoryByParent(
         inode_index_t parent, std::string_view name);

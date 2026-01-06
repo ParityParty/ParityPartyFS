@@ -1,10 +1,10 @@
 #pragma once
 
+#include "common/static_vector.hpp"
 #include "directory_manager/directory.hpp"
 #include "disk/idisk.hpp"
 #include "inode_manager/inode.hpp"
 #include <expected>
-#include <vector>
 
 /**
  * Interface of directory operations
@@ -19,19 +19,23 @@ struct IDirectoryManager {
      * @param inode inode of a directory
      * @param elements elements to retrieve (0 = all)
      * @param offset element offset to start from
-     * @return list of directory entries on success, error otherwise
+     * @param buf buffer to fill with directory entries, must have sufficient capacity
+     * @return void on success, error otherwise
      */
-    virtual std::expected<std::vector<DirectoryEntry>, FsError> getEntries(
-        inode_index_t inode, std::uint32_t elements = 0, std::uint32_t offset = 0) = 0;
+    [[nodiscard]] virtual std::expected<void, FsError> getEntries(inode_index_t inode,
+        std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& buf)
+        = 0;
 
     /**
-     * Add entry to existing directory. Checks if the name is unique in the parent directory.
+     * Add entry to existing directory. Does not check if the name is unique in the parent
+     * directory.
      *
      * @param directory inode of directory to add entry to
      * @param entry new entry
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> addEntry(inode_index_t directory, DirectoryEntry entry)
+    [[nodiscard]] virtual std::expected<void, FsError> addEntry(
+        inode_index_t directory, DirectoryEntry entry)
         = 0;
 
     /**
@@ -42,15 +46,27 @@ struct IDirectoryManager {
      * @param entry inode of entry to be removed
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> removeEntry(inode_index_t directory, inode_index_t entry)
+    [[nodiscard]] virtual std::expected<void, FsError> removeEntry(
+        inode_index_t directory, inode_index_t entry)
         = 0;
 
     /**
      * Check if name is unique in the given directory.
      * @param directory inode of directory to check
      * @param name name to check
-     * @return directory inode on success, error otherwise
+     * @return void on success, error otherwise (DirectoryManager_NameTaken if name is not unique)
      */
-    virtual std::expected<Inode, FsError> checkNameUnique(inode_index_t directory, const char* name)
+    [[nodiscard]] virtual std::expected<void, FsError> checkNameUnique(
+        inode_index_t directory, const char* name)
         = 0;
+
+    /**
+     * Get inode of a directory entry by name.
+     *
+     * @param directory inode of directory to get entry from
+     * @param name of the entry to get
+     * @return inode of the entry on success, error otherwise (PpFS_NotFound if entry is not found)
+     */
+    [[nodiscard]] virtual std::expected<inode_index_t, FsError> getInodeByName(
+        inode_index_t directory, const char* name)  = 0;
 };

@@ -16,7 +16,7 @@ struct IInodeManager {
      * @param inode data of the new inode
      * @return inode index on success, error otherwise
      */
-    virtual std::expected<inode_index_t, FsError> create(Inode& inode) = 0;
+    [[nodiscard]] virtual std::expected<inode_index_t, FsError> create(Inode& inode) = 0;
 
     /**
      * Remove inode.
@@ -27,7 +27,7 @@ struct IInodeManager {
      * @param inode index of inode to be deleted
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> remove(inode_index_t inode) = 0;
+    [[nodiscard]] virtual std::expected<void, FsError> remove(inode_index_t inode) = 0;
 
     /**
      * Read inode data from disc.
@@ -35,14 +35,14 @@ struct IInodeManager {
      * @param inode index of inode to read
      * @return inode data on success, error otherwise
      */
-    virtual std::expected<Inode, FsError> get(inode_index_t inode) = 0;
+    [[nodiscard]] virtual std::expected<Inode, FsError> get(inode_index_t inode) = 0;
 
     /**
      * Calculate number of free inodes
      *
      * @return number of free inodes on success, error otherwise
      */
-    virtual std::expected<unsigned int, FsError> numFree() = 0;
+    [[nodiscard]] virtual std::expected<unsigned int, FsError> numFree() = 0;
 
     /**
      * Update inode data on disc.
@@ -50,12 +50,12 @@ struct IInodeManager {
      * @param inode index of inode to update
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> update(inode_index_t inode_index, const Inode& inode) = 0;
+    [[nodiscard]] virtual std::expected<void, FsError> update(inode_index_t inode_index, const Inode& inode) = 0;
 
     /**
      * Format inode table and bitmap. Creates root directory inode at index 0.
      *
      * @return void on success, error otherwise
      */
-    virtual std::expected<void, FsError> format() = 0;
+    [[nodiscard]] virtual std::expected<void, FsError> format() = 0;
 };

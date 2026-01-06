@@ -1,10 +1,12 @@
 #pragma once
 
 #include "blockdevice/ecc_type.hpp"
+#include "common/static_vector.hpp"
 #include "disk/stack_disk.hpp"
 #include "filesystem/ppfs.hpp"
 #include "filesystem/types.hpp"
 #include "super_block_manager/super_block.hpp"
+#include <array>
 #include <cctype>
 #include <gtest/gtest.h>
 #include <memory>
@@ -174,10 +176,11 @@ inline std::vector<TestConfig> generateTestConfigs()
 // Error injection helper functions
 inline void injectBitFlip(StackDisk<>& disk, size_t byte_offset, uint8_t bit_mask)
 {
-    auto read_res = disk.read(byte_offset, 1);
+    std::array<uint8_t, 1> read_buf;
+    static_vector<uint8_t> bytes(read_buf.data(), read_buf.size());
+    auto read_res = disk.read(byte_offset, 1, bytes);
     ASSERT_TRUE(read_res.has_value());
 
-    auto bytes = read_res.value();
     bytes[0] ^= bit_mask;
 
     auto write_res = disk.write(byte_offset, bytes);
@@ -186,10 +189,11 @@ inline void injectBitFlip(StackDisk<>& disk, size_t byte_offset, uint8_t bit_mas
 
 inline void injectByteError(StackDisk<>& disk, size_t byte_offset, uint8_t corrupt_value)
 {
-    auto read_res = disk.read(byte_offset, 1);
+    std::array<uint8_t, 1> read_buf;
+    static_vector<uint8_t> bytes(read_buf.data(), read_buf.size());
+    auto read_res = disk.read(byte_offset, 1, bytes);
     ASSERT_TRUE(read_res.has_value());
 
-    auto bytes = read_res.value();
     bytes[0] = corrupt_value;
 
     auto write_res = disk.write(byte_offset, bytes);

@@ -1,5 +1,7 @@
+#include "common/static_vector.hpp"
 #include "simulation/mock_user.hpp"
 
+#include <array>
 #include <chrono>
 #include <vector>
 
@@ -35,7 +37,10 @@ void SingleDirMockUser::_writeToFile()
         return;
     }
     auto start = std::chrono::high_resolution_clock::now();
-    auto write_ret = _fs.write(open_ret.value(), std::vector<uint8_t>(write_size, id));
+    std::array<uint8_t, 65536> write_buf;
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_size);
+    std::fill(write_data.data(), write_data.data() + write_size, id);
+    auto write_ret = _fs.write(open_ret.value(), write_data);
     if (!write_ret.has_value()) {
         _logger->logError(toString(write_ret.error()));
         return;
@@ -71,15 +76,17 @@ void SingleDirMockUser::_readFromFile()
         return;
     }
     auto start = std::chrono::high_resolution_clock::now();
-    auto read_ret = _fs.read(open_ret.value(), read_size);
+    std::array<uint8_t, 65536> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_ret = _fs.read(open_ret.value(), read_size, read_data);
     if (!read_ret.has_value()) {
         _logger->logError(toString(read_ret.error()));
         return;
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    _logger->logEvent(ReadEvent(read_size, duration));
-    for (auto b : read_ret.value()) {
+    _logger->logEvent(ReadEvent(read_data.size(), duration));
+    for (auto b : read_data) {
         if (b != id) {
             _logger->logError("Data contains an error");
             break;

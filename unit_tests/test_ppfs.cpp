@@ -1,5 +1,8 @@
+#include "common/static_vector.hpp"
+#include "directory_manager/directory.hpp"
 #include "disk/stack_disk.hpp"
 #include "filesystem/ppfs.hpp"
+#include <array>
 #include <gtest/gtest.h>
 
 TEST(PpFS, Compiles)
@@ -308,7 +311,9 @@ TEST(PpFS, ReadDirectory_Fails_NotInitialized)
     StackDisk disk;
     PpFS fs(disk);
 
-    auto read_dir_res = fs.readDirectory("/");
+    std::array<DirectoryEntry, 1000> dir_buf;
+    static_vector<DirectoryEntry> dir_entries(dir_buf.data(), dir_buf.size());
+    auto read_dir_res = fs.readDirectory("/", dir_entries);
     ASSERT_FALSE(read_dir_res.has_value());
     ASSERT_EQ(read_dir_res.error(), FsError::PpFS_NotInitialized);
 }
@@ -334,14 +339,15 @@ TEST(PpFS, ReadDirectory_Succeeds)
     ASSERT_TRUE(create_file_res2.has_value())
         << "Create file2 in directory failed: " << toString(create_file_res2.error());
 
-    auto read_dir_res = fs.readDirectory("/");
+    std::array<DirectoryEntry, 1000> dir_buf;
+    static_vector<DirectoryEntry> dir_entries(dir_buf.data(), dir_buf.size());
+    auto read_dir_res = fs.readDirectory("/", dir_entries);
     ASSERT_TRUE(read_dir_res.has_value())
         << "ReadDirectory failed: " << toString(read_dir_res.error());
 
-    std::vector<std::string> entries = read_dir_res.value();
-    ASSERT_EQ(entries.size(), 2);
-    ASSERT_EQ(entries[0], "file1.txt");
-    ASSERT_EQ(entries[1], "file2.txt");
+    ASSERT_EQ(dir_entries.size(), 2);
+    ASSERT_EQ(std::string(dir_entries[0].name.data()), "file1.txt");
+    ASSERT_EQ(std::string(dir_entries[1].name.data()), "file2.txt");
 }
 
 TEST(PpFS, ReadDirectory_Succeeds_Partial)
@@ -369,16 +375,17 @@ TEST(PpFS, ReadDirectory_Succeeds_Partial)
 
     auto open_res = fs.open("/");
     ASSERT_TRUE(open_res.has_value()) << "Open failed: " << toString(open_res.error());
-    auto read_dir_res = fs.readDirectory(open_res.value(), 2, 1);
+    std::array<DirectoryEntry, 1000> dir_buf;
+    static_vector<DirectoryEntry> dir_entries(dir_buf.data(), dir_buf.size());
+    auto read_dir_res = fs.readDirectory(open_res.value(), 2, 1, dir_entries);
     ASSERT_TRUE(read_dir_res.has_value())
         << "ReadDirectory failed: " << toString(read_dir_res.error());
     auto close_res = fs.close(open_res.value());
     ASSERT_TRUE(close_res.has_value()) << "Close failed: " << toString(close_res.error());
 
-    std::vector<std::string> entries = read_dir_res.value();
-    ASSERT_EQ(entries.size(), 2);
-    ASSERT_EQ(entries[0], "file2.txt");
-    ASSERT_EQ(entries[1], "mydir");
+    ASSERT_EQ(dir_entries.size(), 2);
+    ASSERT_EQ(std::string(dir_entries[0].name.data()), "file2.txt");
+    ASSERT_EQ(std::string(dir_entries[1].name.data()), "mydir");
 }
 
 TEST(PpFS, ReadDirectory_Fails_DirectoryDoesNotExist)
@@ -394,7 +401,9 @@ TEST(PpFS, ReadDirectory_Fails_DirectoryDoesNotExist)
     ASSERT_TRUE(format_res.has_value());
     ASSERT_TRUE(fs.isInitialized());
 
-    auto read_dir_res = fs.readDirectory("/nonexistent_dir");
+    std::array<DirectoryEntry, 1000> dir_buf;
+    static_vector<DirectoryEntry> dir_entries(dir_buf.data(), dir_buf.size());
+    auto read_dir_res = fs.readDirectory("/nonexistent_dir", dir_entries);
     ASSERT_FALSE(read_dir_res.has_value());
     ASSERT_EQ(read_dir_res.error(), FsError::PpFS_NotFound);
 }
@@ -412,12 +421,13 @@ TEST(PpFS, ReadDirectory_EmptyDirectory)
     ASSERT_TRUE(format_res.has_value());
     ASSERT_TRUE(fs.isInitialized());
 
-    auto read_dir_res = fs.readDirectory("/");
+    std::array<DirectoryEntry, 1000> dir_buf;
+    static_vector<DirectoryEntry> dir_entries(dir_buf.data(), dir_buf.size());
+    auto read_dir_res = fs.readDirectory("/", dir_entries);
     ASSERT_TRUE(read_dir_res.has_value())
         << "ReadDirectory failed: " << toString(read_dir_res.error());
 
-    std::vector<std::string> entries = read_dir_res.value();
-    ASSERT_EQ(entries.size(), 0);
+    ASSERT_EQ(dir_entries.size(), 0);
 }
 
 TEST(PpFS, ReadDirectory_Fails_InvalidPath)
@@ -433,10 +443,14 @@ TEST(PpFS, ReadDirectory_Fails_InvalidPath)
     ASSERT_TRUE(format_res.has_value());
     ASSERT_TRUE(fs.isInitialized());
 
-    auto read_dir_res1 = fs.readDirectory("mydir");
+    std::array<DirectoryEntry, 1000> dir_buf1;
+    static_vector<DirectoryEntry> dir_entries1(dir_buf1.data(), dir_buf1.size());
+    auto read_dir_res1 = fs.readDirectory("mydir", dir_entries1);
     ASSERT_EQ(read_dir_res1.error(), FsError::PpFS_InvalidPath);
 
-    auto read_dir_res2 = fs.readDirectory("/dir//mydir");
+    std::array<DirectoryEntry, 1000> dir_buf2;
+    static_vector<DirectoryEntry> dir_entries2(dir_buf2.data(), dir_buf2.size());
+    auto read_dir_res2 = fs.readDirectory("/dir//mydir", dir_entries2);
     ASSERT_EQ(read_dir_res2.error(), FsError::PpFS_InvalidPath);
 }
 
@@ -465,13 +479,14 @@ TEST(PpFS, ReadDirectory_AfterCreatingSubdirectory)
     ASSERT_TRUE(add_file_res.has_value())
         << "Create file2 in subdir failed: " << toString(add_file_res.error());
 
-    auto read_dir_res = fs.readDirectory("/");
+    std::array<DirectoryEntry, 1000> dir_buf;
+    static_vector<DirectoryEntry> dir_entries(dir_buf.data(), dir_buf.size());
+    auto read_dir_res = fs.readDirectory("/", dir_entries);
     ASSERT_TRUE(read_dir_res.has_value())
         << "ReadDirectory failed: " << toString(read_dir_res.error());
 
-    std::vector<std::string> entries = read_dir_res.value();
-    ASSERT_EQ(entries.size(), 1);
-    ASSERT_EQ(entries[0], "subdir");
+    ASSERT_EQ(dir_entries.size(), 1);
+    ASSERT_EQ(std::string(dir_entries[0].name.data()), "subdir");
 }
 
 TEST(PpFS, Open_Fails_NotInitialized)
@@ -895,11 +910,12 @@ TEST(PpFS, Remove_Succeeds_AfterCreatingFile)
     auto remove_res = fs.remove("/file.txt");
     ASSERT_TRUE(remove_res.has_value()) << "Remove file failed: " << toString(remove_res.error());
 
-    auto read_dir_res = fs.readDirectory("/");
+    std::array<DirectoryEntry, 1000> dir_buf;
+    static_vector<DirectoryEntry> dir_entries(dir_buf.data(), dir_buf.size());
+    auto read_dir_res = fs.readDirectory("/", dir_entries);
     ASSERT_TRUE(read_dir_res.has_value())
         << "ReadDirectory failed: " << toString(read_dir_res.error());
-    std::vector<std::string> entries = read_dir_res.value();
-    ASSERT_EQ(entries.size(), 0);
+    ASSERT_EQ(dir_entries.size(), 0);
 }
 
 TEST(PpFS, Remove_Fails_InvalidPath)
@@ -992,11 +1008,12 @@ TEST(PpFS, Remove_Succeeds_AfterClosingFile)
     auto remove_res = fs.remove("/file.txt");
     ASSERT_TRUE(remove_res.has_value()) << "Remove file failed: " << toString(remove_res.error());
 
-    auto read_dir_res = fs.readDirectory("/");
+    std::array<DirectoryEntry, 1000> dir_buf;
+    static_vector<DirectoryEntry> dir_entries(dir_buf.data(), dir_buf.size());
+    auto read_dir_res = fs.readDirectory("/", dir_entries);
     ASSERT_TRUE(read_dir_res.has_value())
         << "ReadDirectory failed: " << toString(read_dir_res.error());
-    std::vector<std::string> entries = read_dir_res.value();
-    ASSERT_EQ(entries.size(), 0);
+    ASSERT_EQ(dir_entries.size(), 0);
 }
 
 TEST(PpFS, Remove_Succeeds_Recursive)
@@ -1108,7 +1125,9 @@ TEST(PpFS, Read_Fails_NotInitialized)
     StackDisk disk;
     PpFS fs(disk);
 
-    auto read_res = fs.read(0, 0);
+    std::array<uint8_t, 1> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_res = fs.read(0, 0, read_data);
     ASSERT_FALSE(read_res.has_value());
     ASSERT_EQ(read_res.error(), FsError::PpFS_NotInitialized);
 }
@@ -1126,7 +1145,9 @@ TEST(PpFS, Read_Fails_InvalidFileDescriptor)
     ASSERT_TRUE(format_res.has_value());
     ASSERT_TRUE(fs.isInitialized());
 
-    auto read_res = fs.read(1, 0);
+    std::array<uint8_t, 1> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_res = fs.read(1, 0, read_data);
     ASSERT_FALSE(read_res.has_value());
     ASSERT_EQ(read_res.error(), FsError::PpFS_NotFound);
 }
@@ -1150,7 +1171,9 @@ TEST(PpFS, Read_Fails_AppendMode)
     ASSERT_TRUE(open_res.has_value()) << "Open file failed: " << toString(open_res.error());
     file_descriptor_t fd = open_res.value();
 
-    auto read_res = fs.read(fd, 10);
+    std::array<uint8_t, 10> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_res = fs.read(fd, 10, read_data);
     ASSERT_FALSE(read_res.has_value());
     ASSERT_EQ(read_res.error(), FsError::PpFS_InvalidRequest);
 
@@ -1163,8 +1186,9 @@ TEST(PpFS, Write_Fails_NotInitialized)
     StackDisk disk;
     PpFS fs(disk);
 
-    std::vector<uint8_t> data = { 1, 2, 3 };
-    auto write_res = fs.write(0, data);
+    std::array<uint8_t, 3> write_buf = { 1, 2, 3 };
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_buf.size());
+    auto write_res = fs.write(0, write_data);
     ASSERT_FALSE(write_res.has_value());
     ASSERT_EQ(write_res.error(), FsError::PpFS_NotInitialized);
 }
@@ -1182,8 +1206,9 @@ TEST(PpFS, Write_Fails_InvalidFileDescriptor)
     ASSERT_TRUE(format_res.has_value());
     ASSERT_TRUE(fs.isInitialized());
 
-    std::vector<uint8_t> data = { 1, 2, 3 };
-    auto write_res = fs.write(1, data);
+    std::array<uint8_t, 3> write_buf = { 1, 2, 3 };
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_buf.size());
+    auto write_res = fs.write(1, write_data);
     ASSERT_FALSE(write_res.has_value());
     ASSERT_EQ(write_res.error(), FsError::PpFS_NotFound);
 }
@@ -1315,20 +1340,24 @@ TEST(PpFS, WriteSeekRead_Succeeds)
     ASSERT_TRUE(open_res.has_value()) << "Open file failed: " << toString(open_res.error());
     file_descriptor_t fd = open_res.value();
 
-    const std::vector<uint8_t> write_data = { 1, 2, 3, 4, 5 };
+    std::array<uint8_t, 5> write_buf = { 1, 2, 3, 4, 5 };
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_buf.size());
     auto write_res = fs.write(fd, write_data);
     ASSERT_TRUE(write_res.has_value()) << "Write failed: " << toString(write_res.error());
     auto seek_res = fs.seek(fd, 0);
     ASSERT_TRUE(seek_res.has_value()) << "Seek failed: " << toString(seek_res.error());
-    auto read_res = fs.read(fd, write_data.size());
+    std::array<uint8_t, 5> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_res = fs.read(fd, write_data.size(), read_data);
     ASSERT_TRUE(read_res.has_value()) << "Read failed: " << toString(read_res.error());
 
     auto close_res = fs.close(fd);
     ASSERT_TRUE(close_res.has_value()) << "Close file failed: " << toString(close_res.error());
 
-    std::vector<uint8_t> read_data = read_res.value();
     ASSERT_EQ(read_data.size(), write_data.size());
-    ASSERT_EQ(read_data, write_data);
+    for (size_t i = 0; i < write_data.size(); ++i) {
+        ASSERT_EQ(read_data[i], write_data[i]) << "Mismatch at index " << i;
+    }
 }
 
 TEST(PpFS, WriteSeekWriteRead_Succeeds)
@@ -1350,30 +1379,36 @@ TEST(PpFS, WriteSeekWriteRead_Succeeds)
     ASSERT_TRUE(open_res.has_value()) << "Open file failed: " << toString(open_res.error());
     file_descriptor_t fd = open_res.value();
 
-    const std::vector<uint8_t> first_write_data = { 1, 2, 3, 4, 5 };
+    std::array<uint8_t, 5> first_write_buf = { 1, 2, 3, 4, 5 };
+    static_vector<uint8_t> first_write_data(first_write_buf.data(), first_write_buf.size(), first_write_buf.size());
     auto write_res1 = fs.write(fd, first_write_data);
     ASSERT_TRUE(write_res1.has_value()) << "First write failed: " << toString(write_res1.error());
 
     auto seek_res = fs.seek(fd, 3);
     ASSERT_TRUE(seek_res.has_value()) << "Seek failed: " << toString(seek_res.error());
 
-    const std::vector<uint8_t> second_write_data = { 6, 7, 8, 9, 10 };
+    std::array<uint8_t, 5> second_write_buf = { 6, 7, 8, 9, 10 };
+    static_vector<uint8_t> second_write_data(second_write_buf.data(), second_write_buf.size(), second_write_buf.size());
     auto write_res2 = fs.write(fd, second_write_data);
     ASSERT_TRUE(write_res2.has_value()) << "Second write failed: " << toString(write_res2.error());
 
     seek_res = fs.seek(fd, 0);
     ASSERT_TRUE(seek_res.has_value()) << "Seek failed: " << toString(seek_res.error());
 
-    auto read_res = fs.read(fd, 8);
+    std::array<uint8_t, 8> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_res = fs.read(fd, 8, read_data);
     ASSERT_TRUE(read_res.has_value()) << "Read failed: " << toString(read_res.error());
 
     auto close_res = fs.close(fd);
     ASSERT_TRUE(close_res.has_value()) << "Close file failed: " << toString(close_res.error());
 
-    std::vector<uint8_t> read_data = read_res.value();
-    std::vector<uint8_t> expected_data = { 1, 2, 3, 6, 7, 8, 9, 10 };
+    std::array<uint8_t, 8> expected_buf = { 1, 2, 3, 6, 7, 8, 9, 10 };
+    static_vector<uint8_t> expected_data(expected_buf.data(), expected_buf.size(), expected_buf.size());
     ASSERT_EQ(read_data.size(), expected_data.size());
-    ASSERT_EQ(read_data, expected_data);
+    for (size_t i = 0; i < expected_data.size(); ++i) {
+        ASSERT_EQ(read_data[i], expected_data[i]) << "Mismatch at index " << i;
+    }
 }
 
 TEST(PpFS, Write_Fails_Protected)
@@ -1396,7 +1431,8 @@ TEST(PpFS, Write_Fails_Protected)
     ASSERT_TRUE(open_res1.has_value()) << "First open failed: " << toString(open_res1.error());
     file_descriptor_t fd1 = open_res1.value();
 
-    const std::vector<uint8_t> data1 = { 1, 2, 3 };
+    std::array<uint8_t, 3> data1_buf = { 1, 2, 3 };
+    static_vector<uint8_t> data1(data1_buf.data(), data1_buf.size(), data1_buf.size());
     auto write_res = fs.write(fd1, data1);
     ASSERT_EQ(write_res.error(), FsError::PpFS_InvalidRequest);
 }
@@ -1425,15 +1461,18 @@ TEST(PpFS, Write_Succeeds_MultipleFD_AppendMode)
     ASSERT_TRUE(open_res2.has_value()) << "Second open failed: " << toString(open_res2.error());
     file_descriptor_t fd2 = open_res2.value();
 
-    const std::vector<uint8_t> data1 = { 1, 2, 3 };
+    std::array<uint8_t, 3> data1_buf = { 1, 2, 3 };
+    static_vector<uint8_t> data1(data1_buf.data(), data1_buf.size(), data1_buf.size());
     auto write_res1 = fs.write(fd1, data1);
     ASSERT_TRUE(write_res1.has_value()) << "First write failed: " << toString(write_res1.error());
 
-    const std::vector<uint8_t> data2 = { 4, 5, 6 };
+    std::array<uint8_t, 3> data2_buf = { 4, 5, 6 };
+    static_vector<uint8_t> data2(data2_buf.data(), data2_buf.size(), data2_buf.size());
     auto write_res2 = fs.write(fd2, data2);
     ASSERT_TRUE(write_res2.has_value()) << "Second write failed: " << toString(write_res2.error());
 
-    const std::vector<uint8_t> data3 = { 7, 8, 9 };
+    std::array<uint8_t, 3> data3_buf = { 7, 8, 9 };
+    static_vector<uint8_t> data3(data3_buf.data(), data3_buf.size(), data3_buf.size());
     auto write_res3 = fs.write(fd1, data3);
     ASSERT_TRUE(write_res3.has_value()) << "Third write failed: " << toString(write_res3.error());
 
@@ -1441,7 +1480,9 @@ TEST(PpFS, Write_Succeeds_MultipleFD_AppendMode)
     ASSERT_TRUE(open_res3.has_value()) << "Re-open file failed: " << toString(open_res3.error());
     file_descriptor_t fd3 = open_res3.value();
 
-    auto read_res = fs.read(fd3, 9);
+    std::array<uint8_t, 9> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_res = fs.read(fd3, 9, read_data);
     ASSERT_TRUE(read_res.has_value()) << "Read failed: " << toString(read_res.error());
 
     auto close_res1 = fs.close(fd1);
@@ -1456,10 +1497,12 @@ TEST(PpFS, Write_Succeeds_MultipleFD_AppendMode)
     ASSERT_TRUE(close_res3.has_value())
         << "Close re-opened FD failed: " << toString(close_res3.error());
 
-    std::vector<uint8_t> read_data = read_res.value();
-    std::vector<uint8_t> expected_data = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    std::array<uint8_t, 9> expected_buf = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    static_vector<uint8_t> expected_data(expected_buf.data(), expected_buf.size(), expected_buf.size());
     ASSERT_EQ(read_data.size(), expected_data.size());
-    ASSERT_EQ(read_data, expected_data);
+    for (size_t i = 0; i < expected_data.size(); ++i) {
+        ASSERT_EQ(read_data[i], expected_data[i]) << "Mismatch at index " << i;
+    }
 }
 
 TEST(PpFS, Create_TwoWrites_RS)
@@ -1506,7 +1549,8 @@ TEST(PpFS, Open_Succeeds_Truncate)
     auto create_res = fs.create("/file.txt");
     ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
 
-    const std::vector<uint8_t> write_data = { 1, 2, 3, 4, 5 };
+    std::array<uint8_t, 5> write_buf = { 1, 2, 3, 4, 5 };
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_buf.size());
     auto open_res1 = fs.open("/file.txt");
     ASSERT_TRUE(open_res1.has_value()) << "First open failed: " << toString(open_res1.error());
     file_descriptor_t fd1 = open_res1.value();
@@ -1520,7 +1564,9 @@ TEST(PpFS, Open_Succeeds_Truncate)
         << "Second open (truncate) failed: " << toString(open_res2.error());
     file_descriptor_t fd2 = open_res2.value();
 
-    auto read_res = fs.read(fd2, 5);
+    std::array<uint8_t, 5> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto read_res = fs.read(fd2, 5, read_data);
     ASSERT_EQ(read_res.error(), FsError::FileIO_OutOfBounds);
 
     auto close_res2 = fs.close(fd2);
@@ -1542,7 +1588,8 @@ TEST(PpFS, Read_Fails_TwoUsersTruncate)
 
     auto create_res = fs.create("/file.txt");
     ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
-    const std::vector<uint8_t> write_data = { 1, 2, 3, 4, 5 };
+    std::array<uint8_t, 5> write_buf = { 1, 2, 3, 4, 5 };
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_buf.size());
     auto open_res1 = fs.open("/file.txt");
     ASSERT_TRUE(open_res1.has_value()) << "First open failed: " << toString(open_res1.error());
     file_descriptor_t fd1 = open_res1.value();

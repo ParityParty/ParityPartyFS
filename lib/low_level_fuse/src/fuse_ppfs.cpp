@@ -1,6 +1,7 @@
 #include "low_level_fuse/fuse_ppfs.hpp"
-
+#include "common/static_vector.hpp"
 #include <cstring>
+#include <new>
 
 #define HANDLE_EXPECTED_ERROR(req, result_expr)                                                    \
     do {                                                                                           \
@@ -123,10 +124,19 @@ void FusePpFS::readdir(
     }
 
     inode_index_t ppfs_inode = ino - 1;
-    auto entries_res = ptr->_ppfs.getDirectoryEntries(ppfs_inode);
-    HANDLE_EXPECTED_ERROR(req, entries_res);
+    
 
-    std::vector<DirectoryEntry> entries = std::move(entries_res.value());
+    
+    DirectoryEntry* entries_buffer = new (std::nothrow) DirectoryEntry[size];
+    if (!entries_buffer) {
+        free(buf);
+        fuse_reply_err(req, ENOMEM);
+        return;
+    }
+    
+    static_vector<DirectoryEntry> entries(entries_buffer, size);
+    auto entries_res = ptr->_ppfs.getDirectoryEntries(ppfs_inode, entries, off, size);
+    HANDLE_EXPECTED_ERROR(req, entries_res);
 
     size_t total_size = 0;
 
@@ -155,7 +165,7 @@ void FusePpFS::readdir(
         total_size += entry_size;
     }
 
-end:
+    delete[] entries_buffer;
     fuse_reply_buf(req, buf, total_size);
     free(buf);
 }
@@ -223,9 +233,19 @@ void FusePpFS::write(fuse_req_t req, fuse_ino_t ino, const char* buf, size_t siz
         auto seek_res = ptr->_ppfs.seek(fi->fh, off);
         HANDLE_EXPECTED_ERROR(req, seek_res);
     }
-    std::vector<uint8_t> to_write(size);
-    std::memcpy(to_write.data(), buf, size);
+    
+    uint8_t* write_buffer = new (std::nothrow) uint8_t[size];
+    if (!write_buffer) {
+        fuse_reply_err(req, ENOMEM);
+        return;
+    }
+    
+    std::memcpy(write_buffer, buf, size);
+    static_vector<uint8_t> to_write(write_buffer, size, size);
     auto write_res = ptr->_ppfs.write(fi->fh, to_write);
+    
+    delete[] write_buffer;
+    
     HANDLE_EXPECTED_ERROR(req, write_res);
 
     fuse_reply_write(req, write_res.value());
@@ -239,12 +259,19 @@ void FusePpFS::read(
     auto seek_res = ptr->_ppfs.seek(fi->fh, off);
     HANDLE_EXPECTED_ERROR(req, seek_res);
 
-    auto read_res = ptr->_ppfs.read(fi->fh, size);
-    HANDLE_EXPECTED_ERROR(req, read_res);
-
-    auto buffer = read_res.value();
-
-    fuse_reply_buf(req, reinterpret_cast<const char*>(buffer.data()), buffer.size());
+    uint8_t* read_buffer = new (std::nothrow) uint8_t[size];
+    if (!read_buffer) {
+        fuse_reply_err(req, ENOMEM);
+        return;
+    }
+    
+    static_vector<uint8_t> read_data(read_buffer, size);
+    auto read_res = ptr->_ppfs.read(fi->fh, size, read_data);
+    
+    size_t bytes_read = read_data.size();
+    fuse_reply_buf(req, reinterpret_cast<const char*>(read_data.data()), bytes_read);
+    
+    delete[] read_buffer;
 }
 
 void FusePpFS::release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)

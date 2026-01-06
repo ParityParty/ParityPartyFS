@@ -1,5 +1,7 @@
+#include "common/static_vector.hpp"
 #include "disk/stack_disk.hpp"
 #include "filesystem/ppfs_low_level.hpp"
+#include <array>
 #include <gtest/gtest.h>
 
 static std::unique_ptr<PpFSLowLevel> prepareFS(IDisk& disk)
@@ -77,9 +79,11 @@ TEST(PpFS, DirEntriesRoot)
     StackDisk disk;
     auto ppfs = prepareFS(disk);
 
-    auto entries = ppfs->getDirectoryEntries(0);
-    ASSERT_TRUE(entries.has_value());
-    EXPECT_EQ(entries->size(), 0);
+    std::array<DirectoryEntry, 1000> entries_buffer;
+    static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+    auto entries_res = ppfs->getDirectoryEntries(0, entries, 0, 0);
+    ASSERT_TRUE(entries_res.has_value());
+    EXPECT_EQ(entries.size(), 0);
 }
 
 TEST(PpFS, DirEntriesAfterFileCreate)
@@ -90,11 +94,13 @@ TEST(PpFS, DirEntriesAfterFileCreate)
     auto c = ppfs->createWithParentInode("x", 0);
     ASSERT_TRUE(c.has_value());
 
-    auto entries = ppfs->getDirectoryEntries(0);
-    ASSERT_TRUE(entries.has_value());
-    ASSERT_EQ(entries->size(), 1);
-    EXPECT_EQ(std::string_view(entries.value()[0].name.data()), "x")
-        << "Name: " << std::string(entries.value()[0].name.data()) << std::endl;
+    std::array<DirectoryEntry, 1000> entries_buffer;
+    static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+    auto entries_res = ppfs->getDirectoryEntries(0, entries, 0, 0);
+    ASSERT_TRUE(entries_res.has_value());
+    ASSERT_EQ(entries.size(), 1);
+    EXPECT_EQ(std::string_view(entries[0].name.data()), "x")
+        << "Name: " << std::string(entries[0].name.data()) << std::endl;
 }
 
 TEST(PpFS, CreateDirectorySimple)
@@ -213,17 +219,20 @@ TEST(PpFS, FullFlowCreateWriteRead)
     auto fd = ppfs->openByInode(c.value(), OpenMode::Normal);
     ASSERT_TRUE(fd.has_value());
 
-    std::vector<uint8_t> buf = { 1, 2, 3, 4 };
-    auto w = ppfs->write(fd.value(), buf);
+    std::array<uint8_t, 4> write_buf = { 1, 2, 3, 4 };
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_buf.size());
+    auto w = ppfs->write(fd.value(), write_data);
     ASSERT_TRUE(w.has_value());
     EXPECT_EQ(w.value(), 4);
 
     ppfs->seek(fd.value(), 0);
 
-    auto r = ppfs->read(fd.value(), 4);
+    std::array<uint8_t, 4> read_buf;
+    static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
+    auto r = ppfs->read(fd.value(), 4, read_data);
     ASSERT_TRUE(r.has_value());
-    ASSERT_EQ(r->size(), 4);
-    EXPECT_EQ((*r)[2], 3);
+    ASSERT_EQ(read_data.size(), 4);
+    EXPECT_EQ(read_data[2], 3);
 }
 
 TEST(PpFS, DirectoryTreeCreation)
@@ -240,11 +249,13 @@ TEST(PpFS, DirectoryTreeCreation)
     auto file = ppfs->createWithParentInode("x", d2.value());
     ASSERT_TRUE(file.has_value());
 
-    auto dir = ppfs->readDirectory("/a/b");
-    ASSERT_TRUE(dir.has_value());
+    std::array<DirectoryEntry, 100> dir_buf;
+    static_vector<DirectoryEntry> dir_entries(dir_buf.data(), dir_buf.size());
+    auto dir_res = ppfs->readDirectory("/a/b", dir_entries);
+    ASSERT_TRUE(dir_res.has_value());
 
-    ASSERT_EQ(dir->size(), 1);
-    EXPECT_EQ(std::string_view(dir.value()[0]), "x");
+    ASSERT_EQ(dir_entries.size(), 1);
+    EXPECT_EQ(std::string_view(dir_entries[0].name.data()), "x");
 }
 
 TEST(PpFS, RecursiveRemove)
