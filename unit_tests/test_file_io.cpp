@@ -1,9 +1,12 @@
 #include "block_manager/block_manager.hpp"
 #include "blockdevice/raw_block_device.hpp"
+#include "common/static_vector.hpp"
 #include "disk/stack_disk.hpp"
 #include "file_io/file_io.hpp"
 #include "inode_manager/inode_manager.hpp"
+#include <array>
 #include <gtest/gtest.h>
+#include <vector>
 
 struct FakeInodeManager : public IInodeManager {
     std::expected<inode_index_t, FsError> create(Inode& inode) override { return 0; }
@@ -53,7 +56,9 @@ TEST(FileIO, WritesAndReadsDirectBlocks)
     ASSERT_TRUE(inode_index.has_value())
         << "Failed to create inode: " << toString(inode_index.error());
 
-    std::vector<uint8_t> data(block_device.dataSize() * 12);
+    size_t data_size = block_device.dataSize() * 12;
+    std::array<uint8_t, 128 * 12> data_buffer;
+    static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
     for (size_t i = 0; i < data.size(); ++i)
         data[i] = uint8_t(i % 251);
@@ -65,12 +70,15 @@ TEST(FileIO, WritesAndReadsDirectBlocks)
     ASSERT_NE(inode.direct_blocks[1], 0);
     ASSERT_NE(inode.direct_blocks[1], inode.direct_blocks[0]);
 
-    auto read_res = file_io.readFile(inode_index.value(), inode, 0, data.size());
+    std::array<uint8_t, 128 * 12> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_res = file_io.readFile(inode_index.value(), inode, 0, data_size, read_data);
     ASSERT_TRUE(read_res.has_value()) << "readFile failed";
 
-    auto out = read_res.value();
-
-    ASSERT_EQ(out, data);
+    ASSERT_EQ(read_data.size(), data.size());
+    for (size_t i = 0; i < data.size(); ++i) {
+        ASSERT_EQ(read_data[i], data[i]) << "Mismatch at index " << i;
+    }
 }
 
 TEST(FileIO, WritesAndReadsUndirectBlocks)
@@ -99,8 +107,10 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
     ASSERT_TRUE(inode_index.has_value())
         << "Failed to create inode: " << toString(inode_index.error());
 
-    std::vector<uint8_t> data(block_device.dataSize() * 12
-        + block_device.dataSize() * (block_device.dataSize() / sizeof(block_index_t)));
+    size_t data_size = block_device.dataSize() * 12
+        + block_device.dataSize() * (block_device.dataSize() / sizeof(block_index_t));
+    std::array<uint8_t, 128 * 12 + 128 * 32> data_buffer; // 128 * 32 = 4096, enough for indexes_per_block
+    static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
     for (size_t i = 0; i < data.size(); ++i)
         data[i] = uint8_t(i % 253);
@@ -112,13 +122,15 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
     ASSERT_NE(inode.direct_blocks[1], 0);
     ASSERT_NE(inode.direct_blocks[1], inode.direct_blocks[0]);
 
-    auto read_res = file_io.readFile(inode_index.value(), inode, 0, data.size());
+    std::array<uint8_t, 128 * 12 + 128 * 32> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_res = file_io.readFile(inode_index.value(), inode, 0, data_size, read_data);
     ASSERT_TRUE(read_res.has_value()) << "readFile failed";
 
-    auto out = read_res.value();
-
-    ASSERT_EQ(out.size(), data.size());
-    ASSERT_EQ(out, data);
+    ASSERT_EQ(read_data.size(), data.size());
+    for (size_t i = 0; i < data.size(); ++i) {
+        ASSERT_EQ(read_data[i], data[i]) << "Mismatch at index " << i;
+    }
 }
 
 TEST(FileIO, ReadAndWriteWithOffset)
@@ -149,28 +161,43 @@ TEST(FileIO, ReadAndWriteWithOffset)
 
     size_t size1 = 524;
     size_t size2 = 873;
-    std::vector<uint8_t> data1(size1, 200);
-    std::vector<uint8_t> data2(size2, 153);
+    std::array<uint8_t, 524> data1_buffer;
+    std::fill(data1_buffer.begin(), data1_buffer.end(), 200);
+    static_vector<uint8_t> data1(data1_buffer.data(), data1_buffer.size(), size1);
+    
+    std::array<uint8_t, 873> data2_buffer;
+    std::fill(data2_buffer.begin(), data2_buffer.end(), 153);
+    static_vector<uint8_t> data2(data2_buffer.data(), data2_buffer.size(), size2);
+    
     ASSERT_TRUE(file_io.writeFile(inode_index.value(), inode, 0, data1));
     ASSERT_TRUE(file_io.writeFile(inode_index.value(), inode, size1, data2));
     ASSERT_EQ(inode.file_size, size1 + size2);
 
-    auto read_res = file_io.readFile(inode_index.value(), inode, size1, size2);
+    std::array<uint8_t, 873> read_buffer1;
+    static_vector<uint8_t> read_data1(read_buffer1.data(), read_buffer1.size());
+    auto read_res = file_io.readFile(inode_index.value(), inode, size1, size2, read_data1);
     ASSERT_TRUE(read_res.has_value());
-    for (int i = 0; i < read_res.value().size(); i++) {
-        if (read_res.value()[i] != 153)
-            std::cout << i << ": " << read_res.value()[i] << std::endl;
+    for (size_t i = 0; i < read_data1.size(); i++) {
+        if (read_data1[i] != 153)
+            std::cout << i << ": " << read_data1[i] << std::endl;
     }
-    ASSERT_EQ(read_res.value(), data2);
+    ASSERT_EQ(read_data1.size(), data2.size());
+    for (size_t i = 0; i < data2.size(); ++i) {
+        ASSERT_EQ(read_data1[i], data2[i]) << "Mismatch at index " << i;
+    }
 
-    read_res = file_io.readFile(inode_index.value(), inode, 0, size1 + size2);
+    std::array<uint8_t, 1397> read_buffer2;
+    static_vector<uint8_t> read_data2(read_buffer2.data(), read_buffer2.size());
+    read_res = file_io.readFile(inode_index.value(), inode, 0, size1 + size2, read_data2);
 
-    std::vector<uint8_t> concatenated;
-    concatenated.reserve(size1 + size2);
-    concatenated.insert(concatenated.end(), data1.begin(), data1.end());
-    concatenated.insert(concatenated.end(), data2.begin(), data2.end());
     ASSERT_TRUE(read_res.has_value());
-    ASSERT_EQ(read_res.value(), concatenated);
+    ASSERT_EQ(read_data2.size(), size1 + size2);
+    for (size_t i = 0; i < size1; ++i) {
+        ASSERT_EQ(read_data2[i], 200) << "Mismatch at index " << i;
+    }
+    for (size_t i = 0; i < size2; ++i) {
+        ASSERT_EQ(read_data2[size1 + i], 153) << "Mismatch at index " << (size1 + i);
+    }
 }
 
 TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
@@ -200,8 +227,9 @@ TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
         << "Failed to create inode: " << toString(inode_index.error());
 
     auto indexes_per_block = block_device.dataSize() / sizeof(block_index_t);
-    std::vector<uint8_t> data(
-        block_device.dataSize() * (12 + indexes_per_block + indexes_per_block * indexes_per_block));
+    size_t data_size = block_device.dataSize() * (12 + indexes_per_block + indexes_per_block * indexes_per_block);
+    std::array<uint8_t, 128 * (12 + 32 + 32 * 32)> data_buffer; // Large enough buffer
+    static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
     for (size_t i = 0; i < data.size(); ++i)
         data[i] = uint8_t(i % 227);
@@ -213,13 +241,15 @@ TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
     ASSERT_NE(inode.direct_blocks[1], 0);
     ASSERT_NE(inode.direct_blocks[1], inode.direct_blocks[0]);
 
-    auto read_res = file_io.readFile(inode_index.value(), inode, 0, data.size());
+    std::array<uint8_t, 128 * (12 + 32 + 32 * 32)> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_res = file_io.readFile(inode_index.value(), inode, 0, data_size, read_data);
     ASSERT_TRUE(read_res.has_value()) << "readFile failed";
 
-    auto out = read_res.value();
-
-    ASSERT_EQ(out.size(), data.size());
-    ASSERT_EQ(out, data);
+    ASSERT_EQ(read_data.size(), data.size());
+    for (size_t i = 0; i < data.size(); ++i) {
+        ASSERT_EQ(read_data[i], data[i]) << "Mismatch at index " << i;
+    }
 }
 
 TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
@@ -243,9 +273,11 @@ TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
     inode.file_size = 0;
 
     auto indexes_per_block = block_device.dataSize() / sizeof(block_index_t);
-    std::vector<uint8_t> data(block_device.dataSize()
+    size_t data_size = block_device.dataSize()
         * (12 + indexes_per_block + indexes_per_block * indexes_per_block
-            + indexes_per_block * indexes_per_block * indexes_per_block));
+            + indexes_per_block * indexes_per_block * indexes_per_block);
+    std::array<uint8_t, 32 * (12 + 8 + 8 * 8 + 8 * 8 * 8)> data_buffer; // Large enough buffer
+    static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
     for (size_t i = 0; i < data.size(); ++i)
         data[i] = uint8_t(i / block_device.dataSize());
@@ -257,13 +289,15 @@ TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
     ASSERT_NE(inode.direct_blocks[1], 0);
     ASSERT_NE(inode.direct_blocks[1], inode.direct_blocks[0]);
 
-    auto read_res = file_io.readFile(0, inode, 0, data.size());
+    std::array<uint8_t, 32 * (12 + 8 + 8 * 8 + 8 * 8 * 8)> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_res = file_io.readFile(0, inode, 0, data_size, read_data);
     ASSERT_TRUE(read_res.has_value()) << "readFile failed";
 
-    auto out = read_res.value();
-
-    ASSERT_EQ(out.size(), data.size());
-    ASSERT_EQ(out, data);
+    ASSERT_EQ(read_data.size(), data.size());
+    for (size_t i = 0; i < data.size(); ++i) {
+        ASSERT_EQ(read_data[i], data[i]) << "Mismatch at index " << i;
+    }
 }
 
 TEST(FileIO, ResizeAndReadFile)
@@ -305,10 +339,12 @@ TEST(FileIO, ResizeAndReadFile)
     ASSERT_NE(inode.direct_blocks[1], 0);
     ASSERT_NE(inode.direct_blocks[2], 0);
 
-    auto read_res
-        = file_io.readFile(inode_index.value(), inode, 0, num_of_blocks * block_device.dataSize());
+    size_t read_size = num_of_blocks * block_device.dataSize();
+    std::array<uint8_t, 128 * (12 + 32 + 32 * 32)> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_res = file_io.readFile(inode_index.value(), inode, 0, read_size, read_data);
     ASSERT_TRUE(read_res.has_value());
-    ASSERT_EQ(read_res.value().size(), num_of_blocks * block_device.dataSize());
+    ASSERT_EQ(read_data.size(), read_size);
 }
 
 TEST(FileIO, TruncatePartOfBlock)
@@ -342,7 +378,8 @@ TEST(FileIO, TruncatePartOfBlock)
     size_t to_truncate = block_device.dataSize() / 2;
     size_t file_size = num_of_blocks * block_device.dataSize();
 
-    std::vector<uint8_t> data(file_size);
+    std::array<uint8_t, 128 * (12 + 32 + 32 * 32)> data_buffer;
+    static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), file_size);
     for (size_t i = 0; i < data.size(); i++)
         data[i] = uint8_t(i % 251);
 
@@ -353,10 +390,15 @@ TEST(FileIO, TruncatePartOfBlock)
 
     ASSERT_EQ(inode.file_size, file_size - to_truncate);
 
-    auto read_res = file_io.readFile(inode_index.value(), inode, 0, file_size - to_truncate);
+    size_t read_size = file_size - to_truncate;
+    std::array<uint8_t, 128 * (12 + 32 + 32 * 32)> read_buffer;
+    static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
+    auto read_res = file_io.readFile(inode_index.value(), inode, 0, read_size, read_data);
     ASSERT_TRUE(read_res.has_value());
-    std::vector<uint8_t> expected_data(data.begin(), data.end() - to_truncate);
-    ASSERT_EQ(read_res.value(), expected_data);
+    ASSERT_EQ(read_data.size(), read_size);
+    for (size_t i = 0; i < read_size; ++i) {
+        ASSERT_EQ(read_data[i], data[i]) << "Mismatch at index " << i;
+    }
 }
 
 TEST(FileIO, ResizeHugeFileToZero)
@@ -387,7 +429,8 @@ TEST(FileIO, ResizeHugeFileToZero)
 
     size_t file_size = num_of_blocks * block_device.dataSize();
 
-    std::vector<uint8_t> data(file_size);
+    std::array<uint8_t, 32 * (12 + 8 + 8 * 8 + 8 * 8 * 8)> data_buffer;
+    static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), file_size);
     for (size_t i = 0; i < data.size(); i++)
         data[i] = uint8_t(i % 251);
 

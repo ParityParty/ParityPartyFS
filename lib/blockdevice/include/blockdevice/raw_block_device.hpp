@@ -34,17 +34,18 @@ public:
      * @return On success, returns the number of bytes written; otherwise returns a FsError.
      */
     [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
+        const static_vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * Reads a portion of data from a block on the disk.
      * If the requested bytes exceed the block size, they will be truncated.
      * @param data_location The block index and offset specifying where to start reading.
      * @param bytes_to_read The number of bytes requested to be read.
-     * @return On success, returns a vector of bytes read; otherwise returns a FsError.
+     * @param data Output buffer to fill with read data, must have sufficient capacity
+     * @return void on success, error otherwise
      */
-    [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read) override;
+    [[nodiscard]] virtual std::expected<void, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /**
      * This function does nothing - every state is valid.

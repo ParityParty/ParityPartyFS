@@ -1,6 +1,8 @@
 #pragma once
 
-#include "iblock_device.hpp"
+#include "blockdevice/iblock_device.hpp"
+#include "common/static_vector.hpp"
+
 #include <memory>
 #include <optional>
 
@@ -35,20 +37,22 @@ public:
      *
      * If size of data exceeds the data size per block, it will be truncated.
      */
+
     [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
+        const static_vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * @brief Reads a block of data from the device and performs Hamming error correction.
      * @param data_location Data location specifying block index and offset.
      * @param bytes_to_read Number of bytes to read.
-     * @return Expected vector of decoded data bytes, or a FsError on failure.
+     * @param data Output buffer to fill with read data, must have sufficient capacity
+     * @return void on success, error otherwise
      *
      * If size of requested bytes exceeds the data size available on the block, it will be
      * truncated.
      */
-    [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read) override;
+    [[nodiscard]] virtual std::expected<void, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /**
      * @brief Fills a specific block with zeros.
@@ -76,11 +80,10 @@ private:
     IDisk& _disk;
     std::shared_ptr<Logger> _logger;
 
-    std::vector<std::uint8_t> _encodeData(const std::vector<std::uint8_t>& data);
-    std::vector<std::uint8_t> _extractData(const std::vector<std::uint8_t>& encoded_data);
+    void _encodeData(const static_vector<uint8_t>& data, static_vector<uint8_t>& encoded_data);
+    void _extractData(const static_vector<uint8_t>& encoded_data, static_vector<uint8_t>& data);
 
-    [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _readAndFixBlock(
-        int block_index);
+    [[nodiscard]] std::expected<void, FsError> _readAndFixBlock(int block_index, static_vector<uint8_t>& data);
 };
 
 /**

@@ -1,5 +1,6 @@
 #pragma once
 #include "common/ppfs_mutex.hpp"
+#include "common/static_vector.hpp"
 #include "filesystem/ifilesystem.hpp"
 #include "filesystem/open_files_table.hpp"
 
@@ -72,17 +73,17 @@ protected:
     [[nodiscard]] std::expected<void, FsError> _unprotectedClose(file_descriptor_t fd);
     [[nodiscard]] std::expected<void, FsError> _unprotectedRemove(
         std::string_view path, bool recursive = false);
-    [[nodiscard]] std::expected<std::vector<std::uint8_t>, FsError> _unprotectedRead(
-        file_descriptor_t fd, std::size_t bytes_to_read);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedRead(
+        file_descriptor_t fd, std::size_t bytes_to_read, static_vector<std::uint8_t>& data);
     [[nodiscard]] std::expected<size_t, FsError> _unprotectedWrite(
-        file_descriptor_t fd, std::vector<std::uint8_t> buffer);
+        file_descriptor_t fd, const static_vector<std::uint8_t>& buffer);
     [[nodiscard]] std::expected<void, FsError> _unprotectedSeek(
         file_descriptor_t fd, size_t position);
     [[nodiscard]] std::expected<void, FsError> _unprotectedCreateDirectory(std::string_view path);
-    [[nodiscard]] std::expected<std::vector<std::string>, FsError> _unprotectedReadDirectory(
-        std::string_view path);
-    [[nodiscard]] std::expected<std::vector<std::string>, FsError> _unprotectedReadDirectory(
-        file_descriptor_t fd, std::uint32_t elements = 0, std::uint32_t offset = 0);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedReadDirectory(
+        std::string_view path, static_vector<DirectoryEntry>& entries);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedReadDirectory(
+        file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries);
     [[nodiscard]] virtual std::expected<std::size_t, FsError> _unprotectedGetFileCount() const;
 
 public:
@@ -96,18 +97,18 @@ public:
     [[nodiscard]] virtual std::expected<void, FsError> close(file_descriptor_t fd) override;
     [[nodiscard]] virtual std::expected<void, FsError> remove(
         std::string_view path, bool recursive = false) override;
-    [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> read(
-        file_descriptor_t fd, std::size_t bytes_to_read) override;
+    [[nodiscard]] virtual std::expected<void, FsError> read(
+        file_descriptor_t fd, std::size_t bytes_to_read, static_vector<std::uint8_t>& data) override;
     [[nodiscard]] virtual std::expected<size_t, FsError> write(
-        file_descriptor_t fd, std::vector<std::uint8_t> buffer) override;
+        file_descriptor_t fd, const static_vector<std::uint8_t>& buffer) override;
     [[nodiscard]] virtual std::expected<void, FsError> seek(
         file_descriptor_t fd, size_t position) override;
     [[nodiscard]] virtual std::expected<void, FsError> createDirectory(
         std::string_view path) override;
-    [[nodiscard]] virtual std::expected<std::vector<std::string>, FsError> readDirectory(
-        std::string_view path) override;
-    [[nodiscard]] virtual std::expected<std::vector<std::string>, FsError> readDirectory(
-        file_descriptor_t fd, std::uint32_t elements = 0, std::uint32_t offset = 0) override;
+    [[nodiscard]] virtual std::expected<void, FsError> readDirectory(
+        std::string_view path, static_vector<DirectoryEntry>& entries) override;
+    [[nodiscard]] virtual std::expected<void, FsError> readDirectory(
+        file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries) override;
     virtual bool isInitialized() const override;
     [[nodiscard]] virtual std::expected<std::size_t, FsError> getFileCount() override;
 };

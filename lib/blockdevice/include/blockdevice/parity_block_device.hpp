@@ -1,6 +1,7 @@
 #pragma once
 
 #include "blockdevice/iblock_device.hpp"
+#include "common/static_vector.hpp"
 #include <memory>
 
 class Logger;
@@ -21,14 +22,15 @@ public:
      * If data corruption is detected, returns an error.
      */
     [[nodiscard]] virtual std::expected<size_t, FsError> writeBlock(
-        const std::vector<std::uint8_t>& data, DataLocation data_location) override;
+        const static_vector<std::uint8_t>& data, DataLocation data_location) override;
 
     /**
      * Reads data and verifies parity to detect bit flips.
      * If data corruption is detected, returns an error.
      */
-    [[nodiscard]] virtual std::expected<std::vector<std::uint8_t>, FsError> readBlock(
-        DataLocation data_location, size_t bytes_to_read) override;
+
+    [[nodiscard]] virtual std::expected<void, FsError> readBlock(
+        DataLocation data_location, size_t bytes_to_read, static_vector<uint8_t>& data) override;
 
     /** Formats a block (fills it with zeros and valid parity). */
     [[nodiscard]] virtual std::expected<void, FsError> formatBlock(
@@ -49,5 +51,5 @@ private:
     std::shared_ptr<Logger> _logger; /**< Optional logger for error detection. */
 
     /** Calculates overall parity of the block (used to detect bit flips). */
-    bool _checkParity(std::vector<std::uint8_t> data);
+    bool _checkParity(const static_vector<std::uint8_t>& data);
 };

@@ -1,10 +1,12 @@
 #pragma once
 
 #include "blockdevice/ecc_type.hpp"
+#include "common/static_vector.hpp"
 #include "disk/stack_disk.hpp"
 #include "filesystem/ppfs.hpp"
 #include "filesystem/types.hpp"
 #include "super_block_manager/super_block.hpp"
+#include <array>
 #include <cctype>
 #include <gtest/gtest.h>
 #include <memory>
@@ -75,7 +77,7 @@ inline void PrintTo(const TestConfig& config, std::ostream* os) { *os << config.
 
 class PpFSParametrizedTest : public ::testing::TestWithParam<TestConfig> {
 protected:
-    StackDisk disk;
+    StackDisk<> disk;
     std::unique_ptr<PpFS> fs;
     FsConfig config;
 
@@ -172,31 +174,33 @@ inline std::vector<TestConfig> generateTestConfigs()
 }
 
 // Error injection helper functions
-inline void injectBitFlip(StackDisk& disk, size_t byte_offset, uint8_t bit_mask)
+inline void injectBitFlip(StackDisk<>& disk, size_t byte_offset, uint8_t bit_mask)
 {
-    auto read_res = disk.read(byte_offset, 1);
+    std::array<uint8_t, 1> read_buf;
+    static_vector<uint8_t> bytes(read_buf.data(), read_buf.size());
+    auto read_res = disk.read(byte_offset, 1, bytes);
     ASSERT_TRUE(read_res.has_value());
 
-    auto bytes = read_res.value();
     bytes[0] ^= bit_mask;
 
     auto write_res = disk.write(byte_offset, bytes);
     ASSERT_TRUE(write_res.has_value());
 }
 
-inline void injectByteError(StackDisk& disk, size_t byte_offset, uint8_t corrupt_value)
+inline void injectByteError(StackDisk<>& disk, size_t byte_offset, uint8_t corrupt_value)
 {
-    auto read_res = disk.read(byte_offset, 1);
+    std::array<uint8_t, 1> read_buf;
+    static_vector<uint8_t> bytes(read_buf.data(), read_buf.size());
+    auto read_res = disk.read(byte_offset, 1, bytes);
     ASSERT_TRUE(read_res.has_value());
 
-    auto bytes = read_res.value();
     bytes[0] = corrupt_value;
 
     auto write_res = disk.write(byte_offset, bytes);
     ASSERT_TRUE(write_res.has_value());
 }
 
-inline void injectRandomBitFlip(StackDisk& disk, size_t start_offset, size_t end_offset)
+inline void injectRandomBitFlip(StackDisk<>& disk, size_t start_offset, size_t end_offset)
 {
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -207,7 +211,7 @@ inline void injectRandomBitFlip(StackDisk& disk, size_t start_offset, size_t end
     injectBitFlip(disk, byte_offset, bit_mask);
 }
 
-inline void injectRandomByteError(StackDisk& disk, size_t start_offset, size_t end_offset)
+inline void injectRandomByteError(StackDisk<>& disk, size_t start_offset, size_t end_offset)
 {
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -247,7 +251,7 @@ inline std::vector<uint8_t> createIncrementalPattern(size_t size)
 }
 
 // Helper to find data block region on disk
-inline size_t findDataBlockRegion(StackDisk& disk, const SuperBlock& sb)
+inline size_t findDataBlockRegion(StackDisk<>& disk, const SuperBlock& sb)
 {
     return sb.first_data_blocks_address * sb.block_size;
 }
