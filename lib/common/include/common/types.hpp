@@ -64,6 +64,9 @@ enum class FsError : uint8_t {
     // SuperBlock Manager errors
     SuperBlockManager_InvalidRequest,
 
+    // Static vector error
+    StaticVector_AllocationError,
+
     // Generic error
     NotImplemented,
 };
@@ -150,6 +153,9 @@ inline std::string_view toString(FsError err)
 
     case FsError::SuperBlockManager_InvalidRequest:
         return "SuperBlockManager_InvalidRequest";
+
+    case FsError::StaticVector_AllocationError:
+        return "StaticVector_AllocationError";
 
     case FsError::NotImplemented:
         return "NotImplemented";
