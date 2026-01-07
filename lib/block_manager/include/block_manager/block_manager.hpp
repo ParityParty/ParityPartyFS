@@ -7,6 +7,9 @@
 
 #include <optional>
 
+/**
+ * Manages allocation and deallocation of data blocks.
+ */
 class BlockManager : public IBlockManager {
     Bitmap _bitmap;
     block_index_t _data_blocks_start;

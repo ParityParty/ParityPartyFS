@@ -8,14 +8,21 @@
 #include <map>
 #include <string>
 
+/**
+ * Result status of an I/O operation.
+ */
 enum class IoOperationResult {
+    /** Operation completed successfully */
     Success,
-    // Read operation wasn't successful and method call returned an error
+    /** Operation failed and returned an error */
     ExplicitError,
-    // Read operation wasn't successful but no error has been reported
+    /** Operation failed but no error was reported */
     FalseSuccess,
 };
 
+/**
+ * Base interface for filesystem events.
+ */
 class IEvent {
 public:
     virtual ~IEvent() = default;
@@ -24,6 +31,9 @@ public:
     virtual std::string fileName() const = 0;
 };
 
+/**
+ * Event representing a read operation.
+ */
 struct ReadEvent : IEvent {
     size_t read_size;
     std::chrono::duration<long, std::micro> time;
@@ -36,6 +46,9 @@ struct ReadEvent : IEvent {
     std::string fileName() const override;
 };
 
+/**
+ * Event representing a write operation.
+ */
 struct WriteEvent : IEvent {
     size_t write_size;
     std::chrono::duration<long, std::micro> time;
@@ -49,6 +62,9 @@ struct WriteEvent : IEvent {
     std::string fileName() const override;
 };
 
+/**
+ * Event representing a bit flip in disk storage.
+ */
 struct BitFlipEvent : IEvent {
     size_t byte_index;
     BitFlipEvent(size_t byte_index);
@@ -57,6 +73,9 @@ struct BitFlipEvent : IEvent {
     std::string fileName() const override;
 };
 
+/**
+ * Event representing error detection and correction.
+ */
 struct ErrorCorrectionEvent : IEvent {
     ErrorCorrectionEvent(std::string ecc_type, block_index_t block_index);
     std::string ecc_type;
@@ -66,15 +85,38 @@ struct ErrorCorrectionEvent : IEvent {
     std::string fileName() const override;
 };
 
+/**
+ * Logger for recording filesystem events and errors.
+ */
 class Logger {
 public:
     enum class LogLevel : std::uint8_t { None, Error, Medium, All };
 
+    /**
+     * Constructs a Logger instance.
+     * @param log_level Minimum level of events to log.
+     * @param log_folder_path Directory where log files will be written.
+     */
     Logger(LogLevel log_level, const std::string& log_folder_path);
     ~Logger();
+    /**
+     * Advances to the next simulation step.
+     */
     void step();
+    /**
+     * Records a filesystem event.
+     * @param event The event to log.
+     */
     void logEvent(const IEvent& event);
+    /**
+     * Logs an error message.
+     * @param msg Error message to record.
+     */
     void logError(std::string_view msg);
+    /**
+     * Logs an informational message.
+     * @param msg Message to record.
+     */
     void logMsg(std::string_view msg);
 
 private:

@@ -1,6 +1,9 @@
 #pragma once
 #include "idisk.hpp"
 
+/**
+ * Heap-allocated disk implementation with dynamic memory allocation.
+ */
 class HeapDisk : public IDisk {
     std::uint8_t* _buffer;
     size_t _size;

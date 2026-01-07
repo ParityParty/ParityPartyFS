@@ -2,6 +2,10 @@
 
 #include "filesystem/ifilesystem_low_level.hpp"
 #include "filesystem/ppfs.hpp"
+
+/**
+ * Low-level filesystem interface implementation providing inode-based operations.
+ */
 class PpFSLowLevel : virtual public IFilesystemLowLevel, public PpFS {
 public:
     PpFSLowLevel(IDisk& disk);
@@ -15,8 +19,8 @@ public:
     [[nodiscard]] virtual std::expected<inode_index_t, FsError> lookup(
         inode_index_t parent_index, std::string_view name) override;
 
-    [[nodiscard]] virtual std::expected<void, FsError> getDirectoryEntries(
-        inode_index_t inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size) override;
+    [[nodiscard]] virtual std::expected<void, FsError> getDirectoryEntries(inode_index_t inode,
+        static_vector<DirectoryEntry>& buf, size_t offset, size_t size) override;
 
     [[nodiscard]] virtual std::expected<inode_index_t, FsError> createDirectoryByParent(
         inode_index_t parent, std::string_view name) override;
@@ -40,8 +44,8 @@ private:
     [[nodiscard]] std::expected<inode_index_t, FsError> _unprotectedLookup(
         inode_index_t parent_index, std::string_view name);
 
-    [[nodiscard]] std::expected<void, FsError>
-    _unprotectedGetDirectoryEntries(inode_index_t inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size);
+    [[nodiscard]] std::expected<void, FsError> _unprotectedGetDirectoryEntries(
+        inode_index_t inode, static_vector<DirectoryEntry>& buf, size_t offset, size_t size);
 
     [[nodiscard]] std::expected<inode_index_t, FsError> _unprotectedCreateDirectoryByParent(
         inode_index_t parent, std::string_view name);

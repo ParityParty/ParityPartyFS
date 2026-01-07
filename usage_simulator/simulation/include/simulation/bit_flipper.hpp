@@ -4,11 +4,20 @@
 
 #include <random>
 
+/**
+ * Interface for bit-flip simulation in disk storage.
+ */
 struct IBitFlipper {
     virtual ~IBitFlipper() = default;
+    /**
+     * Performs a simulation step, potentially introducing bit flips.
+     */
     virtual void step() = 0;
 };
 
+/**
+ * Simple implementation that randomly flips bits in disk storage.
+ */
 class SimpleBitFlipper final : public IBitFlipper {
     IDisk& _disk;
     float _flip_chance;
