@@ -56,7 +56,11 @@ std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
     if (!parity)
         raw_block[_raw_block_size - 1] ^= static_cast<std::uint8_t>(1);
 
-    return _disk.write(_raw_block_size * data_location.block_index, raw_block);
+    auto written = _disk.write(_raw_block_size * data_location.block_index, raw_block);
+    if (!written.has_value())
+        return std::unexpected(written.error());
+
+    return to_write;
 }
 
 std::expected<void, FsError> ParityBlockDevice::readBlock(
