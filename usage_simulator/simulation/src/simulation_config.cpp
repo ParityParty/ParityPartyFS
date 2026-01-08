@@ -48,8 +48,8 @@ SimulationConfig SimulationConfig::loadFromFile(const std::string& filepath)
             config.use_journal = (value == "true" || value == "1");
         }
         // Parse bit flipper config
-        else if (key == "bit_flip_probability") {
-            config.bit_flip_probability = std::stod(value);
+        else if (key == "krad_per_year") {
+            config.krad_per_year = std::stod(value);
         } else if (key == "bit_flip_seed") {
             config.bit_flip_seed = std::stoul(value);
         }
@@ -72,8 +72,10 @@ SimulationConfig SimulationConfig::loadFromFile(const std::string& filepath)
             config.user_behaviour.delete_weight = std::stoi(value);
         }
         // Parse simulation config
-        else if (key == "max_iterations") {
-            config.max_iterations = std::stoul(value);
+        else if (key == "simulation_seconds") {
+            config.simulation_seconds = std::stoi(value);
+        } else if (key == "seconds_per_step") {
+            config.second_per_step = std::stoul(value);
         } else if (key == "log_level") {
             config.log_level = value;
         }

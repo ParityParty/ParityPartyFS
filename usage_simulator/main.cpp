@@ -37,15 +37,17 @@ int main(int argc, char* argv[])
         std::cerr << "Failed to format disk" << std::endl;
         return 1;
     }
-    SimpleBitFlipper flipper(
-        disk, sim_config.bit_flip_probability, sim_config.bit_flip_seed, logger);
+
+    SimpleBitFlipper flipper(disk, sim_config.krad_per_year / 100, sim_config.bit_flip_seed,
+        logger); // Placeholder values
+
     std::vector<SingleDirMockUser> users;
     for (int i = 0; i < static_cast<int>(sim_config.num_users); i++) {
         auto dir = (std::stringstream() << "/user" << i).str();
         users.push_back(SingleDirMockUser(fs, logger, sim_config.user_behaviour, i, dir, i));
     }
     int iteration = 0;
-    const int MAX_ITERATIONS = sim_config.max_iterations;
+    const int MAX_ITERATIONS = sim_config.simulation_seconds / sim_config.second_per_step;
     auto on_completion = [&]() noexcept {
         logger->step();
         flipper.step();

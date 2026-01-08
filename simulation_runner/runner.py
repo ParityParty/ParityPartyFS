@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import matplotlib.dates as mdates
 import subprocess
 import sys
 import tempfile
@@ -10,11 +11,11 @@ from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 import pandas as pd
 
-SIMULATION_STEPS = 20000
+SIMULATION_STEPS = 200000
 
 COMMON_CONFIG = {
     "use_journal": "false",
-    "bit_flip_probability": "0.05",
+    "krad_per_year": "5.0",
     "bit_flip_seed": "1",
     "num_users": "10",
     "max_write_size": "65536",
@@ -24,7 +25,8 @@ COMMON_CONFIG = {
     "write_weight": "10",
     "read_weight": "9",
     "delete_weight": "2",
-    "max_iterations": str(SIMULATION_STEPS),
+    "simulation_seconds": str(SIMULATION_STEPS),
+    "seconds_per_step": "1"
 }
 
 CONFIGS = [
@@ -154,21 +156,26 @@ def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
 
     fig, ax = plt.subplots(figsize=(10, 5))
 
-    ax.plot(steps, successes.cumsum(),
+    times = pd.to_datetime(steps, unit='s')
+
+    ax.plot(times, successes.cumsum(),
             linewidth=2, color="green", alpha=0.8, label="Successful Reads")
 
-    ax.plot(steps, explicit_errors.cumsum(),
+    ax.plot(times, explicit_errors.cumsum(),
             linewidth=2, color="orange", alpha=0.8, label="Unsuccessful Reads")
 
-    ax.plot(steps, false_successes.cumsum(),
+    ax.plot(times, false_successes.cumsum(),
             linewidth=2, color="red", alpha=0.8, label="False successes")
 
-    ax.plot(steps, corrections.cumsum(),
+    ax.plot(times, corrections.cumsum(),
             linewidth=2, color="lightblue", alpha=0.8, label="Corrections")
 
-    ax.set_xlabel("Simulation Step")
+    ax.set_xlabel("Time")
     ax.set_ylabel("Count")
     ax.set_title(f"Read Operations and Corrections Over Time ({config_name})")
+
+    my_fmt = mdates.DateFormatter('%H:%M:%S')
+    plt.gca().xaxis.set_major_formatter(my_fmt)
     ax.grid(True, alpha=0.3)
     ax.legend()
 
