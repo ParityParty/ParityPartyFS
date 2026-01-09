@@ -5,18 +5,19 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+import shutil
 from typing import Iterable
 from joblib import Parallel, delayed
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
-SIMULATION_STEPS = 200000
+SIMULATION_STEPS = 100000
 
 COMMON_CONFIG = {
     "use_journal": "false",
     "krad_per_year": "5.0",
-    "bit_flip_seed": "1",
+    "bit_flip_seed": "67",
     "num_users": "10",
     "max_write_size": "65536",
     "max_read_size": "65536",
@@ -30,6 +31,24 @@ COMMON_CONFIG = {
 }
 
 CONFIGS = [
+    {
+        "name": "Crc256",
+        "block_size": "256",
+        "ecc_type": "Crc",
+        "rs_correctable_bytes": "2",
+    } | COMMON_CONFIG,
+    {
+        "name": "None256",
+        "block_size": "256",
+        "ecc_type": "None",
+        "rs_correctable_bytes": "2",
+    } | COMMON_CONFIG,
+    {
+        "name": "Hamming256",
+        "block_size": "256",
+        "ecc_type": "Hamming",
+        "rs_correctable_bytes": "2",
+    } | COMMON_CONFIG,
     {
         "name": "Crc1024",
         "block_size": "1024",
@@ -112,11 +131,14 @@ def _read_csv(path: Path) -> pd.DataFrame:
     """Read a CSV file or return empty DataFrame if it doesn't exist."""
     if not path.exists():
         return pd.DataFrame()
+    # Strict parse: rely on _validate_read_write_csv to catch malformed rows beforehand.
     return pd.read_csv(path)
 
 
 def load_logs(logs_dir: Path) -> dict[str, pd.DataFrame]:
     """Load all log CSVs from the logs directory."""
+    # Validate structure of read/write CSVs before pandas parsing to catch real data issues.
+    _validate_read_write_csv(logs_dir)
     return {
         "read": _read_csv(logs_dir / "read.csv"),
         "write": _read_csv(logs_dir / "write.csv"),
@@ -125,6 +147,47 @@ def load_logs(logs_dir: Path) -> dict[str, pd.DataFrame]:
         "detection": _read_csv(logs_dir / "detection.csv"),
         "error": _read_csv(logs_dir / "error.csv"),
     }
+
+
+def _validate_read_write_csv(logs_dir: Path) -> None:
+    """Detect malformed lines in read.csv and write.csv (should have 4 fields).
+
+    Raises a ValueError with details on the first few offending lines so the root cause is visible.
+    """
+
+    def _find_bad_lines(path: Path, expected_fields: int = 4, max_report: int = 5):
+        bad = []
+        if not path.exists():
+            return bad
+        with path.open("r", encoding="utf-8", errors="replace") as f:
+            for i, line in enumerate(f, start=1):
+                if i == 1:
+                    # header line: trust it defines expected fields
+                    continue
+                # Fast check: split on ',' (no quoting is expected in these files)
+                fields = line.rstrip("\n\r").split(",")
+                if len(fields) != expected_fields:
+                    bad.append((i, len(fields), line.rstrip("\n\r")))
+                    if len(bad) >= max_report:
+                        break
+        return bad
+
+    issues = {}
+    for name in ("read.csv", "write.csv"):
+        path = logs_dir / name
+        bad = _find_bad_lines(path)
+        if bad:
+            issues[name] = bad
+
+    if issues:
+        details = []
+        for name, bad in issues.items():
+            details.append(f"File: {name}")
+            for line_no, seen, content in bad:
+                details.append(f"  Line {line_no}: expected 4 fields, saw {seen} -> {content}")
+        raise ValueError(
+            "Malformed CSV rows detected before parsing.\n" + "\n".join(details)
+        )
 
 
 def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
@@ -196,18 +259,39 @@ def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
     plt.close(fig)
 
 
-def generate_plots(logs_dir: Path, config_name: str, plots_dir: Path) -> None:
+def generate_plots(logs_dir: Path, config_name: str, plots_dir: Path) -> tuple[float | None, float | None]:
     """Load logs and generate all plots for a configuration."""
     data = load_logs(logs_dir)
 
     # Generate read status plot with corrections
     plot_read_status_trend(data["read"], data["error"], data["detection"], data["correction"],
                            config_name, plots_dir / f"{config_name}_read_status_trend.png")
+    avg_read_time = calculate_avg_time(data["read"])
+    avg_write_time = calculate_avg_time(data["write"])
 
     print(f"  Generated plots for {config_name}")
+    return avg_read_time, avg_write_time
 
 
-def run_simulation(config: dict[str, str], binary: Path, plots_dir: Path) -> None:
+def calculate_avg_time(df: pd.DataFrame) -> float | None:
+    if "time" not in df or "size" not in df:
+        return None
+    filtered = df
+    if "result" in df:
+        filtered = df[df["result"] == "success"]
+
+    # Filter out rows with invalid time or size
+    filtered = filtered[(filtered["time"] > 0) & (filtered["size"] > 0)]
+
+    if len(filtered) == 0:
+        return None
+
+    # Calculate time per byte for each operation, then average
+    time_per_byte = filtered["time"] / filtered["size"]
+    return float(time_per_byte.mean())
+
+
+def run_simulation(config: dict[str, str], binary: Path, plots_dir: Path) -> tuple[str, float | None, float | None]:
     """Run simulator with config, generate plots, clean up logs."""
     config_name = config["name"]
     print(f"\n{'=' * 60}")
@@ -221,17 +305,57 @@ def run_simulation(config: dict[str, str], binary: Path, plots_dir: Path) -> Non
         logs_dir.mkdir()
 
         run_simulator(binary, config_file, logs_dir)
-        generate_plots(logs_dir, config_name, plots_dir)
+        try:
+            avg_read_time, avg_write_time = generate_plots(logs_dir, config_name, plots_dir)
+        except Exception:
+            # Preserve logs for debugging on failure
+            dest_root = Path("logs")
+            dest_root.mkdir(exist_ok=True)
+            dest = dest_root / f"failed_{config_name}"
+            # Ensure unique destination
+            idx = 1
+            tmp_dest = dest
+            while tmp_dest.exists():
+                idx += 1
+                tmp_dest = Path(f"{dest}_{idx}")
+            shutil.copytree(logs_dir, tmp_dest)
+            print(f"  Preserved failing logs at: {tmp_dest}", file=sys.stderr)
+            raise
         # logs_dir is automatically deleted when temp_dir context exits
 
     print(f"  Cleaned up temporary logs")
+    return config_name, avg_read_time, avg_write_time
 
 
 def run_single_config(config, binary, plots_dir):
     try:
-        run_simulation(config, binary, plots_dir)
+        return run_simulation(config, binary, plots_dir)
     except Exception as e:
         print(f"Error running {config['name']}: {e}", file=sys.stderr)
+        return None
+
+
+def plot_avg_times(avg_times: dict[str, float], out: Path, title: str) -> None:
+    if not avg_times:
+        print(f"No data for {title}; skipping plot.")
+        return
+
+    labels = list(avg_times.keys())
+    values = list(avg_times.values())
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.bar(labels, values)
+    ax.set_xlabel("Error correction")
+    ax.set_ylabel("Average time per byte (microseconds)")
+    ax.set_title(title)
+
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(25)
+        tick.set_ha("right")
+
+    fig.tight_layout()
+    fig.savefig(out, dpi=100)
+    plt.close(fig)
 
 
 def main() -> int:
@@ -249,7 +373,25 @@ def main() -> int:
     plots_dir.mkdir(exist_ok=True)
     print(f"Plots will be saved to: {plots_dir.absolute()}\n")
 
-    Parallel(n_jobs=-1)(delayed(run_single_config)(config, binary, plots_dir) for config in CONFIGS)
+    results = Parallel(n_jobs=-1)(
+        delayed(run_single_config)(config, binary, plots_dir)
+        for config in CONFIGS
+    )
+
+    read_avg_times: dict[str, float] = {}
+    write_avg_times: dict[str, float] = {}
+
+    for result in results:
+        if result is None:
+            continue
+        name, avg_read, avg_write = result
+        if avg_read is not None:
+            read_avg_times[name] = avg_read
+        if avg_write is not None:
+            write_avg_times[name] = avg_write
+
+    plot_avg_times(read_avg_times, plots_dir / "avg_read_times.png", "Average read operation time")
+    plot_avg_times(write_avg_times, plots_dir / "avg_write_times.png", "Average write operation time")
 
     print(f"\n{'=' * 60}")
     print(f"All done! Plots saved to {plots_dir.absolute()}")

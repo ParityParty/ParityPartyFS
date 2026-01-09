@@ -1,4 +1,5 @@
 #pragma once
+#include "common/ppfs_mutex.hpp"
 #include "common/types.hpp"
 
 #include <chrono>
@@ -124,4 +125,5 @@ private:
     LogLevel _log_level;
     std::string _log_folder_path;
     std::map<std::string, std::ofstream> _files;
+    mutable PpFSMutex _mtx;
 };

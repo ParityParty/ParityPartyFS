@@ -127,6 +127,7 @@ Logger::Logger(const LogLevel log_level, const std::string& log_folder_path)
     : _log_level(log_level)
     , _log_folder_path(log_folder_path)
 {
+    (void)_mtx.init();
     _files["read"] = std::ofstream(_log_folder_path + "/read.csv", std::ios::out);
     _files["read"] << "step,size,time,result" << std::endl;
     _files["write"] = std::ofstream(_log_folder_path + "/write.csv");
@@ -148,33 +149,46 @@ Logger::~Logger()
     }
 }
 
-void Logger::step() { _step++; }
+void Logger::step()
+{
+    (void)_mtx.lock();
+    _step++;
+    (void)_mtx.unlock();
+}
 
 void Logger::logEvent(const IEvent& event)
 {
+    (void)_mtx.lock();
     _files[event.fileName()] << _step << "," << event.toCsv() << std::endl;
     if (_log_level == LogLevel::None || _log_level == LogLevel::Error) {
+        (void)_mtx.unlock();
         return;
     }
     std::cout << "[INFO ][" << std::setw(6) << std::setfill('0') << _step << "] "
               << event.prettyPrint() << std::endl;
+    (void)_mtx.unlock();
 }
 
 void Logger::logError(std::string_view msg)
 {
+    (void)_mtx.lock();
     _files["error"] << _step << "," << msg << std::endl;
 
     if (_log_level == LogLevel::None) {
+        (void)_mtx.unlock();
         return;
     }
     std::cerr << "[ERROR][" << std::setw(6) << std::setfill('0') << _step << "] " << msg
               << std::endl;
+    (void)_mtx.unlock();
 }
 
 void Logger::logMsg(std::string_view msg)
 {
+    (void)_mtx.lock();
     if (_log_level == LogLevel::All) {
         std::cout << "[INFO ][" << std::setw(6) << std::setfill('0') << _step << "] " << msg
                   << std::endl;
     }
+    (void)_mtx.unlock();
 }
