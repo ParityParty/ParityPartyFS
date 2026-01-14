@@ -1,0 +1,6 @@
+total_size = 4194304
+average_file_size = 256
+block_size = 128
+ecc_type = crc
+crc_polynomial = 0x9960034c
+use_journal = false
