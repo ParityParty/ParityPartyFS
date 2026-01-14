@@ -1,6 +1,6 @@
 # ParityPartyFS (ppfs)
 
-A toy filesystem implemented with **FUSE** and **C++23**, built using [Fusepp](https://github.com/jachappell/Fusepp).
+A filesystem implemented with **FUSE** and **C++23**, built using [Fusepp](https://github.com/jachappell/Fusepp).
 
 ## 📦 Dependencies
 
@@ -27,20 +27,68 @@ Other presets you can use:
 - `freertos_debug`
 - `freertos_release`
 
-## ▶️ Run the filesystem
+## Building and Running PPFS
 
-After building, you’ll find the binary at:
+After building the project, you’ll find **two binaries**:
+
+1. **`mkfs_ppfs`** – used for creating and formatting a filesystem image.  
+2. **`mount_ppfs`** – used for mounting an existing filesystem image via FUSE.
+
+Both binaries are located in:
 
 ```
-build/debug/exec/ppfs_bin
+./build/debug/fuse_exec/
 ```
 
-To mount it:
+---
+
+### Creating a filesystem image
+
+To create a new filesystem image, run:
 
 ```bash
-mkdir mnt
-./build/debug/exec/ppfs_bin mnt
+./build/debug/fuse_exec/mkfs_ppfs <config_file> <disk_file>
+````
+
+* `<disk_file>` – path to the image file that will store the filesystem (created if it doesn’t exist).
+* `<config_file>` – path to a configuration file specifying filesystem parameters.
+
+The example configuration file is available at:
+
 ```
+fuse_exec/example_config.txt
+```
+
+Example:
+
+```bash
+./build/debug/fuse_exec/mkfs_ppfs ppfs.img fuse_exec/example_config.txt
+```
+
+---
+
+
+### Mounting a filesystem
+
+To mount an existing filesystem image, run:
+
+```bash
+./build/debug/fuse_exec/mount_ppfs <disk_file> <mount_point> [-- fuse_options]
+```
+
+* `<disk_file>` – path to the filesystem image to mount.
+* `<mount_point>` – path to an **existing, empty directory** that will serve as the mount point.
+* `fuse_options` – optional FUSE parameters (for example `-f` for foreground or `-d` for debug logs). Must be passed **after `--`**.
+
+Example:
+
+```bash
+mkdir -p mnt
+./build/debug/fuse_exec/mount_ppfs ppfs.img mnt -- -f -d
+```
+---
+
+### Using the filesystem
 
 Now you can add files to mnt
 

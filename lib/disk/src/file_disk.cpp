@@ -1,37 +1,54 @@
 #include "disk/file_disk.hpp"
 
-#include <cerrno>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-FileDisk::FileDisk(const char* path, size_t size)
-    : _size(size)
-{
-    _fd = ::open(path, O_RDWR | O_CREAT, 0644);
-    if (_fd < 0) {
-        std::abort();
-    }
-
-    struct stat st {};
-    if (::fstat(_fd, &st) != 0) {
-        std::abort();
-    }
-
-    if (static_cast<size_t>(st.st_size) < _size) {
-        if (::ftruncate(_fd, static_cast<off_t>(_size)) != 0) {
-            std::abort();
-        }
-    }
-}
+FileDisk::FileDisk() = default;
 
 FileDisk::~FileDisk()
 {
-    if (_fd >= 0) {
-        ::close(_fd);
+    if (_file.is_open()) {
+        _file.close();
     }
+}
+
+std::expected<void, FsError> FileDisk::open(std::string_view path)
+{
+    if (_file.is_open()) {
+        _file.close();
+    }
+
+    _file.open(path.data(), std::ios::binary | std::ios::in | std::ios::out);
+
+    if (!_file.is_open()) {
+        return std::unexpected(FsError::Disk_IOError);
+    }
+
+    _file.seekg(0, std::ios::end);
+    _size = static_cast<size_t>(_file.tellg());
+    _file.seekg(0, std::ios::beg);
+
+    return {};
+}
+
+std::expected<void, FsError> FileDisk::create(std::string_view path, size_t size)
+{
+    if (_file.is_open())
+        return std::unexpected(FsError::Disk_InvalidRequest);
+
+    std::ofstream ofs(path.data(), std::ios::binary | std::ios::trunc);
+    if (!ofs.is_open()) {
+        return std::unexpected(FsError::Disk_IOError);
+    }
+
+    if (size > 0) {
+        ofs.seekp(size - 1);
+        ofs.put(0);
+    }
+
+    ofs.close();
+    return open(path);
 }
 
 size_t FileDisk::size() { return _size; }
@@ -39,6 +56,10 @@ size_t FileDisk::size() { return _size; }
 std::expected<void, FsError> FileDisk::read(
     size_t address, size_t size, static_vector<uint8_t>& data)
 {
+    if (!_file.is_open()) {
+        return std::unexpected(FsError::Disk_IOError);
+    }
+
     if (address + size > _size) {
         return std::unexpected(FsError::Disk_OutOfBounds);
     }
@@ -49,10 +70,11 @@ std::expected<void, FsError> FileDisk::read(
 
     data.resize(size);
 
-    ssize_t r = ::pread(_fd, data.data(), size, static_cast<off_t>(address));
+    _file.seekg(address, std::ios::beg);
+    _file.read(reinterpret_cast<char*>(data.data()), size);
 
-    if (r != static_cast<ssize_t>(size)) {
-        return std::unexpected(FsError::Disk_InvalidRequest);
+    if (!_file.good()) {
+        return std::unexpected(FsError::Disk_IOError);
     }
 
     return {};
@@ -60,14 +82,19 @@ std::expected<void, FsError> FileDisk::read(
 
 std::expected<size_t, FsError> FileDisk::write(size_t address, const static_vector<uint8_t>& data)
 {
+    if (!_file.is_open()) {
+        return std::unexpected(FsError::Disk_IOError);
+    }
+
     if (address + data.size() > _size) {
         return std::unexpected(FsError::Disk_OutOfBounds);
     }
 
-    ssize_t w = ::pwrite(_fd, data.data(), data.size(), static_cast<off_t>(address));
+    _file.seekp(address, std::ios::beg);
+    _file.write(reinterpret_cast<const char*>(data.data()), data.size());
 
-    if (w != static_cast<ssize_t>(data.size())) {
-        return std::unexpected(FsError::Disk_InvalidRequest);
+    if (!_file.good()) {
+        return std::unexpected(FsError::Disk_IOError);
     }
 
     return data.size();
