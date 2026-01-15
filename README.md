@@ -32,7 +32,7 @@ Other presets you can use:
 After building the project, you’ll find two binaries:
 
 1. **`mkfs_ppfs`** – used for creating and formatting a filesystem image.  
-2. **`mount_ppfs`** – used for mounting an existing filesystem image via FUSE.
+2. **`  s`** – used for mounting an existing filesystem image via FUSE.
 
 Both binaries are located in:
 
@@ -136,7 +136,7 @@ Some fields are required only for specific `ecc_type` values.
 #### `crc_polynomial`
 - **Type:** `unsigned long int`
 - **Required when:** `ecc_type = crc`
-- **Description:** Polynomial used for CRC error detection
+- **Description:** Polynomial used for CRC error detection. Each bit represents a coefficient in CRC polynomial, with the most significant bit corresponding to the highest degree. The constant term (`+1`) is implicit and is not encoded in this value.
 - **Format:** Decimal or hexadecimal (`0x` prefix supported)
 - **Examples:**
 ```

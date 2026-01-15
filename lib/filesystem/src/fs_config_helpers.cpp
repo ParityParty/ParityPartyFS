@@ -34,7 +34,6 @@ std::expected<FsConfig, FsError> load_fs_config(std::string_view path)
         if (comment_pos != std::string::npos) {
             line = line.substr(0, comment_pos);
         }
-        // Możesz powtórzyć dla "//"
         size_t slash_pos = line.find("//");
         if (slash_pos != std::string::npos) {
             line = line.substr(0, slash_pos);
