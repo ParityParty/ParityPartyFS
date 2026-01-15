@@ -3,6 +3,9 @@
 #include "inode_manager/iinode_manager.hpp"
 #include "super_block_manager/super_block.hpp"
 
+/**
+ * Manages inode allocation, deallocation, and storage.
+ */
 class InodeManager : public IInodeManager {
     IBlockDevice& _block_device;
     SuperBlock& _superblock;

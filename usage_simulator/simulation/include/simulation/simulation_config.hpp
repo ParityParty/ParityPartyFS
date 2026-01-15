@@ -12,7 +12,7 @@ struct SimulationConfig {
     bool use_journal = false;
 
     // Bit flipper configuration
-    double bit_flip_probability = 0.01;
+    double krad_per_year = 5;
     uint32_t bit_flip_seed = 1;
 
     // Mock user configuration
@@ -20,7 +20,8 @@ struct SimulationConfig {
     UserBehaviour user_behaviour; // Now uses UserBehaviour with weights
 
     // Simulation configuration
-    uint32_t max_iterations = 10000;
+    uint32_t simulation_seconds = 10000;
+    uint32_t second_per_step = 1;
     std::string log_level = "Medium";
 
     /**

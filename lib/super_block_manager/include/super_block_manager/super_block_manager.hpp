@@ -1,7 +1,7 @@
 #pragma once
+#include "common/static_vector.hpp"
 #include "disk/idisk.hpp"
 #include "super_block_manager/isuper_block_manager.hpp"
-#include "common/static_vector.hpp"
 
 #include <optional>
 

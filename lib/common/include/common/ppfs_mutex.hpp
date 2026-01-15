@@ -11,6 +11,9 @@
 #    include <pthread.h>
 #endif
 
+/**
+ * Cross-platform mutex supporting both FreeRTOS and pthread.
+ */
 class PpFSMutex {
 public:
     PpFSMutex()
@@ -41,7 +44,7 @@ public:
 #endif
 
         _is_initialized = true;
-        return { };
+        return {};
     }
 
     [[nodiscard]] std::expected<void, FsError> deinit()
@@ -62,7 +65,7 @@ public:
 #endif
 
         _is_initialized = false;
-        return { };
+        return {};
     }
 
     [[nodiscard]] std::expected<void, FsError> lock()
@@ -80,7 +83,7 @@ public:
             return std::unexpected(FsError::Mutex_LockFailed);
         }
 #endif
-        return { };
+        return {};
     }
 
     [[nodiscard]] std::expected<void, FsError> unlock()
@@ -98,7 +101,7 @@ public:
             return std::unexpected(FsError::Mutex_UnlockFailed);
         }
 #endif
-        return { };
+        return {};
     }
 
     bool isInitialized() const { return _is_initialized; }

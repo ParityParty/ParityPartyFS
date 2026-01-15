@@ -7,6 +7,10 @@
 
 static constexpr size_t DEFAULT_STACK_DISK_POWER = 22;
 
+/**
+ * Stack-allocated disk implementation with fixed size determined at compile-time.
+ * @tparam power Power of 2 determining disk size (2^power bytes). Default is 2^22 = 4MB.
+ */
 template <size_t power = DEFAULT_STACK_DISK_POWER> class StackDisk : public IDisk {
     static constexpr size_t _size = 1 << power;
     std::uint8_t _data[_size] = {};

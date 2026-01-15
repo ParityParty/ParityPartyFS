@@ -246,5 +246,15 @@ There is a configuration file allowing to modify simulation parameters. Example 
 `usage_simulator/simulation_config.txt`
 
 ```bash
-./build/release/usage_simulator/usage_simulator <path_to_config_file>
+./build/release/usage_simulator/usage_simulator <path_to_config_file> <logs_directory>
+```
+
+There is also python simulation runner. Simulation runner creates simulation scenarios defined in the script
+and runs them in parallel. Then it saves useful plots to `plots/` directory
+To run it:
+
+1. build program
+2. ```bash
+   ./.venv/bin/python3 ./simulation_runner/runner.py
+
 ```

@@ -6,12 +6,19 @@
 #include <expected>
 #include <optional>
 
+/**
+ * Represents an open file with its inode, current position, and access mode.
+ */
 struct OpenFile {
     inode_index_t inode;
     std::size_t position;
     OpenMode mode;
 };
 
+/**
+ * Table managing open files with concurrent access handling.
+ * @tparam MAX Maximum number of simultaneously open files.
+ */
 template <std::size_t MAX> class OpenFilesTable {
     std::array<std::optional<OpenFile>, MAX> _table;
 

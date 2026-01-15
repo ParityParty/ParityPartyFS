@@ -43,9 +43,6 @@ std::expected<size_t, FsError> ParityBlockDevice::writeBlock(
 
     bool parity = _checkParity(raw_block);
     if (!parity) {
-        if (_logger) {
-            _logger->logEvent(ErrorDetectionEvent("Parity", data_location.block_index));
-        }
         return std::unexpected(FsError::BlockDevice_CorrectionError);
     }
 
@@ -78,9 +75,6 @@ std::expected<void, FsError> ParityBlockDevice::readBlock(
 
     bool parity = _checkParity(raw_block);
     if (!parity) {
-        if (_logger) {
-            _logger->logEvent(ErrorDetectionEvent("Parity", data_location.block_index));
-        }
         return std::unexpected(FsError::BlockDevice_CorrectionError);
     }
 

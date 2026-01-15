@@ -194,7 +194,9 @@ BlockIndexIterator::BlockIndexIterator(size_t index, Inode& inode, IBlockDevice&
     , _index_block_3(_index_block_3_buffer.data(), MAX_BLOCK_SIZE / sizeof(block_index_t))
     , _should_resize(should_resize)
 {
-    _occupied_blocks = (inode.file_size + block_device.dataSize() - 1) / _block_device.dataSize();
+    _occupied_blocks = _inode.file_size % _block_device.dataSize() == 0
+        ? _inode.file_size / _block_device.dataSize()
+        : _inode.file_size / _block_device.dataSize() + 1;
 }
 
 std::expected<block_index_t, FsError>
@@ -229,7 +231,7 @@ BlockIndexIterator::nextWithIndirectBlocksAdded(static_vector<block_index_t>& in
     auto index_in_segment = _index - 12;
     // first block in indirect segment
     if (index_in_segment == 0 || (index_in_segment < indexes_per_block && _index_block_1.empty())) {
-        if (index_in_segment != 0 || index_in_segment < _occupied_blocks) {
+        if (index_in_segment != 0 || index_in_segment + 12 < _occupied_blocks) {
             // if indirect block already exists, read it
             auto read_res = _readIndexBlock(_inode.indirect_block, _index_block_1);
             if (!read_res.has_value()) {

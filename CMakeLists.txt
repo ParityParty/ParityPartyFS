@@ -20,6 +20,7 @@ add_subdirectory(lib)
 add_subdirectory(unit_tests)
 add_subdirectory(performance_tests)
 add_subdirectory(usage_simulator)
+add_subdirectory(simulation_runner)
 
 if (NOT ENABLE_FREERTOS)
 add_subdirectory(fuse_exec)

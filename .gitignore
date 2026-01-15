@@ -1,3 +1,5 @@
-build/*
-.vscode/*
-.idea
+/build/
+/.vscode/
+/.idea/
+/plots/
+/.venv/
