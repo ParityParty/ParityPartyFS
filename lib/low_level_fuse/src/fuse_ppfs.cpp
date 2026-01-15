@@ -396,7 +396,6 @@ std::expected<void, FsError> FusePpFS::_get_stats(fuse_ino_t ino, struct stat* s
 
 int FusePpFS::_map_fs_error_to_errno(FsError err)
 {
-    std::cout << "Got FsError: " << toString(err) << "\n";
     switch (err) {
     case FsError::Bitmap_NotFound:
     case FsError::DirectoryManager_NotFound:

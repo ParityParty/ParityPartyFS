@@ -29,7 +29,7 @@ Other presets you can use:
 
 ## Building and Running PPFS with FUSE
 
-After building the project, you’ll find **two binaries**:
+After building the project, you’ll find two binaries:
 
 1. **`mkfs_ppfs`** – used for creating and formatting a filesystem image.  
 2. **`mount_ppfs`** – used for mounting an existing filesystem image via FUSE.
@@ -131,7 +131,7 @@ ecc_type = crc
 
 ### Conditionally required fields
 
-Some fields are required **only for specific `ecc_type` values**.
+Some fields are required only for specific `ecc_type` values.
 
 #### `crc_polynomial`
 - **Type:** `unsigned long int`
