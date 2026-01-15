@@ -13,7 +13,7 @@
  *
  * `static_vector` is a template container that provides vector-like functionality
  * with a fixed capacity determined at construction or initialization time.
- * It stores elements in pre-allocated buffer memory (provided by the user or default),
+ * It stores elements in pre-allocated buffer memory provided by the user,
  * making it suitable for embedded or real-time systems where dynamic allocation is undesirable.
  *
  * @tparam T The type of elements stored in the vector. Must be trivially copyable.
