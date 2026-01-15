@@ -1,0 +1,16 @@
+# Example FsConfig file
+# Lines starting with '#' or '//' are ignored
+
+# ---------------- numeric fields ----------------
+total_size = 4194304            # uint64_t: total size of filesystem in bytes, must be a multiple of block_size
+average_file_size = 256         # uint64_t: expected average file size in bytes
+block_size = 128                # uint32_t: block size in bytes (must be a power of two)
+rs_correctable_bytes = 3        # uint32_t: required if ecc_type=reed_solomon
+
+crc_polynomial = 0x9960034c     # unsigned long int: required if ecc_type=crc, can be decimal or hexadecimal (0x...)
+
+# ---------------- boolean fields ----------------
+use_journal = false             # bool: enable journaling (true or false, default: false)
+
+# ---------------- enum fields ----------------
+ecc_type = crc                  # ECCType: none | crc | reed_solomon | parity | hamming

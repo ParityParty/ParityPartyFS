@@ -13,6 +13,7 @@ add_executable(${NAME}
         test_ppfs.cpp
         # test_ppfs_fat.cpp  Commented out because PpFS classes collide
         test_stack_disk.cpp
+        test_file_disk.cpp
         test_hamming_block_device.cpp
         test_parity_block_device.cpp
         test_bitmap.cpp
@@ -34,6 +35,7 @@ add_executable(${NAME}
         test_ppfs_parametrized_crc.cpp
         test_ppfs_parametrized_none.cpp
         test_ppfs_parametrized_reed_solomon.cpp
+        test_fs_config_helpers.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC

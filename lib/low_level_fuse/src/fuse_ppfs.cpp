@@ -124,16 +124,14 @@ void FusePpFS::readdir(
     }
 
     inode_index_t ppfs_inode = ino - 1;
-    
 
-    
     DirectoryEntry* entries_buffer = new (std::nothrow) DirectoryEntry[size];
     if (!entries_buffer) {
         free(buf);
         fuse_reply_err(req, ENOMEM);
         return;
     }
-    
+
     static_vector<DirectoryEntry> entries(entries_buffer, size);
     auto entries_res = ptr->_ppfs.getDirectoryEntries(ppfs_inode, entries, off, size);
     HANDLE_EXPECTED_ERROR(req, entries_res);
@@ -233,19 +231,19 @@ void FusePpFS::write(fuse_req_t req, fuse_ino_t ino, const char* buf, size_t siz
         auto seek_res = ptr->_ppfs.seek(fi->fh, off);
         HANDLE_EXPECTED_ERROR(req, seek_res);
     }
-    
+
     uint8_t* write_buffer = new (std::nothrow) uint8_t[size];
     if (!write_buffer) {
         fuse_reply_err(req, ENOMEM);
         return;
     }
-    
+
     std::memcpy(write_buffer, buf, size);
     static_vector<uint8_t> to_write(write_buffer, size, size);
     auto write_res = ptr->_ppfs.write(fi->fh, to_write);
-    
+
     delete[] write_buffer;
-    
+
     HANDLE_EXPECTED_ERROR(req, write_res);
 
     fuse_reply_write(req, write_res.value());
@@ -264,13 +262,13 @@ void FusePpFS::read(
         fuse_reply_err(req, ENOMEM);
         return;
     }
-    
+
     static_vector<uint8_t> read_data(read_buffer, size);
     auto read_res = ptr->_ppfs.read(fi->fh, size, read_data);
-    
+
     size_t bytes_read = read_data.size();
     fuse_reply_buf(req, reinterpret_cast<const char*>(read_data.data()), bytes_read);
-    
+
     delete[] read_buffer;
 }
 

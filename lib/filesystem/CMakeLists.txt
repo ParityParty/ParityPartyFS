@@ -7,6 +7,12 @@ target_sources(${NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ppfs_low_level.cpp
 )
 
+if (NOT ENABLE_FREERTOS)
+    target_sources(${NAME} PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/fs_config_helpers.cpp
+    )
+endif()
+
 target_include_directories(${NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

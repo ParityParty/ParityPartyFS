@@ -29,6 +29,7 @@ enum class FsError : uint8_t {
     // Disk errors
     Disk_OutOfBounds,
     Disk_InvalidRequest,
+    Disk_IOError,
 
     // FileIO errors
     FileIO_OutOfBounds,
@@ -69,6 +70,13 @@ enum class FsError : uint8_t {
 
     // Generic error
     NotImplemented,
+
+    // Configuration error
+    Config_IOError,
+    Config_SyntaxError,
+    Config_InvalidValue,
+    Config_MissingField,
+    Config_UnknownKey
 };
 
 inline std::string_view toString(FsError err)
@@ -100,6 +108,8 @@ inline std::string_view toString(FsError err)
         return "Disk_OutOfBounds";
     case FsError::Disk_InvalidRequest:
         return "Disk_InvalidRequest";
+    case FsError::Disk_IOError:
+        return "Disk_IOError";
 
     case FsError::FileIO_OutOfBounds:
         return "FileIO_OutOfBounds";
@@ -156,6 +166,17 @@ inline std::string_view toString(FsError err)
 
     case FsError::StaticVector_AllocationError:
         return "StaticVector_AllocationError";
+
+    case FsError::Config_IOError:
+        return "Config_IOError";
+    case FsError::Config_SyntaxError:
+        return "Config_SyntaxError";
+    case FsError::Config_InvalidValue:
+        return "Config_InvalidValue";
+    case FsError::Config_MissingField:
+        return "Config_MissingField";
+    case FsError::Config_UnknownKey:
+        return "Config_UnknownKey";
 
     case FsError::NotImplemented:
         return "NotImplemented";
