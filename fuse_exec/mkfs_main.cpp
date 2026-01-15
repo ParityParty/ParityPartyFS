@@ -13,8 +13,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    std::string_view config_path = argv[1];
-    std::string_view disk_image_path = argv[2];
+    std::string_view disk_image_path = argv[1];
+    std::string_view config_path = argv[2];
 
     auto cfg_res = load_fs_config(config_path);
     if (!cfg_res.has_value()) {

@@ -111,10 +111,10 @@ void print_fs_config_usage(std::ostream& os)
           "# Lines starting with '#' or '//' are ignored\n\n"
 
           "# ---------------- numeric fields ----------------\n"
-          "total_size = 1048576            # uint64_t: total size of filesystem in bytes, must be "
+          "total_size = 4194304            # uint64_t: total size of filesystem in bytes, must be "
           "a multiple of block_size\n"
-          "average_file_size = 4096        # uint64_t: expected average file size in bytes\n"
-          "block_size = 512                # uint32_t: block size in bytes (must be a power of "
+          "average_file_size = 256         # uint64_t: expected average file size in bytes\n"
+          "block_size = 128                # uint32_t: block size in bytes (must be a power of "
           "two)\n"
           "rs_correctable_bytes = 3        # uint32_t: required if ecc_type=reed_solomon\n\n"
           "crc_polynomial = 0x9960034c     # unsigned long int: required if ecc_type=crc, can be "
@@ -125,6 +125,6 @@ void print_fs_config_usage(std::ostream& os)
           "false)\n\n"
 
           "# ---------------- enum fields ----------------\n"
-          "ecc_type = none                  # ECCType: none | crc | reed_solomon | parity | "
+          "ecc_type = crc                  # ECCType: none | crc | reed_solomon | parity | "
           "hamming\n";
 }
