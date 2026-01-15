@@ -30,9 +30,6 @@ std::expected<void, FsError> CrcBlockDevice::_readAndCheckRaw(
 
     // reminder should be 0
     if (std::ranges::contains(remainder.begin(), remainder.end(), true)) {
-        if (_logger) {
-            _logger->logEvent(ErrorDetectionEvent("CRC", block_index));
-        }
         return std::unexpected(FsError::BlockDevice_CorrectionError);
     }
     return {};
@@ -67,7 +64,7 @@ std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
     if (!disk_res.has_value()) {
         return std::unexpected(disk_res.error());
     }
-    return {};
+    return { };
 }
 
 CrcBlockDevice::CrcBlockDevice(
@@ -134,5 +131,5 @@ std::expected<void, FsError> CrcBlockDevice::formatBlock(unsigned int block_inde
     if (!ret.has_value()) {
         return std::unexpected(ret.error());
     }
-    return {};
+    return { };
 }

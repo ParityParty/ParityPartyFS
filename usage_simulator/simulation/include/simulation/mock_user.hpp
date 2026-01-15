@@ -4,6 +4,9 @@
 
 #include <random>
 
+/**
+ * Configuration for simulated user behavior.
+ */
 struct UserBehaviour {
     int max_write_size = 512;
     int max_read_size = 512;
@@ -14,6 +17,9 @@ struct UserBehaviour {
     int delete_weight = 2; // Weight for delete operation
 };
 
+/**
+ * Represents a file or directory node in the simulated filesystem tree.
+ */
 struct FileNode {
     std::string name;
     bool is_dir;
@@ -21,6 +27,9 @@ struct FileNode {
     std::vector<FileNode*> children;
 };
 
+/**
+ * Mock user that performs filesystem operations in a single directory.
+ */
 class SingleDirMockUser {
     IFilesystem& _fs;
     std::shared_ptr<Logger> _logger;
@@ -41,5 +50,8 @@ public:
     const std::uint8_t id;
     SingleDirMockUser(IFilesystem& fs, std::shared_ptr<Logger> logger, UserBehaviour behaviour,
         std::uint8_t id, std::string_view dir, unsigned int seed);
+    /**
+     * Executes one simulation step, performing filesystem operations based on configured behavior.
+     */
     void step();
 };

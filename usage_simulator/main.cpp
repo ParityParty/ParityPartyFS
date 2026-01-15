@@ -1,5 +1,5 @@
 #include "data_collection/data_colection.hpp"
-#include "disk/stack_disk.hpp"
+#include "disk/heap_disk.hpp"
 #include "filesystem/ppfs.hpp"
 #include "simulation/bit_flipper.hpp"
 #include "simulation/mock_user.hpp"
@@ -18,12 +18,12 @@ int main(int argc, char* argv[])
         sim_config = SimulationConfig::loadFromFile(argv[1]);
         std::cout << "Configuration loaded from: " << argv[1] << std::endl;
     } else {
-        std::cout << "Usage: " << argv[0] << " <config_file>" << std::endl;
+        std::cout << "Usage: " << argv[0] << " <config_file> <logs_folder>" << std::endl;
         std::cout << "Using default configuration" << std::endl;
     }
 
-    std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::Medium);
-    StackDisk disk;
+    std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::Medium, argv[2]);
+    HeapDisk disk(1 << 30);
     PpFS fs(disk, logger);
     if (!fs.format(FsConfig {
                        .total_size = disk.size(),
@@ -37,15 +37,17 @@ int main(int argc, char* argv[])
         std::cerr << "Failed to format disk" << std::endl;
         return 1;
     }
-    SimpleBitFlipper flipper(
-        disk, sim_config.bit_flip_probability, sim_config.bit_flip_seed, logger);
+
+    SimpleBitFlipper flipper(disk, sim_config.krad_per_year / 100, sim_config.bit_flip_seed,
+        logger); // Placeholder values
+
     std::vector<SingleDirMockUser> users;
     for (int i = 0; i < static_cast<int>(sim_config.num_users); i++) {
         auto dir = (std::stringstream() << "/user" << i).str();
         users.push_back(SingleDirMockUser(fs, logger, sim_config.user_behaviour, i, dir, i));
     }
     int iteration = 0;
-    const int MAX_ITERATIONS = sim_config.max_iterations;
+    const int MAX_ITERATIONS = sim_config.simulation_seconds / sim_config.second_per_step;
     auto on_completion = [&]() noexcept {
         logger->step();
         flipper.step();

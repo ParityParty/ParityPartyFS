@@ -33,6 +33,6 @@ void SimpleBitFlipper::step()
         if (!_disk.write(pos, read_data).has_value()) {
             return;
         };
-        _logger->logEvent(BitFlipEvent());
+        _logger->logEvent(BitFlipEvent(pos));
     }
 }

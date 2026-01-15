@@ -5,6 +5,9 @@
 
 using namespace low_level_fuse;
 
+/**
+ * FUSE adapter for PpFS providing userspace filesystem functionality.
+ */
 class FusePpFS : public FuseWrapper<FusePpFS> {
 private:
     PpFSLowLevel& _ppfs;

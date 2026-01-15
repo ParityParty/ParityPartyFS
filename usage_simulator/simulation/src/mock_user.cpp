@@ -1,4 +1,3 @@
-#include "common/static_vector.hpp"
 #include "simulation/mock_user.hpp"
 
 #include <array>
@@ -12,7 +11,9 @@ void SingleDirMockUser::_createFile()
     auto fn = new FileNode(ss.str(), false, 0, std::vector<FileNode*>());
     auto ret = _fs.create(fn->name);
     if (!ret.has_value()) {
-        _logger->logError(toString(ret.error()));
+        if (ret.error() != FsError::InodeManager_NoMoreFreeInodes) {
+            _logger->logError(toString(ret.error()));
+        }
     } else {
         _root->children.push_back(fn);
         _logger->logMsg((std::stringstream()
@@ -34,6 +35,8 @@ void SingleDirMockUser::_writeToFile()
     auto open_ret = _fs.open(file->name, OpenMode::Append);
     if (!open_ret.has_value()) {
         _logger->logError(toString(open_ret.error()));
+        _logger->logEvent(ReadEvent(
+            0, std::chrono::duration<long, std::micro>::zero(), IoOperationResult::ExplicitError));
         return;
     }
     auto start = std::chrono::high_resolution_clock::now();
@@ -41,16 +44,18 @@ void SingleDirMockUser::_writeToFile()
     static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_size);
     std::fill(write_data.data(), write_data.data() + write_size, id);
     auto write_ret = _fs.write(open_ret.value(), write_data);
-    if (!write_ret.has_value()) {
-        _logger->logError(toString(write_ret.error()));
-        return;
-    }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    file->size += write_size;
+    if (!write_ret.has_value()) {
+        if (write_ret.error() != FsError::BlockManager_NoMoreFreeBlocks) {
+            _logger->logError(toString(write_ret.error()));
+            _logger->logEvent(WriteEvent(write_size, duration, IoOperationResult::ExplicitError));
+        }
+    } else {
+        file->size += write_size;
 
-    _logger->logEvent(WriteEvent(write_size, duration));
-
+        _logger->logEvent(WriteEvent(write_size, duration, IoOperationResult::Success));
+    }
     auto close_ret = _fs.close(open_ret.value());
     if (!close_ret.has_value()) {
         _logger->logError(toString(close_ret.error()));
@@ -73,24 +78,30 @@ void SingleDirMockUser::_readFromFile()
     auto open_ret = _fs.open(file->name, OpenMode::Normal);
     if (!open_ret.has_value()) {
         _logger->logError(toString(open_ret.error()));
+        _logger->logEvent(ReadEvent(
+            0, std::chrono::duration<long, std::micro>::zero(), IoOperationResult::ExplicitError));
         return;
     }
     auto start = std::chrono::high_resolution_clock::now();
     std::array<uint8_t, 65536> read_buf;
     static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
     auto read_ret = _fs.read(open_ret.value(), read_size, read_data);
-    if (!read_ret.has_value()) {
-        _logger->logError(toString(read_ret.error()));
-        return;
-    }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    _logger->logEvent(ReadEvent(read_data.size(), duration));
-    for (auto b : read_data) {
-        if (b != id) {
-            _logger->logError("Data contains an error");
-            break;
+    if (!read_ret.has_value()) {
+        _logger->logError(toString(read_ret.error()));
+        _logger->logEvent(ReadEvent(read_size, duration, IoOperationResult::ExplicitError));
+    } else {
+        bool has_error = false;
+        for (auto b : read_data) {
+            if (b != id) {
+                _logger->logError("Data contains an error");
+                has_error = true;
+                break;
+            }
         }
+        _logger->logEvent(ReadEvent(read_data.size(), duration,
+            has_error ? IoOperationResult::FalseSuccess : IoOperationResult::Success));
     }
     auto close_ret = _fs.close(open_ret.value());
     if (!close_ret.has_value()) {
