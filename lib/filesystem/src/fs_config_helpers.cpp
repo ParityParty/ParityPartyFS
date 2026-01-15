@@ -6,46 +6,6 @@
 #include <fstream>
 #include <string>
 
-// ==================== helpers ====================
-
-static void trim(std::string& s)
-{
-    auto not_space = [](int ch) { return !std::isspace(ch); };
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), not_space));
-    s.erase(std::find_if(s.rbegin(), s.rend(), not_space).base(), s.end());
-}
-
-static bool parse_u64(std::string_view s, uint64_t& out)
-{
-    auto res = std::from_chars(s.data(), s.data() + s.size(), out, 0);
-    return res.ec == std::errc {} && res.ptr == s.data() + s.size();
-}
-
-static bool parse_u32(std::string_view s, uint32_t& out)
-{
-    uint64_t tmp;
-    if (!parse_u64(s, tmp) || tmp > 0xFFFFFFFF)
-        return false;
-    out = static_cast<uint32_t>(tmp);
-    return true;
-}
-
-static bool parse_bool(std::string_view s, bool& out)
-{
-    if (s == "true" || s == "1") {
-        out = true;
-        return true;
-    }
-    if (s == "false" || s == "0") {
-        out = false;
-        return true;
-    }
-    return false;
-}
-
-// ==================== loader ====================
-
-// Pomocnicza funkcja trim (nadal potrzebna, bo std::string nie ma jej wbudowanej)
 std::string trim(const std::string& s)
 {
     size_t first = s.find_first_not_of(" \t\n\r");
@@ -70,7 +30,18 @@ std::expected<FsConfig, FsError> load_fs_config(std::string_view path)
     } seen;
 
     while (std::getline(file, line)) {
-        if (line.empty() || line.starts_with("#") || line.starts_with("//"))
+        size_t comment_pos = line.find('#');
+        if (comment_pos != std::string::npos) {
+            line = line.substr(0, comment_pos);
+        }
+        // Możesz powtórzyć dla "//"
+        size_t slash_pos = line.find("//");
+        if (slash_pos != std::string::npos) {
+            line = line.substr(0, slash_pos);
+        }
+
+        line = trim(line);
+        if (line.empty())
             continue;
 
         auto eq = line.find('=');
@@ -83,13 +54,13 @@ std::expected<FsConfig, FsError> load_fs_config(std::string_view path)
         try {
             if (key == "total_size") {
                 seen.total_size = true;
-                cfg.total_size = std::stoull(value); // string to unsigned long long
+                cfg.total_size = std::stoull(value);
             } else if (key == "average_file_size") {
                 seen.average_file_size = true;
                 cfg.average_file_size = std::stoull(value);
             } else if (key == "block_size") {
                 seen.block_size = true;
-                cfg.block_size = std::stoul(value); // string to unsigned long
+                cfg.block_size = std::stoul(value);
             } else if (key == "rs_correctable_bytes") {
                 seen.rs_correctable_bytes = true;
                 cfg.rs_correctable_bytes = std::stoul(value);
@@ -103,12 +74,15 @@ std::expected<FsConfig, FsError> load_fs_config(std::string_view path)
                     cfg.ecc_type = ECCType::Crc;
                 else if (value == "reed_solomon")
                     cfg.ecc_type = ECCType::ReedSolomon;
+                else if (value == "parity")
+                    cfg.ecc_type = ECCType::Parity;
+                else if (value == "hamming")
+                    cfg.ecc_type = ECCType::Hamming;
                 else
                     return std::unexpected(FsError::Config_InvalidValue);
             } else if (key == "crc_polynomial") {
                 seen.crc_polynomial = true;
                 cfg.crc_polynomial = CrcPolynomial::MsgImplicit(std::stoull(value, nullptr, 0));
-                // Użycie 0 jako podstawy pozwala na auto-detekcję (np. 0x dla hex)
             } else {
                 return std::unexpected(FsError::Config_UnknownKey);
             }
@@ -119,7 +93,6 @@ std::expected<FsConfig, FsError> load_fs_config(std::string_view path)
         }
     }
 
-    // Walidacja pól wymaganych
     if (!seen.total_size || !seen.block_size || !seen.average_file_size || !seen.ecc_type)
         return std::unexpected(FsError::Config_MissingField);
 
@@ -132,33 +105,26 @@ std::expected<FsConfig, FsError> load_fs_config(std::string_view path)
     return cfg;
 }
 
-// ==================== usage ====================
 void print_fs_config_usage(std::ostream& os)
 {
     os << "# Example FsConfig file\n"
           "# Lines starting with '#' or '//' are ignored\n\n"
 
           "# ---------------- numeric fields ----------------\n"
-          "total_size = 1048576            # uint64_t: total size of filesystem in bytes\n"
+          "total_size = 1048576            # uint64_t: total size of filesystem in bytes, must be "
+          "a multiple of block_size\n"
           "average_file_size = 4096        # uint64_t: expected average file size in bytes\n"
-          "block_size = 512                # uint32_t: block size in bytes (power of two)\n"
+          "block_size = 512                # uint32_t: block size in bytes (must be a power of "
+          "two)\n"
           "rs_correctable_bytes = 3        # uint32_t: required if ecc_type=reed_solomon\n\n"
           "crc_polynomial = 0x9960034c     # unsigned long int: required if ecc_type=crc, can be "
           "decimal or hexadecimal (0x...)\n\n"
 
           "# ---------------- boolean fields ----------------\n"
-          "use_journal = false             # bool: enable journaling (true or false)\n\n"
+          "use_journal = false             # bool: enable journaling (true or false, default: "
+          "false)\n\n"
 
           "# ---------------- enum fields ----------------\n"
-          "ecc_type = none                  # ECCType: none | crc | reed_solomon\n"
-
-          "# ---------------- notes ----------------\n"
-          "# All fields must be specified.\n"
-          "# Example usage:\n"
-          "#   total_size = 1048576\n"
-          "#   average_file_size = 4096\n"
-          "#   block_size = 512\n"
-          "#   ecc_type = crc\n"
-          "#   crc_polynomial = 0x9960034c\n"
-          "#   use_journal = false\n";
+          "ecc_type = none                  # ECCType: none | crc | reed_solomon | parity | "
+          "hamming\n";
 }

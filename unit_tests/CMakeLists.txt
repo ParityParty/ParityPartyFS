@@ -35,6 +35,7 @@ add_executable(${NAME}
         test_ppfs_parametrized_crc.cpp
         test_ppfs_parametrized_none.cpp
         test_ppfs_parametrized_reed_solomon.cpp
+        test_fs_config_helpers.cpp
 )
 
 target_link_libraries(${NAME} PUBLIC
