@@ -8,22 +8,31 @@
 #include <barrier>
 #include <iostream>
 #include <thread>
+#include <unistd.h>
 
 int main(int argc, char* argv[])
 {
-    // Load configuration from file or use defaults
+    // Detect if stdout is a TTY (terminal)
+    bool is_tty = isatty(STDOUT_FILENO);
+
     SimulationConfig sim_config;
 
     if (argc > 1) {
         sim_config = SimulationConfig::loadFromFile(argv[1]);
-        std::cout << "Configuration loaded from: " << argv[1] << std::endl;
+        if (is_tty) {
+            std::cout << "Configuration loaded from: " << argv[1] << std::endl;
+        }
     } else {
-        std::cout << "Usage: " << argv[0] << " <config_file> <logs_folder>" << std::endl;
-        std::cout << "Using default configuration" << std::endl;
+        if (is_tty) {
+            std::cout << "Usage: " << argv[0] << " <config_file> <logs_folder>" << std::endl;
+            std::cout << "Using default configuration" << std::endl;
+        }
     }
 
-    std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::Medium, argv[2]);
-    HeapDisk disk(1 << 30);
+    // Set logger to None if not a TTY (being run by Python)
+    Logger::LogLevel log_level = is_tty ? Logger::LogLevel::All : Logger::LogLevel::None;
+    std::shared_ptr<Logger> logger = std::make_shared<Logger>(log_level, argv[2]);
+    HeapDisk disk(1 << 25);
     PpFS fs(disk, logger);
     if (!fs.format(FsConfig {
                        .total_size = disk.size(),
@@ -48,10 +57,17 @@ int main(int argc, char* argv[])
     }
     int iteration = 0;
     const int MAX_ITERATIONS = sim_config.simulation_seconds / sim_config.second_per_step;
+
     auto on_completion = [&]() noexcept {
         logger->step();
         flipper.step();
         iteration++;
+
+        // Send progress updates to stdout if not a TTY (for Python to parse)
+        if (!is_tty && iteration % 100 == 0) {
+            std::cout << "PROGRESS:" << iteration << "/" << MAX_ITERATIONS << std::endl;
+            std::cout.flush();
+        }
     };
 
     std::barrier barrier(users.size(), on_completion);
