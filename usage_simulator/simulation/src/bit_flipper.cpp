@@ -1,6 +1,6 @@
+#include "simulation/bit_flipper.hpp"
 #include "common/bit_helpers.hpp"
 #include "common/static_vector.hpp"
-#include "simulation/bit_flipper.hpp"
 
 #include <array>
 
@@ -28,11 +28,10 @@ void SimpleBitFlipper::step()
         }
         std::uniform_int_distribution<int> bit_dist(0, 7);
         auto bit_pos = bit_dist(_rng);
-        BitHelpers::setBit(
-            read_data, bit_pos, !BitHelpers::getBit(read_data, bit_pos));
+        BitHelpers::setBit(read_data, bit_pos, !BitHelpers::getBit(read_data, bit_pos));
         if (!_disk.write(pos, read_data).has_value()) {
             return;
-        };
+        }
         _logger->logEvent(BitFlipEvent(pos));
     }
 }

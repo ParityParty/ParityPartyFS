@@ -14,9 +14,11 @@ import enlighten
 import matplotlib.pyplot as plt
 import pandas as pd
 
+SECS_IN_YEAR = 365 * 24 * 60 * 60
+
 COMMON_CONFIG = {
     "use_journal": "false",
-    "krad_per_year": 90.0,
+    "krad_per_year": 50.0,
     "bit_flip_seed": 67,
     "num_users": 3,
     "max_write_size": 256,
@@ -26,8 +28,8 @@ COMMON_CONFIG = {
     "write_weight": 10,
     "read_weight": 4,
     "delete_weight": 1,
-    "simulation_seconds": 3 * 365 * 24 * 60 * 60,
-    "seconds_per_step": 300,
+    "simulation_years": 5,
+    "seconds_per_step": 3600,
 }
 
 CONFIGS = [
@@ -139,7 +141,7 @@ def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
 
     read_steps = read_df['step']
     results = read_df['result']
-    steps = range(int(COMMON_CONFIG["simulation_seconds"]) // int(COMMON_CONFIG["seconds_per_step"]) + 1)
+    steps = range(int(COMMON_CONFIG["simulation_years"]) * SECS_IN_YEAR // int(COMMON_CONFIG["seconds_per_step"]) + 1)
 
     successes = pd.Series([0 for _ in steps])
     explicit_errors = pd.Series([0 for _ in steps])
@@ -164,7 +166,7 @@ def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
     fig, ax = plt.subplots(figsize=(10, 5))
     times_in_seconds = [step * COMMON_CONFIG["seconds_per_step"] for step in steps]
 
-    total_seconds = COMMON_CONFIG["simulation_seconds"]
+    total_seconds = COMMON_CONFIG["simulation_years"] * SECS_IN_YEAR
     total_years = total_seconds / (365 * 24 * 60 * 60)
 
     if total_years >= 1:
@@ -225,11 +227,13 @@ def plot_avg_times(avg_times: dict[str, float], out: Path, title: str) -> None:
     if not avg_times:
         print(f"No data for {title}; skipping plot.")
         return
+
     labels = list(avg_times.keys())
-    values = list(avg_times.values())
+    sorted_labels = sorted(labels)
+    sorted_vals = [avg_times[label] for label in sorted_labels]
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.bar(labels, values)
+    ax.bar(sorted_labels, sorted_vals)
     ax.set_xlabel("Error correction")
     ax.set_ylabel("Average time per byte (microseconds)")
     ax.set_title(title)

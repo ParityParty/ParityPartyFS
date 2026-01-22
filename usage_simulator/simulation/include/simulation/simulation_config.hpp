@@ -17,12 +17,12 @@ struct SimulationConfig {
 
     // Mock user configuration
     uint32_t num_users = 10;
-    UserBehaviour user_behaviour; // Now uses UserBehaviour with weights
+    UserBehaviour user_behaviour;
 
     // Simulation configuration
-    uint32_t simulation_seconds = 10000;
-    uint32_t second_per_step = 1;
-    std::string log_level = "Medium";
+    uint32_t simulation_years = 5;
+    uint32_t second_per_step = 900;
+    Logger::LogLevel log_level = Logger::LogLevel::Medium;
 
     /**
      * Load configuration from key=value file

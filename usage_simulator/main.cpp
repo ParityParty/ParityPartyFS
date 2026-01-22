@@ -1,14 +1,16 @@
 #include "data_collection/data_colection.hpp"
 #include "disk/heap_disk.hpp"
 #include "filesystem/ppfs.hpp"
-#include "simulation/bit_flipper.hpp"
 #include "simulation/mock_user.hpp"
+#include "simulation/model_flipper.hpp"
 #include "simulation/simulation_config.hpp"
 
 #include <barrier>
 #include <iostream>
 #include <thread>
 #include <unistd.h>
+
+constexpr int SECS_IN_YEAR = 365 * 24 * 60 * 60;
 
 int main(int argc, char* argv[])
 {
@@ -30,7 +32,7 @@ int main(int argc, char* argv[])
     }
 
     // Set logger to None if not a TTY (being run by Python)
-    Logger::LogLevel log_level = is_tty ? Logger::LogLevel::All : Logger::LogLevel::None;
+    Logger::LogLevel log_level = is_tty ? sim_config.log_level : Logger::LogLevel::None;
     std::shared_ptr<Logger> logger = std::make_shared<Logger>(log_level, argv[2]);
     HeapDisk disk(1 << 25);
     PpFS fs(disk, logger);
@@ -47,8 +49,16 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    SimpleBitFlipper flipper(disk, sim_config.krad_per_year / 100, sim_config.bit_flip_seed,
-        logger); // Placeholder values
+    ModelFlipperConfig model_flipper_config {
+        .krad_per_year = sim_config.krad_per_year,
+        .seconds_per_step = sim_config.second_per_step,
+        .seed = sim_config.bit_flip_seed,
+        .alpha = 0.23112743,
+        .beta = -23.36282644,
+        .gamma = 0.016222,
+    };
+
+    ModelFlipper flipper(disk, model_flipper_config, logger);
 
     std::vector<SingleDirMockUser> users;
     for (int i = 0; i < static_cast<int>(sim_config.num_users); i++) {
@@ -56,7 +66,8 @@ int main(int argc, char* argv[])
         users.push_back(SingleDirMockUser(fs, logger, sim_config.user_behaviour, i, dir, i));
     }
     int iteration = 0;
-    const int MAX_ITERATIONS = sim_config.simulation_seconds / sim_config.second_per_step;
+    const int MAX_ITERATIONS
+        = sim_config.simulation_years * SECS_IN_YEAR / sim_config.second_per_step;
 
     auto on_completion = [&]() noexcept {
         logger->step();

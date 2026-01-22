@@ -140,6 +140,8 @@ Logger::Logger(const LogLevel log_level, const std::string& log_folder_path)
     _files["detection"] << "step,ecc_type,block" << std::endl;
     _files["error"] = std::ofstream(_log_folder_path + "/error.csv");
     _files["error"] << "step,message" << std::endl;
+    _files["msg"] = std::ofstream(_log_folder_path + "/msg.csv");
+    _files["msg"] << "step,message" << std::endl;
 }
 
 Logger::~Logger()
@@ -149,12 +151,7 @@ Logger::~Logger()
     }
 }
 
-void Logger::step()
-{
-    (void)_mtx.lock();
-    _step++;
-    (void)_mtx.unlock();
-}
+void Logger::step() { _step++; }
 
 void Logger::logEvent(const IEvent& event)
 {
@@ -186,6 +183,7 @@ void Logger::logError(std::string_view msg)
 void Logger::logMsg(std::string_view msg)
 {
     (void)_mtx.lock();
+    _files["msg"] << _step << "," << msg << std::endl;
     if (_log_level == LogLevel::All) {
         std::cout << "[INFO ][" << std::setw(6) << std::setfill('0') << _step << "] " << msg
                   << std::endl;
