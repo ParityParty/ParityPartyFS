@@ -10,7 +10,7 @@
 #include <thread>
 #include <unistd.h>
 
-constexpr int SECS_IN_YEAR = 365 * 24 * 60 * 60;
+constexpr std::uint32_t SECS_IN_YEAR = 365 * 24 * 60 * 60;
 
 int main(int argc, char* argv[])
 {
@@ -63,10 +63,10 @@ int main(int argc, char* argv[])
     std::vector<SingleDirMockUser> users;
     for (int i = 0; i < static_cast<int>(sim_config.num_users); i++) {
         auto dir = (std::stringstream() << "/user" << i).str();
-        users.push_back(SingleDirMockUser(fs, logger, sim_config.user_behaviour, i, dir, i));
+        users.emplace_back(fs, logger, sim_config.user_behaviour, i, dir, i);
     }
     int iteration = 0;
-    const int MAX_ITERATIONS
+    const std::uint32_t MAX_ITERATIONS
         = sim_config.simulation_years * SECS_IN_YEAR / sim_config.second_per_step;
 
     auto on_completion = [&]() noexcept {
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
         }
     };
 
-    std::barrier barrier(users.size(), on_completion);
+    std::barrier barrier(static_cast<long>(users.size()), on_completion);
     auto work = [&](int id) {
         while (iteration < MAX_ITERATIONS) {
             users[id].step();

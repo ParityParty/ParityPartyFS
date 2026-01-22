@@ -2,7 +2,6 @@
 #include "blockdevice/ecc_type.hpp"
 #include <fstream>
 #include <iostream>
-#include <sstream>
 
 SimulationConfig SimulationConfig::loadFromFile(const std::string& filepath)
 {

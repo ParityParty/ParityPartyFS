@@ -31,7 +31,7 @@ class ModelFlipper : public IBitFlipper {
     std::uint64_t _selectNewBit();
     void _firstFlip();
     void _nextFlips();
-    std::expected<void, FsError> _flip(std::uint64_t pos) const;
+    [[nodiscard]] std::expected<void, FsError> _flip(std::uint64_t pos) const;
 
 public:
     ModelFlipper(

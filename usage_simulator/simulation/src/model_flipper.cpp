@@ -46,7 +46,8 @@ std::uint64_t ModelFlipper::_selectNewBit()
 void ModelFlipper::_firstFlip()
 {
     double expected_error_rate = std::exp(_alpha * _krad + _beta);
-    if (expected_error_rate * _disk.size() * 8 <= _fragile_bits.size()) {
+    if (expected_error_rate * static_cast<double>(_disk.size() * 8)
+        <= static_cast<double>(_fragile_bits.size())) {
         return;
     }
 

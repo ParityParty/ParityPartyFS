@@ -48,8 +48,8 @@ class SingleDirMockUser {
 
 public:
     const std::uint8_t id;
-    SingleDirMockUser(IFilesystem& fs, std::shared_ptr<Logger> logger, UserBehaviour behaviour,
-        std::uint8_t id, std::string_view dir, unsigned int seed);
+    SingleDirMockUser(IFilesystem& fs, std::shared_ptr<Logger> logger,
+        const UserBehaviour& behaviour, std::uint8_t id, std::string_view dir, unsigned int seed);
     /**
      * Executes one simulation step, performing filesystem operations based on configured behavior.
      */
