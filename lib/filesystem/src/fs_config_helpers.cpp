@@ -18,8 +18,9 @@ std::string trim(const std::string& s)
 std::expected<FsConfig, FsError> load_fs_config(std::string_view path)
 {
     std::ifstream file(path.data());
-    if (!file.is_open())
+    if (!file.is_open()) {
         return std::unexpected(FsError::Config_IOError);
+    }
 
     FsConfig cfg;
     std::string line;
