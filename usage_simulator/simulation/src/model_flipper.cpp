@@ -22,7 +22,8 @@ void ModelFlipper::step()
     _krad += _krad_per_step;
 
     _nextFlips();
-    // First flips are second not to unflip the new bit
+
+    // We start with next flips not to unflip any new bits
     _firstFlip();
 }
 
@@ -42,15 +43,8 @@ std::uint64_t ModelFlipper::_selectNewBit()
     }
     return new_bit;
 }
-
-void ModelFlipper::_firstFlip()
+void ModelFlipper::_flipNewBit()
 {
-    double expected_error_rate = std::exp(_alpha * _krad + _beta);
-    if (expected_error_rate * static_cast<double>(_disk.size() * 8)
-        <= static_cast<double>(_fragile_bits.size())) {
-        return;
-    }
-
     std::uint64_t new_bit = _selectNewBit();
     auto ret = _flip(new_bit);
     if (!ret.has_value()) {
@@ -59,6 +53,18 @@ void ModelFlipper::_firstFlip()
     _fragile_bits.insert(new_bit);
     if (_logger) {
         _logger->logMsg("New fragile bit");
+    }
+}
+
+void ModelFlipper::_firstFlip()
+{
+    const double expected_error_rate = std::exp(_alpha * _krad + _beta);
+
+    const auto num_new_bits
+        = static_cast<size_t>(expected_error_rate * _disk.size() * 8) - _fragile_bits.size();
+
+    for (int i = 0; i < num_new_bits; i++) {
+        _flipNewBit();
     }
 }
 
