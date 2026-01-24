@@ -19,9 +19,9 @@ BLOCK_SIZE = 256
 AVERAGE_FILE_SIZE = 4096
 USE_JOURNAL = False
 
-FIO_RUNTIME = 20
-FILE_SIZE = "50MB"
-BLOCK_SIZE = "4kB"
+FIO_RUNTIME = 1
+FILE_SIZE = "50M"
+BATCH_SIZE = "4k"
 
 ECC_CONFIGS = [
     {
@@ -97,7 +97,7 @@ def run_fio(mount_point: Path, ecc: str) -> ECCBenchmarkResult:
         "--direct=1",
         "--numjobs=1",
         f"--size={FILE_SIZE}",
-        f"--bs={BLOCK_SIZE}",
+        f"--bs={BATCH_SIZE}",
         f"--runtime={FIO_RUNTIME}",
         "--time_based",
         "--output-format=json",

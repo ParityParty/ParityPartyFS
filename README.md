@@ -250,11 +250,22 @@ There is a configuration file allowing to modify simulation parameters. Example 
 ```
 
 There is also python simulation runner. Simulation runner creates simulation scenarios defined in the script
-and runs them in parallel. Then it saves useful plots to `plots/` directory
+and runs them in parallel. Then it saves useful plots to `simulator_plots/` directory
 To run it:
 
 1. build program
 2. ```bash
    ./.venv/bin/python3 ./simulation_runner/runner.py
+
+```
+
+## Run fuse benchmark
+
+In order to measure performance of FUSE I/O operations for different ECC, you can use a script that automates fio runs 
+and saves results to `fio_plots/` directory
+To run it:
+1. build program with `release` preset
+2. 2. ```bash
+   ./.venv/bin/python3 ./fuse_benchmark/runner.py
 
 ```
