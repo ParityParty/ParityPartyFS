@@ -49,10 +49,17 @@ MIN_RUNS = 5
 TARGET_CV = 0.05  
 
 # =========================
-# HELPERS
-# =========================
+
+@dataclass
+class ECCBenchmarkResult:
+    ecc: str
+    read_bw_MBps: float
+    write_bw_MBps: float
+    read_lat_us: float
+    write_lat_us: float
 
 def write_ppfs_config(cfg: dict[str, str], path: Path) -> None:
+    """Writes a PPFS configuration file based on the provided ECC configuration."""
     with open(path, "w") as f:
         f.write(
             f"""
@@ -70,10 +77,12 @@ ecc_type = {cfg["ecc_type"]}
 
 
 def run(cmd: list[str]) -> None:
+    """Runs a shell command."""
     subprocess.run(cmd, check=True)
 
 
 def run_fio(mount_point: Path) -> dict:
+    """Runs fio on the given mount point and returns the parsed JSON output."""
     fio_cmd = [
         "fio",
         "--name=ppfs-test",
@@ -99,48 +108,8 @@ def run_fio(mount_point: Path) -> dict:
     return json.loads(result.stdout)
 
 
-
-# =========================
-# MAIN RUNNER
-# =========================
-
-@dataclass
-class ECCBenchmarkResult:
-    ecc: str
-    read_bw_MBps: float
-    write_bw_MBps: float
-    read_lat_us: float
-    write_lat_us: float
-
-def run_single_ecc(cfg: dict[str, str], out_dir: Path) -> ECCBenchmarkResult:
-    name = cfg["name"]
-    print(f"\n=== Running ECC: {name} ===")
-
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp = Path(tmp)
-        img = tmp / "ppfs.img"
-        cfg_file = tmp / "ppfs.cfg"
-        mnt = tmp / "mnt"
-        mnt.mkdir()
-
-        write_ppfs_config(cfg, cfg_file)
-
-        run(["./build/release/fuse_exec/mkfs_ppfs", str(cfg_file), str(img)])
-        proc = subprocess.Popen(
-            ["./build/release/fuse_exec/mount_ppfs", str(img), str(mnt), "--", "-f"]
-        )
-
-        try:
-            mean_result = measure_fio(mnt)
-        finally:
-            run(["fusermount3", "-u", str(mnt)])
-            proc.terminate()
-
-    mean_result.ecc = name
-    return mean_result
-
-
 def calculate_mean_max_cv(data: list[ECCBenchmarkResult]) -> tuple[ECCBenchmarkResult, float]:
+    """ Calculates the mean and maximum coefficient of variation from the given data."""
     mean = ECCBenchmarkResult(
         ecc=data[0].ecc,
         read_bw_MBps=statistics.mean([d.read_bw_MBps for d in data]),
@@ -189,7 +158,37 @@ def measure_fio(mount_point: Path) -> ECCBenchmarkResult:
     mean.ecc = ""
     return mean
 
+def run_single_ecc(cfg: dict[str, str], out_dir: Path) -> ECCBenchmarkResult:
+    """Runs the benchmark for a single ECC configuration."""
+    name = cfg["name"]
+    print(f"\n=== Running ECC: {name} ===")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        img = tmp / "ppfs.img"
+        cfg_file = tmp / "ppfs.cfg"
+        mnt = tmp / "mnt"
+        mnt.mkdir()
+
+        write_ppfs_config(cfg, cfg_file)
+
+        run(["./build/release/fuse_exec/mkfs_ppfs", str(cfg_file), str(img)])
+        proc = subprocess.Popen(
+            ["./build/release/fuse_exec/mount_ppfs", str(img), str(mnt), "--", "-f"]
+        )
+
+        try:
+            mean_result = measure_fio(mnt)
+        finally:
+            run(["fusermount3", "-u", str(mnt)])
+            proc.terminate()
+
+    mean_result.ecc = name
+    return mean_result
+
+
 def plot(df: pd.DataFrame, out: Path) -> None:
+    """Generates and saves plots from the benchmark results."""
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 
     df.plot(x="ecc", y="read_bw_MBps", kind="bar", ax=axes[0][0], title="Read BW [MB/s]")
@@ -218,7 +217,7 @@ def main() -> None:
     df.to_csv(out_dir / "results.csv", index=False)
 
     plot(df, out_dir / "ecc_comparison.png")
-    print("\n✨ DONE ✨ plots in fio_plots/")
+    print("All done! Plots saved to", out_dir)
 
 
 if __name__ == "__main__":
