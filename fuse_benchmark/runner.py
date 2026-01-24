@@ -19,7 +19,7 @@ BLOCK_SIZE = 256
 AVERAGE_FILE_SIZE = 4096
 USE_JOURNAL = False
 
-FIO_RUNTIME = 1
+FIO_RUNTIME = 10
 FILE_SIZE = "50M"
 BATCH_SIZE = "4k"
 
@@ -38,12 +38,16 @@ ECC_CONFIGS = [
         "ecc_type": "hamming",
     },
     {
-        "name": "Reed Solomon with 1 correctable byte",
+        "name": "Parity check",
+        "ecc_type": "parity",
+    },
+    {
+        "name": "RS, strength 1",
         "ecc_type": "reed_solomon",
         "rs_correctable_bytes": "1",
     },
     {
-        "name": "Reed Solomon with 3 correctable bytes",
+        "name": "RS, strength 3",
         "ecc_type": "reed_solomon",
         "rs_correctable_bytes": "3",
     },
@@ -149,18 +153,19 @@ def calculate_mean_max_cv(data: list[ECCBenchmarkResult]) -> tuple[ECCBenchmarkR
 
 def measure_fio(mount_point: Path, ecc: str) -> ECCBenchmarkResult:
     results: list[ECCBenchmarkResult] = []
-
+    mean, max_cv = None, None
     while len(results) < MAX_RUNS:
         results.append(run_fio(mount_point, ecc))
         if len(results) < MIN_RUNS:
             continue
 
         mean, max_cv = calculate_mean_max_cv(results)
-        print(f"Current max CV: {max_cv:.4f} after {len(results)} runs")
         if max_cv <= TARGET_CV:
             break
 
-    mean.ecc = ""
+
+    mean.ecc = ecc
+    print(f"Completed {len(results)} runs for ECC: {ecc} with max CV: {max_cv:.4f}")
     return mean
 
 def run_single_ecc(cfg: dict[str, str], out_dir: Path) -> ECCBenchmarkResult:
