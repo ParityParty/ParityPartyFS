@@ -4,7 +4,8 @@ import json
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Iterable
+import statistics
+from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,9 +14,9 @@ import pandas as pd
 # CONFIG
 # =========================
 
-FIO_RUNTIME = 20
-FILE_SIZE = "1024"
-BLOCK_SIZE = "1024"
+FIO_RUNTIME = 2
+FILE_SIZE = "2048"
+BLOCK_SIZE = "128"
 
 ECC_CONFIGS = [
     {
@@ -42,6 +43,10 @@ ECC_CONFIGS = [
         "rs_correctable_bytes": "3",
     },
 ]
+
+MAX_RUNS = 30
+MIN_RUNS = 5
+TARGET_CV = 0.05  
 
 # =========================
 # HELPERS
@@ -81,8 +86,8 @@ def run_fio(mount_point: Path) -> dict:
         f"--bs={BLOCK_SIZE}",
         f"--runtime={FIO_RUNTIME}",
         "--time_based",
-        "--group_reporting",
         "--output-format=json",
+        "--group_reporting"
     ]
 
     result = subprocess.run(
@@ -94,17 +99,25 @@ def run_fio(mount_point: Path) -> dict:
     return json.loads(result.stdout)
 
 
+
 # =========================
 # MAIN RUNNER
 # =========================
 
-def run_single_ecc(cfg: dict[str, str], out_dir: Path) -> dict:
+@dataclass
+class ECCBenchmarkResult:
+    ecc: str
+    read_bw_MBps: float
+    write_bw_MBps: float
+    read_lat_us: float
+    write_lat_us: float
+
+def run_single_ecc(cfg: dict[str, str], out_dir: Path) -> ECCBenchmarkResult:
     name = cfg["name"]
     print(f"\n=== Running ECC: {name} ===")
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-
         img = tmp / "ppfs.img"
         cfg_file = tmp / "ppfs.cfg"
         mnt = tmp / "mnt"
@@ -118,20 +131,63 @@ def run_single_ecc(cfg: dict[str, str], out_dir: Path) -> dict:
         )
 
         try:
-            fio_out = run_fio(mnt)
+            mean_result = measure_fio(mnt)
         finally:
             run(["fusermount3", "-u", str(mnt)])
             proc.terminate()
 
-    job = fio_out["jobs"][0]
-    return {
-        "ecc": name,
-        "read_bw_MBps": job["read"]["bw"] / 1024,
-        "write_bw_MBps": job["write"]["bw"] / 1024,
-        "read_lat_us": job["read"]["lat_ns"]["mean"] / 1000,
-        "write_lat_us": job["write"]["lat_ns"]["mean"] / 1000,
-    }
+    mean_result.ecc = name
+    return mean_result
 
+
+def calculate_mean_max_cv(data: list[ECCBenchmarkResult]) -> tuple[ECCBenchmarkResult, float]:
+    mean = ECCBenchmarkResult(
+        ecc=data[0].ecc,
+        read_bw_MBps=statistics.mean([d.read_bw_MBps for d in data]),
+        write_bw_MBps=statistics.mean([d.write_bw_MBps for d in data]),
+        read_lat_us=statistics.mean([d.read_lat_us for d in data]),
+        write_lat_us=statistics.mean([d.write_lat_us for d in data]),
+    )
+    cv_values = ECCBenchmarkResult(
+        ecc=data[0].ecc,
+        read_bw_MBps=statistics.stdev([d.read_bw_MBps for d in data]) / mean.read_bw_MBps,
+        write_bw_MBps=statistics.stdev([d.write_bw_MBps for d in data]) / mean.write_bw_MBps,
+        read_lat_us=statistics.stdev([d.read_lat_us for d in data]) / mean.read_lat_us,
+        write_lat_us=statistics.stdev([d.write_lat_us for d in data]) / mean.write_lat_us,
+    )
+    max_cv = max(
+        cv_values.read_bw_MBps,
+        cv_values.write_bw_MBps,
+        cv_values.read_lat_us,
+        cv_values.write_lat_us,
+    )
+    return mean, max_cv
+
+
+def measure_fio(mount_point: Path) -> ECCBenchmarkResult:
+    results: list[ECCBenchmarkResult] = []
+
+    while len(results) < MAX_RUNS:
+        result_dict = run_fio(mount_point)
+        job = result_dict["jobs"][0]
+        results.append(ECCBenchmarkResult(
+            ecc="temp",
+            read_bw_MBps=job["read"]["bw"] / 1024,
+            write_bw_MBps=job["write"]["bw"] / 1024,
+            read_lat_us=job["read"]["lat_ns"]["mean"] / 1_000,
+            write_lat_us=job["write"]["lat_ns"]["mean"] / 1_000,
+        ))
+
+        if len(results) < MIN_RUNS:
+            continue
+
+        mean, max_cv = calculate_mean_max_cv(results)
+        print(f"Current max CV: {max_cv:.4f} after {len(results)} runs")
+        if max_cv <= TARGET_CV:
+            break
+
+    mean.ecc = ""
+    return mean
 
 def plot(df: pd.DataFrame, out: Path) -> None:
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))

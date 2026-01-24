@@ -13,4 +13,4 @@ crc_polynomial = 0x9960034c     # unsigned long int: required if ecc_type=crc, c
 use_journal = false             # bool: enable journaling (true or false, default: false)
 
 # ---------------- enum fields ----------------
-ecc_type = hamming                  # ECCType: none | crc | reed_solomon | parity | hamming
+ecc_type = crc                  # ECCType: none | crc | reed_solomon | parity | hamming
