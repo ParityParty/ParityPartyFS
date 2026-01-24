@@ -14,31 +14,36 @@ import pandas as pd
 # CONFIG
 # =========================
 
-FIO_RUNTIME = 2
-FILE_SIZE = "2048"
-BLOCK_SIZE = "128"
+TOTAL_SIZE = 1024 * 1024 * 1024  # 1 GiB
+BLOCK_SIZE = 256
+AVERAGE_FILE_SIZE = 4096
+USE_JOURNAL = False
+
+FIO_RUNTIME = 20
+FILE_SIZE = "50MB"
+BLOCK_SIZE = "4kB"
 
 ECC_CONFIGS = [
     {
-        "name": "none",
+        "name": "None",
         "ecc_type": "none",
     },
     {
-        "name": "crc",
+        "name": "CRC",
         "ecc_type": "crc",
         "crc_polynomial": "0x9960034c",
     },
     {
-        "name": "hamming",
+        "name": "Hamming",
         "ecc_type": "hamming",
     },
     {
-        "name": "rs_1",
+        "name": "Reed Solomon with 1 correctable byte",
         "ecc_type": "reed_solomon",
         "rs_correctable_bytes": "1",
     },
     {
-        "name": "rs_3",
+        "name": "Reed Solomon with 3 correctable bytes",
         "ecc_type": "reed_solomon",
         "rs_correctable_bytes": "3",
     },
@@ -63,10 +68,10 @@ def write_ppfs_config(cfg: dict[str, str], path: Path) -> None:
     with open(path, "w") as f:
         f.write(
             f"""
-total_size = 1073741824
-average_file_size = 4096
-block_size = 256
-use_journal = false
+total_size = {TOTAL_SIZE}
+average_file_size = {AVERAGE_FILE_SIZE}
+block_size = {BLOCK_SIZE}
+use_journal = {USE_JOURNAL}
 ecc_type = {cfg["ecc_type"]}
 """
         )
@@ -81,7 +86,7 @@ def run(cmd: list[str]) -> None:
     subprocess.run(cmd, check=True)
 
 
-def run_fio(mount_point: Path) -> dict:
+def run_fio(mount_point: Path, ecc: str) -> ECCBenchmarkResult:
     """Runs fio on the given mount point and returns the parsed JSON output."""
     fio_cmd = [
         "fio",
@@ -105,7 +110,16 @@ def run_fio(mount_point: Path) -> dict:
         text=True,
         check=True,
     )
-    return json.loads(result.stdout)
+    result_dict = json.loads(result.stdout)
+    job = result_dict["jobs"][0]
+    
+    return ECCBenchmarkResult(
+        ecc=ecc,
+        read_bw_MBps=job["read"]["bw"] / 1024,
+        write_bw_MBps=job["write"]["bw"] / 1024,
+        read_lat_us=job["read"]["lat_ns"]["mean"] / 1_000,
+        write_lat_us=job["write"]["lat_ns"]["mean"] / 1_000,
+    )
 
 
 def calculate_mean_max_cv(data: list[ECCBenchmarkResult]) -> tuple[ECCBenchmarkResult, float]:
@@ -133,20 +147,11 @@ def calculate_mean_max_cv(data: list[ECCBenchmarkResult]) -> tuple[ECCBenchmarkR
     return mean, max_cv
 
 
-def measure_fio(mount_point: Path) -> ECCBenchmarkResult:
+def measure_fio(mount_point: Path, ecc: str) -> ECCBenchmarkResult:
     results: list[ECCBenchmarkResult] = []
 
     while len(results) < MAX_RUNS:
-        result_dict = run_fio(mount_point)
-        job = result_dict["jobs"][0]
-        results.append(ECCBenchmarkResult(
-            ecc="temp",
-            read_bw_MBps=job["read"]["bw"] / 1024,
-            write_bw_MBps=job["write"]["bw"] / 1024,
-            read_lat_us=job["read"]["lat_ns"]["mean"] / 1_000,
-            write_lat_us=job["write"]["lat_ns"]["mean"] / 1_000,
-        ))
-
+        results.append(run_fio(mount_point, ecc))
         if len(results) < MIN_RUNS:
             continue
 
@@ -178,7 +183,7 @@ def run_single_ecc(cfg: dict[str, str], out_dir: Path) -> ECCBenchmarkResult:
         )
 
         try:
-            mean_result = measure_fio(mnt)
+            mean_result = measure_fio(mnt, name)
         finally:
             run(["fusermount3", "-u", str(mnt)])
             proc.terminate()
