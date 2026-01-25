@@ -1,5 +1,5 @@
-#include "directory_manager/directory_manager.hpp"
-#include "blockdevice/iblock_device.hpp"
+#include "ppfs/directory_manager/directory_manager.hpp"
+#include "ppfs/blockdevice/iblock_device.hpp"
 #include <array>
 #include <cstring>
 
@@ -67,22 +67,23 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
     size_t num_entries = dir_inode.file_size / sizeof(DirectoryEntry);
     size_t checked = 0;
     std::optional<std::pair<size_t, DirectoryEntry>> found_entry;
- 
+
     while (checked < num_entries) {
-     std::array<DirectoryEntry, ENTRY_BATCH_SIZE> entries_buffer;
-     static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
-     auto read_res = _readDirectoryData(directory, dir_inode, entries, checked, ENTRY_BATCH_SIZE);
-     if (!read_res.has_value()) 
-         return std::unexpected(read_res.error());
- 
-     found_entry = _findEntryByInode(entries, entry);
- 
-     if (found_entry.has_value()){
-        found_entry.value().first += checked;
-        break;
-     }
- 
-     checked += entries.size();
+        std::array<DirectoryEntry, ENTRY_BATCH_SIZE> entries_buffer;
+        static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+        auto read_res
+            = _readDirectoryData(directory, dir_inode, entries, checked, ENTRY_BATCH_SIZE);
+        if (!read_res.has_value())
+            return std::unexpected(read_res.error());
+
+        found_entry = _findEntryByInode(entries, entry);
+
+        if (found_entry.has_value()) {
+            found_entry.value().first += checked;
+            break;
+        }
+
+        checked += entries.size();
     }
 
     if (!found_entry.has_value())
@@ -94,17 +95,18 @@ std::expected<void, FsError> DirectoryManager::removeEntry(
         size_t last_entry_index = (dir_inode.file_size / sizeof(DirectoryEntry)) - 1;
         std::array<DirectoryEntry, 1> last_entry_buffer;
         static_vector<DirectoryEntry> last_entry(last_entry_buffer.data(), 1);
-        auto read_last_res = _readDirectoryData(directory, dir_inode, last_entry, last_entry_index, 1);
+        auto read_last_res
+            = _readDirectoryData(directory, dir_inode, last_entry, last_entry_index, 1);
         if (!read_last_res.has_value()) {
             return std::unexpected(read_last_res.error());
         }
-        
+
         std::array<uint8_t, sizeof(DirectoryEntry)> temp_buffer;
         std::memcpy(temp_buffer.data(), &last_entry[0], sizeof(DirectoryEntry));
         static_vector<uint8_t> temp(
             temp_buffer.data(), sizeof(DirectoryEntry), sizeof(DirectoryEntry));
-        auto write_res
-            = _file_io.writeFile(directory, dir_inode, found_entry.value().first * sizeof(DirectoryEntry), temp);
+        auto write_res = _file_io.writeFile(
+            directory, dir_inode, found_entry.value().first * sizeof(DirectoryEntry), temp);
 
         if (!write_res.has_value()) {
             return std::unexpected(write_res.error());
@@ -139,23 +141,24 @@ std::expected<inode_index_t, FsError> DirectoryManager::getInodeByName(
     }
     Inode dir_inode = inode_result.value();
 
-   size_t num_entries = dir_inode.file_size / sizeof(DirectoryEntry);
-   size_t checked = 0;
+    size_t num_entries = dir_inode.file_size / sizeof(DirectoryEntry);
+    size_t checked = 0;
 
-   while (checked < num_entries) {
-    std::array<DirectoryEntry, ENTRY_BATCH_SIZE> entries_buffer;
-    static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
-    auto read_res = _readDirectoryData(directory, dir_inode, entries, checked, ENTRY_BATCH_SIZE);
-    if (!read_res.has_value()) 
-        return std::unexpected(read_res.error());
+    while (checked < num_entries) {
+        std::array<DirectoryEntry, ENTRY_BATCH_SIZE> entries_buffer;
+        static_vector<DirectoryEntry> entries(entries_buffer.data(), entries_buffer.size());
+        auto read_res
+            = _readDirectoryData(directory, dir_inode, entries, checked, ENTRY_BATCH_SIZE);
+        if (!read_res.has_value())
+            return std::unexpected(read_res.error());
 
-    auto unique_res = _findEntryByName(entries, name);
+        auto unique_res = _findEntryByName(entries, name);
 
-    if (unique_res.has_value())
-        return unique_res.value().second.inode;
+        if (unique_res.has_value())
+            return unique_res.value().second.inode;
 
-    checked += entries.size();
-}
+        checked += entries.size();
+    }
     return std::unexpected(FsError::PpFS_NotFound);
 }
 
@@ -172,7 +175,8 @@ std::expected<void, FsError> DirectoryManager::_readDirectoryData(inode_index_t 
         return std::unexpected(FsError::DirectoryManager_InvalidRequest);
 
     static_vector<uint8_t> read_data((uint8_t*)buf.data(), buf.capacity() * sizeof(DirectoryEntry));
-    auto read_res = _file_io.readFile(inode_index, dir_inode, offset * sizeof(DirectoryEntry), size * sizeof(DirectoryEntry), read_data);
+    auto read_res = _file_io.readFile(inode_index, dir_inode, offset * sizeof(DirectoryEntry),
+        size * sizeof(DirectoryEntry), read_data);
     if (!read_res.has_value()) {
         return std::unexpected(read_res.error());
     }
@@ -194,7 +198,7 @@ std::optional<std::pair<size_t, DirectoryEntry>> DirectoryManager::_findEntryByN
     return {};
 }
 
- std::optional<std::pair<size_t, DirectoryEntry>> DirectoryManager::_findEntryByInode(
+std::optional<std::pair<size_t, DirectoryEntry>> DirectoryManager::_findEntryByInode(
     const static_vector<DirectoryEntry>& entries, inode_index_t inode)
 {
     for (size_t i = 0; i < entries.size(); ++i) {

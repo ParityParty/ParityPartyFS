@@ -1,30 +1,30 @@
-#include "block_manager/block_manager.hpp"
-#include "blockdevice/raw_block_device.hpp"
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
-#include "file_io/file_io.hpp"
-#include "inode_manager/inode_manager.hpp"
+#include "ppfs/block_manager/block_manager.hpp"
+#include "ppfs/blockdevice/raw_block_device.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
+#include "ppfs/file_io/file_io.hpp"
+#include "ppfs/inode_manager/inode_manager.hpp"
 #include <array>
 #include <gtest/gtest.h>
 #include <vector>
 
 struct FakeInodeManager : public IInodeManager {
     std::expected<inode_index_t, FsError> create(Inode& inode) override { return 0; }
-    std::expected<void, FsError> remove(inode_index_t inode) override { return { }; }
+    std::expected<void, FsError> remove(inode_index_t inode) override { return {}; }
     std::expected<Inode, FsError> get(inode_index_t inode) override { return Inode(); }
     std::expected<unsigned int, FsError> numFree() { return 1; }
     std::expected<void, FsError> update(inode_index_t inode_index, const Inode& inode)
     {
-        return { };
+        return {};
     }
-    std::expected<void, FsError> format() { return { }; };
+    std::expected<void, FsError> format() { return {}; };
 };
 
 TEST(FileIO, Compiles)
 {
     StackDisk disk;
     RawBlockDevice block_device(32, disk);
-    BlockManager block_manager(SuperBlock { }, block_device);
+    BlockManager block_manager(SuperBlock {}, block_device);
     InodeManager inode_manager(block_device, *(new SuperBlock()));
     FileIO file_io(block_device, block_manager, inode_manager);
 
@@ -47,7 +47,7 @@ TEST(FileIO, WritesAndReadsDirectBlocks)
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode { };
+    Inode inode {};
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -98,7 +98,7 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode { };
+    Inode inode {};
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -109,7 +109,8 @@ TEST(FileIO, WritesAndReadsUndirectBlocks)
 
     size_t data_size = block_device.dataSize() * 12
         + block_device.dataSize() * (block_device.dataSize() / sizeof(block_index_t));
-    std::array<uint8_t, 128 * 12 + 128 * 32> data_buffer; // 128 * 32 = 4096, enough for indexes_per_block
+    std::array<uint8_t, 128 * 12 + 128 * 32>
+        data_buffer; // 128 * 32 = 4096, enough for indexes_per_block
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
     for (size_t i = 0; i < data.size(); ++i)
@@ -150,7 +151,7 @@ TEST(FileIO, ReadAndWriteWithOffset)
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode { };
+    Inode inode {};
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -164,11 +165,11 @@ TEST(FileIO, ReadAndWriteWithOffset)
     std::array<uint8_t, 524> data1_buffer;
     std::fill(data1_buffer.begin(), data1_buffer.end(), 200);
     static_vector<uint8_t> data1(data1_buffer.data(), data1_buffer.size(), size1);
-    
+
     std::array<uint8_t, 873> data2_buffer;
     std::fill(data2_buffer.begin(), data2_buffer.end(), 153);
     static_vector<uint8_t> data2(data2_buffer.data(), data2_buffer.size(), size2);
-    
+
     ASSERT_TRUE(file_io.writeFile(inode_index.value(), inode, 0, data1));
     ASSERT_TRUE(file_io.writeFile(inode_index.value(), inode, size1, data2));
     ASSERT_EQ(inode.file_size, size1 + size2);
@@ -217,7 +218,7 @@ TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode { };
+    Inode inode {};
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -227,7 +228,8 @@ TEST(FileIO, WritesAndReadsDoublyUndirectBlocks)
         << "Failed to create inode: " << toString(inode_index.error());
 
     auto indexes_per_block = block_device.dataSize() / sizeof(block_index_t);
-    size_t data_size = block_device.dataSize() * (12 + indexes_per_block + indexes_per_block * indexes_per_block);
+    size_t data_size = block_device.dataSize()
+        * (12 + indexes_per_block + indexes_per_block * indexes_per_block);
     std::array<uint8_t, 128 * (12 + 32 + 32 * 32)> data_buffer; // Large enough buffer
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
@@ -269,7 +271,7 @@ TEST(FileIO, WritesAndReadsTreblyUndirectBlocks)
     FakeInodeManager inode_manager;
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode { };
+    Inode inode {};
     inode.file_size = 0;
 
     auto indexes_per_block = block_device.dataSize() / sizeof(block_index_t);
@@ -318,7 +320,7 @@ TEST(FileIO, ResizeAndReadFile)
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode { };
+    Inode inode {};
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -364,7 +366,7 @@ TEST(FileIO, TruncatePartOfBlock)
     InodeManager inode_manager(block_device, superblock);
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode { };
+    Inode inode {};
     inode.file_size = 0;
     auto format_res = inode_manager.format();
     ASSERT_TRUE(format_res.has_value())
@@ -416,7 +418,7 @@ TEST(FileIO, ResizeHugeFileToZero)
     FakeInodeManager inode_manager;
     FileIO file_io(block_device, block_manager, inode_manager);
 
-    Inode inode { };
+    Inode inode {};
     inode.file_size = 0;
 
     auto num_free_res = block_manager.numFree();

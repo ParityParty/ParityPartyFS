@@ -1,6 +1,6 @@
-#include "block_manager/block_manager.hpp"
+#include "ppfs/block_manager/block_manager.hpp"
 
-#include "bitmap/bitmap.hpp"
+#include "ppfs/bitmap/bitmap.hpp"
 
 block_index_t BlockManager::_toRelative(block_index_t absolute_block) const
 {

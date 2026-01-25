@@ -1,7 +1,7 @@
-#include "common/static_vector.hpp"
-#include "directory_manager/directory.hpp"
-#include "disk/stack_disk.hpp"
-#include "filesystem/ppfs.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/directory_manager/directory.hpp"
+#include "ppfs/disk/stack_disk.hpp"
+#include "ppfs/filesystem/ppfs.hpp"
 #include <array>
 #include <gtest/gtest.h>
 

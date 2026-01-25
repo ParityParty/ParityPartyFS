@@ -1,6 +1,6 @@
-#include "disk/file_disk.hpp"
-#include "filesystem/fs_config_helpers.hpp" // dla load_fs_config
-#include "low_level_fuse/fuse_ppfs.hpp"
+#include "ppfs/disk/file_disk.hpp"
+#include "ppfs/filesystem/fs_config_helpers.hpp" // dla load_fs_config
+#include "ppfs/low_level_fuse/fuse_ppfs.hpp"
 #include <iostream>
 
 int main(int argc, char* argv[])

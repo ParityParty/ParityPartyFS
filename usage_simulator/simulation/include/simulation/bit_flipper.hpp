@@ -1,6 +1,6 @@
 #pragma once
-#include "data_collection/data_colection.hpp"
-#include "disk/idisk.hpp"
+#include "ppfs/data_collection/data_colection.hpp"
+#include "ppfs/disk/idisk.hpp"
 
 #include <random>
 

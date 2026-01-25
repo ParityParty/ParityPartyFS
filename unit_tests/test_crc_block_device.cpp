@@ -1,7 +1,7 @@
-#include "blockdevice/crc_block_device.hpp"
-#include "common/bit_helpers.hpp"
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
+#include "ppfs/blockdevice/crc_block_device.hpp"
+#include "ppfs/common/bit_helpers.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
 
 #include <array>
 #include <gtest/gtest.h>
@@ -87,11 +87,12 @@ TEST(CrcBlockDevice, ReadsAndWrites)
 
     auto data_size = crc.dataSize();
     std::array<uint8_t, 512> data_buffer;
-    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x55));
+    std::fill(
+        data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x55));
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
-    
+
     std::array<uint8_t, 512> read_buffer;
     static_vector<uint8_t> read_data(read_buffer.data(), read_buffer.size());
     auto read_ret = crc.readBlock({ 0, 0 }, data_size, read_data);
@@ -109,7 +110,8 @@ TEST(CrcBlockDevice, FindsError)
 
     auto data_size = crc.dataSize();
     std::array<uint8_t, 512> data_buffer;
-    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x00));
+    std::fill(
+        data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x00));
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
@@ -136,7 +138,8 @@ TEST(CrcBlockDevice, FindEnoughErrors)
 
     auto data_size = crc.dataSize();
     std::array<uint8_t, 1024> data_buffer;
-    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x00));
+    std::fill(
+        data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x00));
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());
@@ -169,7 +172,8 @@ TEST(CrcBlockDevice, FindEvenMoreErrors)
 
     auto data_size = crc.dataSize();
     std::array<uint8_t, 1024> data_buffer;
-    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x00));
+    std::fill(
+        data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x00));
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
     ASSERT_TRUE(crc.formatBlock(0).has_value());
     ASSERT_TRUE(crc.writeBlock(data, DataLocation(0, 0)).has_value());

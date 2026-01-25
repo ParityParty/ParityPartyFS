@@ -1,8 +1,8 @@
-#include "blockdevice/hamming_block_device.hpp"
-#include "blockdevice/raw_block_device.hpp"
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
-#include "super_block_manager/super_block_manager.hpp"
+#include "ppfs/blockdevice/hamming_block_device.hpp"
+#include "ppfs/blockdevice/raw_block_device.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
+#include "ppfs/super_block_manager/super_block_manager.hpp"
 
 #include <array>
 #include <gtest/gtest.h>
@@ -93,8 +93,7 @@ TEST(SuperBlockManager, GetFreeBlocksIndexes)
     static_vector<uint8_t> zero_data(zero_buffer.data(), zero_buffer.size(), block_size);
     for (block_index_t i = indexes_res->start_block; i < indexes_res->end_block; i++) {
         // Clear all non - superblock indexes
-        ASSERT_TRUE(
-            raw_block_device.writeBlock(zero_data, DataLocation(i, 0)))
+        ASSERT_TRUE(raw_block_device.writeBlock(zero_data, DataLocation(i, 0)))
             << "Failed to write to block device";
     }
     SuperBlockManager reader(disk);

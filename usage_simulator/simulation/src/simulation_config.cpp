@@ -1,5 +1,5 @@
 #include "simulation/simulation_config.hpp"
-#include "blockdevice/ecc_type.hpp"
+#include "ppfs/blockdevice/ecc_type.hpp"
 #include <fstream>
 #include <iostream>
 
