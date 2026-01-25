@@ -57,7 +57,8 @@ struct IFilesystem {
      * error otherwise
      */
     [[nodiscard]] virtual std::expected<file_descriptor_t, FsError> open(
-        std::string_view path, OpenMode mode = OpenMode::Normal) = 0;
+        std::string_view path, OpenMode mode = OpenMode::Normal)
+        = 0;
 
     /**
      * Close file
@@ -74,7 +75,9 @@ struct IFilesystem {
      * @param recursive if true, remove directories and their contents recursively
      * @return void on success, error otherwise
      */
-    [[nodiscard]] virtual std::expected<void, FsError> remove(std::string_view path, bool recursive = false) = 0;
+    [[nodiscard]] virtual std::expected<void, FsError> remove(
+        std::string_view path, bool recursive = false)
+        = 0;
 
     /**
      * Read bytes from disk
@@ -85,7 +88,8 @@ struct IFilesystem {
      * @return void on success, error otherwise
      */
     [[nodiscard]] virtual std::expected<void, FsError> read(
-        file_descriptor_t fd, std::size_t bytes_to_read, static_vector<std::uint8_t>& data) = 0;
+        file_descriptor_t fd, std::size_t bytes_to_read, static_vector<std::uint8_t>& data)
+        = 0;
 
     /**
      * Write data from buffer to file.
@@ -109,7 +113,8 @@ struct IFilesystem {
      * @param position position to seek to
      * @return void on success, error otherwise
      */
-    [[nodiscard]] virtual std::expected<void, FsError> seek(file_descriptor_t fd, size_t position) = 0;
+    [[nodiscard]] virtual std::expected<void, FsError> seek(file_descriptor_t fd, size_t position)
+        = 0;
 
     /**
      * Create new directory
@@ -129,8 +134,9 @@ struct IFilesystem {
      * @param entries buffer to fill with directory entries, must have sufficient capacity
      * @return void on success, error otherwise
      */
-    [[nodiscard]] virtual std::expected<void, FsError> readDirectory(
-        file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries) = 0;
+    [[nodiscard]] virtual std::expected<void, FsError> readDirectory(file_descriptor_t fd,
+        std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries)
+        = 0;
 
     /**
      * Read all entries of a directory
@@ -140,7 +146,16 @@ struct IFilesystem {
      * @return void on success, error otherwise
      */
     [[nodiscard]] virtual std::expected<void, FsError> readDirectory(
-        std::string_view path, static_vector<DirectoryEntry>& entries) = 0;
+        std::string_view path, static_vector<DirectoryEntry>& entries)
+        = 0;
+
+    /**
+     * Get the statistics of a file or directory
+     *
+     * @param path absolute path to file or directory
+     * @return FileStat structure on success, error otherwise
+     */
+    [[nodiscard]] virtual std::expected<FileStat, FsError> getFileStat(std::string_view path) = 0;
 
     /**
      * Check if filesystem has been initialized and is ready for operations
