@@ -2,7 +2,6 @@
 #include "blockdevice/ecc_type.hpp"
 #include <fstream>
 #include <iostream>
-#include <sstream>
 
 SimulationConfig SimulationConfig::loadFromFile(const std::string& filepath)
 {
@@ -72,12 +71,20 @@ SimulationConfig SimulationConfig::loadFromFile(const std::string& filepath)
             config.user_behaviour.delete_weight = std::stoi(value);
         }
         // Parse simulation config
-        else if (key == "simulation_seconds") {
-            config.simulation_seconds = std::stoi(value);
+        else if (key == "simulation_years") {
+            config.simulation_years = std::stoi(value);
         } else if (key == "seconds_per_step") {
             config.second_per_step = std::stoul(value);
         } else if (key == "log_level") {
-            config.log_level = value;
+            if (value == "None" || value == "none") {
+                config.log_level = Logger::LogLevel::None;
+            } else if (value == "Error" || value == "error") {
+                config.log_level = Logger::LogLevel::Error;
+            } else if (value == "Medium" || value == "medium") {
+                config.log_level = Logger::LogLevel::Medium;
+            } else if (value == "All" || value == "all") {
+                config.log_level = Logger::LogLevel::All;
+            }
         }
     }
 
@@ -89,13 +96,17 @@ ECCType SimulationConfig::parseEccType(const std::string& ecc_str)
 {
     if (ecc_str == "None" || ecc_str == "none") {
         return ECCType::None;
-    } else if (ecc_str == "Parity" || ecc_str == "parity") {
+    }
+    if (ecc_str == "Parity" || ecc_str == "parity") {
         return ECCType::Parity;
-    } else if (ecc_str == "Crc" || ecc_str == "CRC" || ecc_str == "crc") {
+    }
+    if (ecc_str == "Crc" || ecc_str == "CRC" || ecc_str == "crc") {
         return ECCType::Crc;
-    } else if (ecc_str == "Hamming" || ecc_str == "hamming") {
+    }
+    if (ecc_str == "Hamming" || ecc_str == "hamming") {
         return ECCType::Hamming;
-    } else if (ecc_str == "ReedSolomon" || ecc_str == "reed-solomon" || ecc_str == "RS") {
+    }
+    if (ecc_str == "ReedSolomon" || ecc_str == "reed-solomon" || ecc_str == "RS") {
         return ECCType::ReedSolomon;
     }
     return ECCType::Hamming; // Default

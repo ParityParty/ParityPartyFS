@@ -5,6 +5,7 @@ add_library(${NAME} STATIC)
 target_sources(${NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mock_user.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/bit_flipper.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/model_flipper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/simulation_config.cpp
 )
 

@@ -11,10 +11,10 @@ struct UserBehaviour {
     int max_write_size = 512;
     int max_read_size = 512;
     int avg_steps_between_ops = 10;
-    int create_weight = 2; // Weight for create operation
-    int write_weight = 10; // Weight for write operation
-    int read_weight = 9; // Weight for read operation
-    int delete_weight = 2; // Weight for delete operation
+    int create_weight = 2;
+    int write_weight = 10;
+    int read_weight = 9;
+    int delete_weight = 2;
 };
 
 /**
@@ -48,8 +48,8 @@ class SingleDirMockUser {
 
 public:
     const std::uint8_t id;
-    SingleDirMockUser(IFilesystem& fs, std::shared_ptr<Logger> logger, UserBehaviour behaviour,
-        std::uint8_t id, std::string_view dir, unsigned int seed);
+    SingleDirMockUser(IFilesystem& fs, std::shared_ptr<Logger> logger,
+        const UserBehaviour& behaviour, std::uint8_t id, std::string_view dir, unsigned int seed);
     /**
      * Executes one simulation step, performing filesystem operations based on configured behavior.
      */

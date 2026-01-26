@@ -1,29 +1,40 @@
 #include "data_collection/data_colection.hpp"
 #include "disk/heap_disk.hpp"
 #include "filesystem/ppfs.hpp"
-#include "simulation/bit_flipper.hpp"
 #include "simulation/mock_user.hpp"
+#include "simulation/model_flipper.hpp"
 #include "simulation/simulation_config.hpp"
 
 #include <barrier>
 #include <iostream>
 #include <thread>
+#include <unistd.h>
+
+constexpr std::uint32_t SECS_IN_YEAR = 365 * 24 * 60 * 60;
 
 int main(int argc, char* argv[])
 {
-    // Load configuration from file or use defaults
+    // Detect if stdout is a TTY (terminal)
+    bool is_tty = isatty(STDOUT_FILENO);
+
     SimulationConfig sim_config;
 
     if (argc > 1) {
         sim_config = SimulationConfig::loadFromFile(argv[1]);
-        std::cout << "Configuration loaded from: " << argv[1] << std::endl;
+        if (is_tty) {
+            std::cout << "Configuration loaded from: " << argv[1] << std::endl;
+        }
     } else {
-        std::cout << "Usage: " << argv[0] << " <config_file> <logs_folder>" << std::endl;
-        std::cout << "Using default configuration" << std::endl;
+        if (is_tty) {
+            std::cout << "Usage: " << argv[0] << " <config_file> <logs_folder>" << std::endl;
+            std::cout << "Using default configuration" << std::endl;
+        }
     }
 
-    std::shared_ptr<Logger> logger = std::make_shared<Logger>(Logger::LogLevel::Medium, argv[2]);
-    HeapDisk disk(1 << 30);
+    // Set logger to None if not a TTY (being run by Python)
+    Logger::LogLevel log_level = is_tty ? sim_config.log_level : Logger::LogLevel::None;
+    std::shared_ptr<Logger> logger = std::make_shared<Logger>(log_level, argv[2]);
+    HeapDisk disk(1 << 25);
     PpFS fs(disk, logger);
     if (!fs.format(FsConfig {
                        .total_size = disk.size(),
@@ -38,23 +49,39 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    SimpleBitFlipper flipper(disk, sim_config.krad_per_year / 100, sim_config.bit_flip_seed,
-        logger); // Placeholder values
+    ModelFlipperConfig model_flipper_config {
+        .krad_per_year = sim_config.krad_per_year,
+        .seconds_per_step = sim_config.second_per_step,
+        .seed = sim_config.bit_flip_seed,
+        .alpha = 0.23112743,
+        .beta = -23.36282644,
+        .gamma = 0.016222,
+    };
+
+    ModelFlipper flipper(disk, model_flipper_config, logger);
 
     std::vector<SingleDirMockUser> users;
     for (int i = 0; i < static_cast<int>(sim_config.num_users); i++) {
         auto dir = (std::stringstream() << "/user" << i).str();
-        users.push_back(SingleDirMockUser(fs, logger, sim_config.user_behaviour, i, dir, i));
+        users.emplace_back(fs, logger, sim_config.user_behaviour, i, dir, i);
     }
     int iteration = 0;
-    const int MAX_ITERATIONS = sim_config.simulation_seconds / sim_config.second_per_step;
+    const std::uint32_t MAX_ITERATIONS
+        = sim_config.simulation_years * SECS_IN_YEAR / sim_config.second_per_step;
+
     auto on_completion = [&]() noexcept {
         logger->step();
         flipper.step();
         iteration++;
+
+        // Send progress updates to stdout if not a TTY (for Python to parse)
+        if (!is_tty && iteration % 100 == 0) {
+            std::cout << "PROGRESS:" << iteration << "/" << MAX_ITERATIONS << std::endl;
+            std::cout.flush();
+        }
     };
 
-    std::barrier barrier(users.size(), on_completion);
+    std::barrier barrier(static_cast<long>(users.size()), on_completion);
     auto work = [&](int id) {
         while (iteration < MAX_ITERATIONS) {
             users[id].step();
