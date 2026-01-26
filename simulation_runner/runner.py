@@ -18,8 +18,8 @@ SECS_IN_YEAR = 365 * 24 * 60 * 60
 
 COMMON_CONFIG = {
     "use_journal": "false",
-    "krad_per_year": 50.0,
-    "bit_flip_seed": 67,
+    "krad_per_year": 10.0,
+    "bit_flip_seed": 68,
     "num_users": 3,
     "max_write_size": 256,
     "max_read_size": 1024,
@@ -29,7 +29,7 @@ COMMON_CONFIG = {
     "read_weight": 4,
     "delete_weight": 1,
     "simulation_years": 5,
-    "seconds_per_step": 3600,
+    "seconds_per_step": 900,
 }
 
 CONFIGS = [
@@ -134,6 +134,83 @@ def load_logs(logs_dir: Path) -> dict[str, pd.DataFrame]:
     }
 
 
+def plot_read_status_trend_end(read_df: pd.DataFrame, correction_df: pd.DataFrame,
+                               config_name: str, out: Path, part: float) -> None:
+    """Plots read status trend starting during the last part of the simulation"""
+    if read_df.empty: return
+
+    read_steps = read_df['step']
+    results = read_df['result']
+    total_steps = int(COMMON_CONFIG["simulation_years"]) * SECS_IN_YEAR // int(COMMON_CONFIG["seconds_per_step"])
+    steps = pd.Series(range(total_steps + 1))
+    successes = pd.Series([0 for _ in steps])
+    explicit_errors = pd.Series([0 for _ in steps])
+    false_successes = pd.Series([0 for _ in steps])
+    corrections = pd.Series([0 for _ in steps])
+
+    for i in range(len(read_steps)):
+        idx = read_steps[i]
+        if idx >= len(successes): continue
+
+        if results[i] == 'success':
+            successes[idx] += 1
+        elif results[i] == 'explicit_error':
+            explicit_errors[idx] += 1
+        elif results[i] == 'false_success':
+            false_successes[idx] += 1
+
+    if not correction_df.empty:
+        for correction_step in correction_df['step']:
+            if correction_step < len(corrections):
+                corrections[correction_step] += 1
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    part_steps = range(int(total_steps * part), total_steps)
+    times_in_seconds = [step * COMMON_CONFIG["seconds_per_step"] for step in part_steps]
+
+    total_seconds = COMMON_CONFIG["simulation_years"] * SECS_IN_YEAR * (1 - part)
+    total_years = total_seconds / (365 * 24 * 60 * 60)
+
+    if total_years >= 1:
+        x_data = [t / (24 * 60 * 60) / 365 for t in times_in_seconds]
+        time_unit = "Years"
+    else:
+        x_data = [t / (24 * 60 * 60) for t in times_in_seconds]
+        time_unit = "Days"
+    successes = successes[steps > total_steps * part]
+    explicit_errors = explicit_errors[steps > total_steps * part]
+    false_successes = false_successes[steps > total_steps * part]
+    corrections = corrections[steps > total_steps * part]
+    ax.plot(x_data, successes.cumsum(), linewidth=2, color="green", alpha=0.8,
+            label="Successful Reads")
+    ax.plot(x_data, explicit_errors.cumsum(), linewidth=2, color="orange", alpha=0.8,
+            label="Unsuccessful Reads")
+    ax.plot(x_data, false_successes.cumsum(), linewidth=2, color="red", alpha=0.8,
+            label="False successes")
+    ax.plot(x_data, corrections.cumsum(), linewidth=2, color="lightblue", alpha=0.8,
+            label="Corrections")
+
+    ax.set_xlabel(f"Time ({time_unit})")
+    ax.set_ylabel("Count")
+    ax.set_title(f"Read Operations and Corrections Over Time ({config_name})")
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+
+    total_reads = len(read_steps[read_steps > total_steps * part])
+    total_successful = successes.sum()
+    total_unsuccessful = explicit_errors.sum() + false_successes.sum()
+    success_rate = 100 * total_successful / total_reads if total_reads > 0 else 0
+    total_corrections = corrections.sum()
+
+    stats_text = f"Total Reads: {total_reads:,}\nSuccessful: {total_successful:,}\nUnsuccessful: {total_unsuccessful:,}\nTotal corrections: {total_corrections:,}\nSuccess Rate: {success_rate:.2f}%"
+    ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
+            ha="left", va="top", bbox=dict(boxstyle="round", facecolor="lightblue", alpha=0.8))
+
+    fig.tight_layout()
+    fig.savefig(out, dpi=100)
+    plt.close(fig)
+
+
 def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
                            detection_df: pd.DataFrame, correction_df: pd.DataFrame,
                            config_name: str, out: Path) -> None:
@@ -206,6 +283,8 @@ def generate_plots(logs_dir: Path, config_name: str, plots_dir: Path) -> tuple[f
     data = load_logs(logs_dir)
     plot_read_status_trend(data["read"], data["error"], data["detection"], data["correction"],
                            config_name, plots_dir / f"{config_name}_read_status_trend.png")
+    plot_read_status_trend_end(data["read"], data["correction"], config_name,
+                               plots_dir / f"{config_name}_read_status_trend_end.png", 0.9)
     avg_read_time = calculate_avg_time(data["read"])
     avg_write_time = calculate_avg_time(data["write"])
     return avg_read_time, avg_write_time
