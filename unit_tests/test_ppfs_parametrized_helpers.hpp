@@ -143,6 +143,19 @@ inline std::vector<TestConfig> generateRSConfigs()
     return configs;
 }
 
+inline std::vector<TestConfig> generateParityConfigs()
+{
+    std::vector<TestConfig> configs;
+
+    // Block sizes for parity ECC types
+    std::vector<uint32_t> standard_block_sizes = { 256, 1024, 4096 };
+
+    for (auto block_size : standard_block_sizes) {
+        configs.emplace_back(ECCType::Parity, block_size);
+    }
+    return configs;
+}
+
 inline std::vector<TestConfig> generateNonEccConfigs()
 {
     std::vector<TestConfig> configs;
@@ -165,10 +178,12 @@ inline std::vector<TestConfig> generateTestConfigs()
     auto rs = generateRSConfigs();
     auto nonEcc = generateNonEccConfigs();
     auto crc = generateCrcConfigs();
+    auto parity = generateParityConfigs();
     configs.insert(configs.end(), nonEcc.cbegin(), nonEcc.cend());
     configs.insert(configs.end(), crc.cbegin(), crc.cend());
     configs.insert(configs.end(), hamming.cbegin(), hamming.cend());
     configs.insert(configs.end(), rs.cbegin(), rs.cend());
+    configs.insert(configs.end(), parity.cbegin(), parity.cend());
 
     return configs;
 }

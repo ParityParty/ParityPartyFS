@@ -229,15 +229,12 @@ std::expected<void, FsError> PpFS::remove(std::string_view path, bool recursive)
 std::expected<void, FsError> PpFS::read(
     file_descriptor_t fd, std::size_t bytes_to_read, static_vector<std::uint8_t>& data)
 {
-    return mutex_wrapper<void>(_mutex, [&]() {
-        return _unprotectedRead(fd, bytes_to_read, data);
-    });
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedRead(fd, bytes_to_read, data); });
 }
-std::expected<size_t, FsError> PpFS::write(file_descriptor_t fd, const static_vector<std::uint8_t>& buffer)
+std::expected<size_t, FsError> PpFS::write(
+    file_descriptor_t fd, const static_vector<std::uint8_t>& buffer)
 {
-    return mutex_wrapper<size_t>(_mutex, [&]() {
-        return _unprotectedWrite(fd, buffer);
-    });
+    return mutex_wrapper<size_t>(_mutex, [&]() { return _unprotectedWrite(fd, buffer); });
 }
 std::expected<void, FsError> PpFS::seek(file_descriptor_t fd, size_t position)
 {
@@ -250,12 +247,11 @@ std::expected<void, FsError> PpFS::createDirectory(std::string_view path)
 std::expected<void, FsError> PpFS::readDirectory(
     std::string_view path, static_vector<DirectoryEntry>& entries)
 {
-    return mutex_wrapper<void>(
-        _mutex, [&]() { return _unprotectedReadDirectory(path, entries); });
+    return mutex_wrapper<void>(_mutex, [&]() { return _unprotectedReadDirectory(path, entries); });
 }
 
-std::expected<void, FsError> PpFS::readDirectory(
-    file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries)
+std::expected<void, FsError> PpFS::readDirectory(file_descriptor_t fd, std::uint32_t elements,
+    std::uint32_t offset, static_vector<DirectoryEntry>& entries)
 {
     return mutex_wrapper<void>(
         _mutex, [&]() { return _unprotectedReadDirectory(fd, elements, offset, entries); });
@@ -341,7 +337,7 @@ std::expected<inode_index_t, FsError> PpFS::_getParentInodeFromPath(std::string_
             return std::unexpected(inode_res.error());
         }
         current_inode = inode_res.value();
-        
+
         path = path.substr(next_slash);
     }
 }
@@ -494,6 +490,11 @@ std::expected<void, FsError> PpFS::_removeRecursive(inode_index_t parent, inode_
         }
     }
 
+    auto file_io_res = _fileIO->resizeFile(inode, inode_data, 0);
+    if (!file_io_res.has_value()) {
+        return std::unexpected(file_io_res.error());
+    }
+
     auto remove_entry_res = _directoryManager->removeEntry(parent, inode);
     if (!remove_entry_res.has_value()) {
         return std::unexpected(remove_entry_res.error());
@@ -582,7 +583,8 @@ std::expected<void, FsError> PpFS::_unprotectedRead(
         return std::unexpected(FsError::PpFS_InvalidRequest);
     }
 
-    auto read_res = _fileIO->readFile(open_file->inode, inode, open_file->position, bytes_to_read, data);
+    auto read_res
+        = _fileIO->readFile(open_file->inode, inode, open_file->position, bytes_to_read, data);
     if (!read_res.has_value()) {
         return std::unexpected(read_res.error());
     }
@@ -736,8 +738,8 @@ std::expected<void, FsError> PpFS::_unprotectedReadDirectory(
     return {};
 }
 
-std::expected<void, FsError> PpFS::_unprotectedReadDirectory(
-    file_descriptor_t fd, std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries)
+std::expected<void, FsError> PpFS::_unprotectedReadDirectory(file_descriptor_t fd,
+    std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries)
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
