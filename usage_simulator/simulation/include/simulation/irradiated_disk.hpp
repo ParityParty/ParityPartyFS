@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bit_flipper.hpp"
 #include "disk/idisk.hpp"
 
 #include <memory>
@@ -17,7 +18,7 @@ struct IrradiationConfig {
     double zeta;
 };
 
-class IrradiatedDisk : public IDisk {
+class IrradiatedDisk : public IDisk, IBitFlipper {
     std::set<std::uint64_t> _fragile_bits;
 
     std::uint8_t* _buffer;
@@ -46,5 +47,5 @@ public:
         size_t address, const static_vector<uint8_t>& data) override;
     size_t size() override;
 
-    void step();
+    void step() override;
 };

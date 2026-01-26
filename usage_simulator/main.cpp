@@ -1,9 +1,7 @@
 #include "data_collection/data_colection.hpp"
-#include "disk/heap_disk.hpp"
 #include "filesystem/ppfs.hpp"
 #include "simulation/irradiated_disk.hpp"
 #include "simulation/mock_user.hpp"
-#include "simulation/model_flipper.hpp"
 #include "simulation/simulation_config.hpp"
 
 #include <barrier>
