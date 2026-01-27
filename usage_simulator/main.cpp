@@ -1,8 +1,7 @@
 #include "data_collection/data_colection.hpp"
-#include "disk/heap_disk.hpp"
 #include "filesystem/ppfs.hpp"
+#include "simulation/irradiated_disk.hpp"
 #include "simulation/mock_user.hpp"
-#include "simulation/model_flipper.hpp"
 #include "simulation/simulation_config.hpp"
 
 #include <barrier>
@@ -34,10 +33,22 @@ int main(int argc, char* argv[])
     // Set logger to None if not a TTY (being run by Python)
     Logger::LogLevel log_level = is_tty ? sim_config.log_level : Logger::LogLevel::None;
     std::shared_ptr<Logger> logger = std::make_shared<Logger>(log_level, argv[2]);
-    HeapDisk disk(1 << 25);
-    PpFS fs(disk, logger);
+
+    IrradiationConfig irradiation_config {
+        .krad_per_step = sim_config.second_per_step * sim_config.krad_per_year / SECS_IN_YEAR,
+        .seed = sim_config.bit_flip_seed,
+        .alpha = 0.23112743,
+        .beta = -23.36282644,
+        .gamma = 0.016222,
+        .delta = 1.55735411e-11,
+        .zeta = 2.99482135e-12,
+    };
+
+    IrradiatedDisk irdisk(1 << 25, irradiation_config, logger);
+
+    PpFS fs(irdisk, logger);
     if (!fs.format(FsConfig {
-                       .total_size = disk.size(),
+                       .total_size = irdisk.size(),
                        .average_file_size = 2000,
                        .block_size = sim_config.block_size,
                        .ecc_type = sim_config.ecc_type,
@@ -48,17 +59,6 @@ int main(int argc, char* argv[])
         std::cerr << "Failed to format disk" << std::endl;
         return 1;
     }
-
-    ModelFlipperConfig model_flipper_config {
-        .krad_per_year = sim_config.krad_per_year,
-        .seconds_per_step = sim_config.second_per_step,
-        .seed = sim_config.bit_flip_seed,
-        .alpha = 0.23112743,
-        .beta = -23.36282644,
-        .gamma = 0.016222,
-    };
-
-    ModelFlipper flipper(disk, model_flipper_config, logger);
 
     std::vector<SingleDirMockUser> users;
     for (int i = 0; i < static_cast<int>(sim_config.num_users); i++) {
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 
     auto on_completion = [&]() noexcept {
         logger->step();
-        flipper.step();
+        irdisk.step();
         iteration++;
 
         // Send progress updates to stdout if not a TTY (for Python to parse)
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
     };
 
     logger->step();
-    flipper.step();
+    irdisk.step();
 
     std::vector<std::jthread> threads;
     threads.reserve(std::size(users));
