@@ -257,6 +257,11 @@ std::expected<void, FsError> PpFS::readDirectory(file_descriptor_t fd, std::uint
         _mutex, [&]() { return _unprotectedReadDirectory(fd, elements, offset, entries); });
 }
 
+std::expected<FileStat, FsError> PpFS::getFileStat(std::string_view path)
+{
+    return mutex_wrapper<FileStat>(_mutex, [&]() { return _unprotectedGetFileStat(path); });
+}
+
 std::expected<void, FsError> PpFS::_unprotectedCreate(std::string_view path)
 {
     if (!isInitialized()) {
@@ -713,6 +718,37 @@ std::expected<void, FsError> PpFS::_unprotectedCreateDirectory(std::string_view 
     }
 
     return {};
+}
+
+std::expected<FileStat, FsError> PpFS::_unprotectedGetFileStat(std::string_view path)
+{
+    if (!isInitialized()) {
+        return std::unexpected(FsError::PpFS_NotInitialized);
+    }
+    if (!_isPathValid(path)) {
+        return std::unexpected(FsError::PpFS_InvalidPath);
+    }
+
+    auto inode_res = _getInodeFromPath(path);
+    if (!inode_res.has_value()) {
+        return std::unexpected(inode_res.error());
+    }
+    inode_index_t inode = inode_res.value();
+
+    auto inode_data_res = _inodeManager->get(inode);
+    if (!inode_data_res.has_value()) {
+        return std::unexpected(inode_data_res.error());
+    }
+    Inode inode_data = inode_data_res.value();
+
+    FileStat stat {};
+    stat.size = inode_data.file_size;
+    if (inode_data.type == InodeType::Directory) {
+        stat.number_of_entries = inode_data.file_size / sizeof(DirectoryEntry);
+        stat.is_directory = true;
+    }
+
+    return stat;
 }
 
 std::expected<void, FsError> PpFS::_unprotectedReadDirectory(

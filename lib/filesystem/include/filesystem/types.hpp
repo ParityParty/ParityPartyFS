@@ -30,6 +30,17 @@ inline OpenMode& operator|=(OpenMode& lhs, OpenMode rhs)
     return lhs;
 }
 
+struct FileStat {
+    /** Size of the file in bytes */
+    std::uint32_t size = 0;
+
+    /** Number of entries in the directory. Only valid for directories. */
+    std::uint32_t number_of_entries = 0;
+
+    /** Whether the file is a directory */
+    bool is_directory = false;
+};
+
 /**
  * Configuration parameters for filesystem initialization.
  */
