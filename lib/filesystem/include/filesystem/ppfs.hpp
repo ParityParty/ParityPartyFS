@@ -98,7 +98,7 @@ protected:
         std::string_view path, static_vector<DirectoryEntry>& entries);
     [[nodiscard]] std::expected<void, FsError> _unprotectedReadDirectory(file_descriptor_t fd,
         std::uint32_t elements, std::uint32_t offset, static_vector<DirectoryEntry>& entries);
-    [[nodiscard]] virtual std::expected<std::size_t, FsError> _unprotectedGetFileCount();
+    [[nodiscard]] virtual std::expected<std::size_t, FsError> _unprotectedGetFileCount() const;
     [[nodiscard]] virtual std::expected<FileStat, FsError> _unprotectedGetFileStat(
         std::string_view path);
 

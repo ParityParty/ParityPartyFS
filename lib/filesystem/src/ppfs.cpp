@@ -794,7 +794,7 @@ std::expected<void, FsError> PpFS::_unprotectedReadDirectory(file_descriptor_t f
     return {};
 }
 
-std::expected<std::size_t, FsError> PpFS::_unprotectedGetFileCount()
+std::expected<std::size_t, FsError> PpFS::_unprotectedGetFileCount() const
 {
     if (!isInitialized()) {
         return std::unexpected(FsError::PpFS_NotInitialized);
