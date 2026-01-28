@@ -14,11 +14,23 @@ import enlighten
 import matplotlib.pyplot as plt
 import pandas as pd
 
+# plot configuration
+plt.rcParams.update({
+    'figure.figsize': (8, 8),
+    'figure.dpi': 150,
+    'font.size': 16,
+    'axes.titlesize': 20,
+    'axes.labelsize': 16,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
+    'legend.fontsize': 16,
+})
+
 SECS_IN_YEAR = 365 * 24 * 60 * 60
 
 COMMON_CONFIG = {
     "use_journal": "false",
-    "krad_per_year": 10.0,
+    "krad_per_year": 12.0,
     "bit_flip_seed": 68,
     "num_users": 3,
     "max_write_size": 256,
@@ -164,7 +176,7 @@ def plot_read_status_trend_end(read_df: pd.DataFrame, correction_df: pd.DataFram
             if correction_step < len(corrections):
                 corrections[correction_step] += 1
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots()
     part_steps = range(int(total_steps * part), total_steps)
     times_in_seconds = [step * COMMON_CONFIG["seconds_per_step"] for step in part_steps]
 
@@ -192,7 +204,7 @@ def plot_read_status_trend_end(read_df: pd.DataFrame, correction_df: pd.DataFram
 
     ax.set_xlabel(f"Time ({time_unit})")
     ax.set_ylabel("Count")
-    ax.set_title(f"Read Operations and Corrections Over Time ({config_name})")
+    ax.set_title(f"Read Operations and Corrections Over Time ({config_name})", wrap=True, pad=20)
     ax.grid(True, alpha=0.3)
     ax.legend()
 
@@ -203,11 +215,12 @@ def plot_read_status_trend_end(read_df: pd.DataFrame, correction_df: pd.DataFram
     total_corrections = corrections.sum()
 
     stats_text = f"Total Reads: {total_reads:,}\nSuccessful: {total_successful:,}\nUnsuccessful: {total_unsuccessful:,}\nTotal corrections: {total_corrections:,}\nSuccess Rate: {success_rate:.2f}%"
-    ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
-            ha="left", va="top", bbox=dict(boxstyle="round", facecolor="lightblue", alpha=0.8))
+    ax.text(0.02, 0.5, stats_text, transform=ax.transAxes,
+            ha="left", va="center", bbox=dict(boxstyle="round", facecolor="lightblue", alpha=0.8))
 
     fig.tight_layout()
-    fig.savefig(out, dpi=100)
+    fig.subplots_adjust(top=0.90)
+    fig.savefig(out)
     plt.close(fig)
 
 
@@ -240,7 +253,7 @@ def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
             if correction_step < len(corrections):
                 corrections[correction_step] += 1
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots()
     times_in_seconds = [step * COMMON_CONFIG["seconds_per_step"] for step in steps]
 
     total_seconds = COMMON_CONFIG["simulation_years"] * SECS_IN_YEAR
@@ -260,7 +273,7 @@ def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
 
     ax.set_xlabel(f"Time ({time_unit})")
     ax.set_ylabel("Count")
-    ax.set_title(f"Read Operations and Corrections Over Time ({config_name})")
+    ax.set_title(f"Read Operations and Corrections Over Time ({config_name})", wrap=True, pad=20)
     ax.grid(True, alpha=0.3)
     ax.legend()
 
@@ -271,11 +284,12 @@ def plot_read_status_trend(read_df: pd.DataFrame, error_df: pd.DataFrame,
     total_corrections = corrections.sum()
 
     stats_text = f"Total Reads: {total_reads:,}\nSuccessful: {total_successful:,}\nUnsuccessful: {total_unsuccessful:,}\nTotal corrections: {total_corrections:,}\nSuccess Rate: {success_rate:.2f}%"
-    ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
-            ha="left", va="top", bbox=dict(boxstyle="round", facecolor="lightblue", alpha=0.8))
+    ax.text(0.02, 0.50, stats_text, transform=ax.transAxes,
+            ha="left", va="center", bbox=dict(boxstyle="round", facecolor="lightblue", alpha=0.8))
 
     fig.tight_layout()
-    fig.savefig(out, dpi=100)
+    fig.subplots_adjust(top=0.90)
+    fig.savefig(out)
     plt.close(fig)
 
 
@@ -311,17 +325,17 @@ def plot_avg_times(avg_times: dict[str, float], out: Path, title: str) -> None:
     sorted_labels = sorted(labels)
     sorted_vals = [avg_times[label] for label in sorted_labels]
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots()
     ax.bar(sorted_labels, sorted_vals)
     ax.set_xlabel("Error correction")
     ax.set_ylabel("Average time per byte (microseconds)")
-    ax.set_title(title)
+    ax.set_title(title, wrap=True)
 
     for tick in ax.get_xticklabels():
         tick.set_rotation(25)
         tick.set_ha("right")
     fig.tight_layout()
-    fig.savefig(out, dpi=100)
+    fig.savefig(out)
     plt.close(fig)
 
 
