@@ -1,6 +1,6 @@
-#include "blockdevice/hamming_block_device.hpp"
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
+#include "ppfs/blockdevice/hamming_block_device.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
 #include <array>
 #include <gtest/gtest.h>
 #include <random>
@@ -137,8 +137,7 @@ TEST(HammingBlockDevice, MultipleRandomSingleBitCorrections)
         auto read_res = hbd.readBlock(loc, data.size(), read_data);
         ASSERT_TRUE(read_res.has_value());
 
-        std::string decoded(
-            reinterpret_cast<const char*>(read_data.data()), read_data.size());
+        std::string decoded(reinterpret_cast<const char*>(read_data.data()), read_data.size());
         ASSERT_EQ(decoded, msg);
     }
 }

@@ -1,7 +1,7 @@
-#include "blockdevice/raw_block_device.hpp"
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
-#include "inode_manager/inode_manager.hpp"
+#include "ppfs/blockdevice/raw_block_device.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
+#include "ppfs/inode_manager/inode_manager.hpp"
 #include <array>
 #include <gtest/gtest.h>
 

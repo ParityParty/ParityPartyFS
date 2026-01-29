@@ -1,11 +1,11 @@
 #pragma once
 
-#include "blockdevice/ecc_type.hpp"
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
-#include "filesystem/ppfs.hpp"
-#include "filesystem/types.hpp"
-#include "super_block_manager/super_block.hpp"
+#include "ppfs/blockdevice/ecc_type.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
+#include "ppfs/filesystem/ppfs.hpp"
+#include "ppfs/filesystem/types.hpp"
+#include "ppfs/super_block_manager/super_block.hpp"
 #include <array>
 #include <cctype>
 #include <gtest/gtest.h>

@@ -1,7 +1,7 @@
 #include "simulation/irradiated_disk.hpp"
 
-#include "common/bit_helpers.hpp"
-#include "data_collection/data_colection.hpp"
+#include "ppfs/common/bit_helpers.hpp"
+#include "ppfs/data_collection/data_colection.hpp"
 
 #include <algorithm>
 #include <ranges>
@@ -26,7 +26,7 @@ std::expected<void, FsError> IrradiatedDisk::read(
     }
     data.resize(size);
     std::memcpy(data.data(), _buffer + address, data.size());
-    return { };
+    return {};
 }
 
 std::expected<size_t, FsError> IrradiatedDisk::write(
@@ -51,7 +51,7 @@ std::expected<size_t, FsError> IrradiatedDisk::write(
         BitHelpers::setBit(_buffer, stuck_bits[i], old_vals[i]);
     }
 
-    return { };
+    return {};
 }
 
 size_t IrradiatedDisk::size() { return _size; }

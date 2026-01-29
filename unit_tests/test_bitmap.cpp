@@ -1,11 +1,11 @@
-#include "bitmap/bitmap.hpp"
-#include "blockdevice/hamming_block_device.hpp"
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
+#include "ppfs/bitmap/bitmap.hpp"
+#include "ppfs/blockdevice/hamming_block_device.hpp"
+#include "ppfs/blockdevice/raw_block_device.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
 
 #include <algorithm>
 #include <array>
-#include <blockdevice/raw_block_device.hpp>
 #include <gtest/gtest.h>
 
 TEST(Bitmap, Compiles)

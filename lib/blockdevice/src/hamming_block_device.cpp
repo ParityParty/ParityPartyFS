@@ -1,7 +1,7 @@
-#include "blockdevice/hamming_block_device.hpp"
-#include "common/bit_helpers.hpp"
-#include "common/static_vector.hpp"
-#include "data_collection/data_colection.hpp"
+#include "ppfs/blockdevice/hamming_block_device.hpp"
+#include "ppfs/common/bit_helpers.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/data_collection/data_colection.hpp"
 
 #include <array>
 #include <cmath>
@@ -167,7 +167,7 @@ std::expected<void, FsError> HammingBlockDevice::formatBlock(unsigned int block_
     static_vector<uint8_t> zero_data(zero_data_buffer.data(), MAX_BLOCK_SIZE, _block_size);
     std::fill(zero_data.begin(), zero_data.end(), std::uint8_t(0));
     auto write_result = _disk.write(block_index * _block_size, zero_data);
-    return write_result.has_value() ? std::expected<void, FsError> { }
+    return write_result.has_value() ? std::expected<void, FsError> {}
                                     : std::unexpected(write_result.error());
 }
 
@@ -188,7 +188,7 @@ HammingDataBitsIterator::HammingDataBitsIterator(int block_size, int data_size)
 std::optional<unsigned int> HammingDataBitsIterator::next()
 {
     if (_data_bits_returned >= _data_size * 8) {
-        return { }; // No more data bits
+        return {}; // No more data bits
     }
     while ((_current_index & (_current_index - 1)) == 0) {
         _current_index++;
@@ -209,7 +209,7 @@ HammingUsedBitsIterator::HammingUsedBitsIterator(int block_size, int data_size)
 std::optional<unsigned int> HammingUsedBitsIterator::next()
 {
     if (_data_bits_returned >= _data_size * 8 && _next_parity_bit >= _block_size * 8) {
-        return { }; // No more data bytes
+        return {}; // No more data bytes
     }
 
     if (_data_bits_returned >= _data_size * 8) {

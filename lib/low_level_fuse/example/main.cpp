@@ -10,7 +10,7 @@
  * this release is available on most Ubuntu / Debian systems (like mine xd).
  */
 
-#include "low_level_fuse/fuse_wrapper.hpp"
+#include "ppfs/low_level_fuse/fuse_wrapper.hpp"
 
 #include <cassert>
 #include <cerrno>

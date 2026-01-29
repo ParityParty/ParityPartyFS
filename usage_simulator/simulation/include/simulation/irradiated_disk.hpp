@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bit_flipper.hpp"
-#include "disk/idisk.hpp"
+#include "ppfs/disk/idisk.hpp"
 
 #include <memory>
 #include <random>

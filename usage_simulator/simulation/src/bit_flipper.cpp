@@ -1,6 +1,6 @@
 #include "simulation/bit_flipper.hpp"
-#include "common/bit_helpers.hpp"
-#include "common/static_vector.hpp"
+#include "ppfs/common/bit_helpers.hpp"
+#include "ppfs/common/static_vector.hpp"
 
 #include <array>
 
@@ -20,7 +20,7 @@ void SimpleBitFlipper::step()
         std::uniform_int_distribution<size_t> location_dist(0, _disk.size() - 1);
         const auto pos = location_dist(_rng);
 
-        std::array<uint8_t, 1> read_buf { };
+        std::array<uint8_t, 1> read_buf {};
         static_vector<uint8_t> read_data(read_buf.data(), read_buf.size());
         auto read_ret = _disk.read(pos, 1, read_data);
         if (!read_ret.has_value()) {

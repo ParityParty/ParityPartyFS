@@ -1,6 +1,6 @@
-#include "disk/file_disk.hpp"
-#include "filesystem/fs_config_helpers.hpp"
-#include "filesystem/ppfs.hpp"
+#include "ppfs/disk/file_disk.hpp"
+#include "ppfs/filesystem/fs_config_helpers.hpp"
+#include "ppfs/filesystem/ppfs.hpp"
 
 #include <iostream>
 #include <memory>

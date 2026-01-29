@@ -1,6 +1,6 @@
-#include "blockdevice/parity_block_device.hpp"
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
+#include "ppfs/blockdevice/parity_block_device.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
 #include <array>
 #include <bit>
 #include <gtest/gtest.h>
@@ -12,7 +12,8 @@ TEST(ParityBlockDevice, BasicReadWrite)
 
     auto data_size = parity.dataSize();
     std::array<uint8_t, 512> data_buffer;
-    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0xAA));
+    std::fill(
+        data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0xAA));
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
     ASSERT_TRUE(parity.formatBlock(0).has_value());
@@ -36,7 +37,8 @@ TEST(ParityBlockDevice, DetectsSingleBitFlip)
 
     auto data_size = parity.dataSize();
     std::array<uint8_t, 512> data_buffer;
-    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x55));
+    std::fill(
+        data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0x55));
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
     ASSERT_TRUE(parity.formatBlock(0).has_value());

@@ -1,4 +1,4 @@
-#include "ecc_helpers/gf256.hpp"
+#include "ppfs/ecc_helpers/gf256.hpp"
 
 #include <array>
 

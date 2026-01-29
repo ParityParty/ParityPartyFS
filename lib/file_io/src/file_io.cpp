@@ -1,4 +1,4 @@
-#include "file_io/file_io.hpp"
+#include "ppfs/file_io/file_io.hpp"
 #include <cstring>
 
 FileIO::FileIO(
@@ -64,9 +64,9 @@ std::expected<size_t, FsError> FileIO::writeFile(inode_index_t inode_index, Inod
             }
             return std::unexpected(next_block.error());
         }
-        static_vector<std::uint8_t> buf(const_cast<uint8_t*>(bytes_to_write.data()) + written_bytes, bytes_to_write.size() - written_bytes, bytes_to_write.size() - written_bytes);
-        auto write_res
-            = _block_device.writeBlock(buf, DataLocation(*next_block, offset_in_block));
+        static_vector<std::uint8_t> buf(const_cast<uint8_t*>(bytes_to_write.data()) + written_bytes,
+            bytes_to_write.size() - written_bytes, bytes_to_write.size() - written_bytes);
+        auto write_res = _block_device.writeBlock(buf, DataLocation(*next_block, offset_in_block));
         if (!write_res.has_value()) {
             // If we failed to write to a new block, we should free it
             if (inode.file_size <= offset + written_bytes)
@@ -199,10 +199,10 @@ BlockIndexIterator::BlockIndexIterator(size_t index, Inode& inode, IBlockDevice&
         : _inode.file_size / _block_device.dataSize() + 1;
 }
 
-std::expected<block_index_t, FsError>
-BlockIndexIterator::nextWithIndirectBlocksAdded(static_vector<block_index_t>& indirect_blocks_added)
+std::expected<block_index_t, FsError> BlockIndexIterator::nextWithIndirectBlocksAdded(
+    static_vector<block_index_t>& indirect_blocks_added)
 {
-    if(indirect_blocks_added.capacity() < 3)
+    if (indirect_blocks_added.capacity() < 3)
         return std::unexpected(FsError::FileIO_InvalidRequest);
     indirect_blocks_added.resize(0);
 
@@ -467,7 +467,8 @@ std::expected<void, FsError> BlockIndexIterator::_readIndexBlock(
 {
     size_t indexes_per_block = _block_device.dataSize() / sizeof(block_index_t);
 
-    static_vector<uint8_t> temp_buff(reinterpret_cast<uint8_t*>(buf.data()), indexes_per_block * sizeof(block_index_t), 0);
+    static_vector<uint8_t> temp_buff(
+        reinterpret_cast<uint8_t*>(buf.data()), indexes_per_block * sizeof(block_index_t), 0);
     auto read_res = _block_device.readBlock(
         DataLocation(index, 0), indexes_per_block * sizeof(block_index_t), temp_buff);
 
@@ -484,7 +485,9 @@ std::expected<void, FsError> BlockIndexIterator::_writeIndexBlock(
     size_t indexes_per_block = _block_device.dataSize() / sizeof(block_index_t);
     size_t bytes_to_write = indices.size() * sizeof(block_index_t);
 
-    static_vector<uint8_t> bytes(reinterpret_cast<uint8_t*>(const_cast<block_index_t*>(indices.data())), bytes_to_write, bytes_to_write);
+    static_vector<uint8_t> bytes(
+        reinterpret_cast<uint8_t*>(const_cast<block_index_t*>(indices.data())), bytes_to_write,
+        bytes_to_write);
 
     auto res = _block_device.writeBlock(bytes, DataLocation(index, 0));
 

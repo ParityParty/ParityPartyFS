@@ -1,5 +1,5 @@
-#include "inode_manager/inode_manager.hpp"
-#include "common/static_vector.hpp"
+#include "ppfs/inode_manager/inode_manager.hpp"
+#include "ppfs/common/static_vector.hpp"
 
 InodeManager::InodeManager(IBlockDevice& block_device, SuperBlock& superblock)
     : _block_device(block_device)
@@ -62,7 +62,8 @@ std::expected<Inode, FsError> InodeManager::_readInode(inode_index_t index)
     if (_block_device.dataSize() - start.offset < sizeof(Inode)) {
         // Data doesn't fit in one block
         // We read the unaligned part here before reading the rest
-        static_vector<uint8_t> data_vector(reinterpret_cast<uint8_t*>(&inode), sizeof(Inode), sizeof(Inode));
+        static_vector<uint8_t> data_vector(
+            reinterpret_cast<uint8_t*>(&inode), sizeof(Inode), sizeof(Inode));
         auto read_res = _block_device.readBlock(start, sizeof(Inode), data_vector);
         if (!read_res.has_value()) {
             return std::unexpected(read_res.error());
@@ -75,7 +76,8 @@ std::expected<Inode, FsError> InodeManager::_readInode(inode_index_t index)
     while (bytes_read < sizeof(Inode)) {
         int bytes_left = sizeof(Inode) - bytes_read;
 
-        static_vector<uint8_t> data_vector(reinterpret_cast<uint8_t*>(&inode) + bytes_read, bytes_left, 0);
+        static_vector<uint8_t> data_vector(
+            reinterpret_cast<uint8_t*>(&inode) + bytes_read, bytes_left, 0);
         auto read_res = _block_device.readBlock(start, bytes_left, data_vector);
         if (!read_res.has_value()) {
             return std::unexpected(read_res.error());

@@ -1,6 +1,6 @@
 #include "array"
-#include "common/static_vector.hpp"
-#include "disk/file_disk.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/file_disk.hpp"
 
 #include <cstdio>
 #include <gtest/gtest.h>
