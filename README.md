@@ -1,8 +1,8 @@
-# ParityPartyFS (ppfs)
+# Parity Party File System (PPFS)
 
-A filesystem implemented with **FUSE** and **C++23**, built using [Fusepp](https://github.com/jachappell/Fusepp).
+Parity Party File System is a filesystem designed to detect and correct data corruption caused by ionising radiation.
 
-## 📦 Dependencies
+## Setup
 
 On Ubuntu/Debian, install required packages:
 
@@ -11,21 +11,52 @@ sudo apt update
 sudo apt install -y build-essential cmake ninja-build pkg-config libfuse3-dev fuse3     
 ```
 
-## ⚡️ Build
-
-We use **CMake presets** with **Ninja**:
+to build the project, use the following commands:
 
 ```bash
-cmake --preset debug      # configure (Debug build)
-cmake --build --preset debug   # build everything
+cmake --preset debug
+cmake --build --preset debug
 ```
 
 Other presets you can use:
-
-- `debug` → Debug mode (with tests, symbols).
-- `release` → Release mode (optimized).
+- `debug`
+- `release`
 - `freertos_debug`
 - `freertos_release`
+
+## Runing Unit Tests
+
+To run unit tests, use:
+```bash
+ctest --preset debug
+```
+
+## Running benchmark
+
+To run the performance benchmark, use:
+```bash
+./build/release/performance_tests/performance_tests --benchmark_counters_tabular=true
+```
+
+## Running Usage Simulator
+
+Usage simulator creates a filesystem instance and runs threads doing operations on it. Random bit flips are
+performed during the simulation.
+There is a configuration file allowing to modify simulation parameters. Example configuration can be found in
+`usage_simulator/simulation_config.txt`
+
+```bash
+./build/release/usage_simulator/usage_simulator <path_to_config_file> <logs_directory>
+```
+
+There is also python simulation runner. Simulation runner creates simulation scenarios defined in the script
+and runs them in parallel. Then it saves useful plots to `plots/` directory
+To run it:
+
+1. build program
+2. ```bash
+   ./.venv/bin/python3 ./simulation_runner/runner.py
+   ```
 
 ## Building and Running PPFS with FUSE
 
@@ -242,35 +273,3 @@ To unmount:
 ```bash
 umount mnt
 ```
-
-## 🧪 Run Tests
-
-```bash
-ctest --preset debug
-```
-
-## Run benchmark
-
-```bash
-./build/release/performance_tests/performance_tests --benchmark_counters_tabular=true
-```
-
-## Run Usage Simulator
-
-Usage simulator creates filesystem instance and runs threads doing operations on it. There are random bit flips
-performed during the simulation.
-There is a configuration file allowing to modify simulation parameters. Example configuration can be found in
-`usage_simulator/simulation_config.txt`
-
-```bash
-./build/release/usage_simulator/usage_simulator <path_to_config_file> <logs_directory>
-```
-
-There is also python simulation runner. Simulation runner creates simulation scenarios defined in the script
-and runs them in parallel. Then it saves useful plots to `plots/` directory
-To run it:
-
-1. build program
-2. ```bash
-   ./.venv/bin/python3 ./simulation_runner/runner.py
-   ```
