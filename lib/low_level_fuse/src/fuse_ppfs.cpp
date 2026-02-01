@@ -394,6 +394,24 @@ std::expected<void, FsError> FusePpFS::_get_stats(fuse_ino_t ino, struct stat* s
     return {};
 }
 
+void FusePpFS::setattr(
+    fuse_req_t req, fuse_ino_t ino, struct stat* attr, int to_set, struct fuse_file_info* fi)
+{
+    auto* ptr = this_(req);
+    inode_index_t ppfs_ino = ino - 1;
+
+    if (to_set & FUSE_SET_ATTR_SIZE) {
+        auto res = ptr->_ppfs.truncate(ppfs_ino, attr->st_size);
+        HANDLE_EXPECTED_ERROR(req, res);
+    }
+
+    struct stat st {};
+    auto stat_res = ptr->_get_stats(ino, &st);
+    HANDLE_EXPECTED_ERROR(req, stat_res);
+
+    fuse_reply_attr(req, &st, 1.0);
+}
+
 int FusePpFS::_map_fs_error_to_errno(FsError err)
 {
     switch (err) {

@@ -1,5 +1,6 @@
 /build/
 /.vscode/
 /.idea/
-/plots/
+/simulator_plots/
+/fio_plots/
 /.venv/
