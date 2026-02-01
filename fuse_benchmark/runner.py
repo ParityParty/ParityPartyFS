@@ -29,17 +29,17 @@ ECC_CONFIGS = [
         "ecc_type": "none",
     },
     {
-        "name": "CRC",
-        "ecc_type": "crc",
-        "crc_polynomial": "0x9960034c",
+        "name": "Parity check",
+        "ecc_type": "parity",
     },
     {
         "name": "Hamming",
         "ecc_type": "hamming",
     },
     {
-        "name": "Parity check",
-        "ecc_type": "parity",
+        "name": "CRC",
+        "ecc_type": "crc",
+        "crc_polynomial": "0x9960034c",
     },
     {
         "name": "RS, strength 1",
@@ -201,10 +201,10 @@ def plot(df: pd.DataFrame, out: Path) -> None:
     """Generates and saves plots from the benchmark results."""
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 
-    df.plot(x="ecc", y="read_bw_MBps", kind="bar", ax=axes[0][0], title="Read BW [MB/s]")
-    df.plot(x="ecc", y="write_bw_MBps", kind="bar", ax=axes[0][1], title="Write BW [MB/s]")
-    df.plot(x="ecc", y="read_lat_us", kind="bar", ax=axes[1][0], title="Read latency [µs]")
-    df.plot(x="ecc", y="write_lat_us", kind="bar", ax=axes[1][1], title="Write latency [µs]")
+    df.plot(x="ecc", y="read_bw_MBps", kind="bar", ax=axes[0][0], title="Read BW [MB/s]", legend=False)
+    df.plot(x="ecc", y="write_bw_MBps", kind="bar", ax=axes[0][1], title="Write BW [MB/s]", legend=False)
+    df.plot(x="ecc", y="read_lat_us", kind="bar", ax=axes[1][0], title="Read latency [µs]", legend=False)
+    df.plot(x="ecc", y="write_lat_us", kind="bar", ax=axes[1][1], title="Write latency [µs]", legend=False)
 
     for ax in axes.flat:
         ax.set_xlabel("")

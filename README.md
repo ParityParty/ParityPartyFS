@@ -281,7 +281,6 @@ In order to measure performance of FUSE I/O operations for different ECC, you ca
 and saves results to `fio_plots/` directory
 To run it:
 1. build program with `release` preset
-2. 2. ```bash
+2. ```bash
    ./.venv/bin/python3 ./fuse_benchmark/runner.py
-
-```
+   ```
