@@ -33,7 +33,7 @@ ctest --preset debug
 
 ## Running benchmark
 
-To run the performance benchmark, use:
+To run the performance benchmark, build the project with the `release` preset and use:
 ```bash
 ./build/release/performance_tests/performance_tests --benchmark_counters_tabular=true
 ```
@@ -53,9 +53,24 @@ There is also python simulation runner. Simulation runner creates simulation sce
 and runs them in parallel. Then it saves useful plots to `plots/` directory
 To run it:
 
-1. build program
-2. ```bash
+1. build program with the `release` preset
+2. Run the following command:
+   ```bash
    ./.venv/bin/python3 ./simulation_runner/runner.py
+   ```
+## Running fuse benchmark
+
+To measure the performance of FUSE I/O operations for different ECC configurations, this project uses fio (Flexible I/O Tester).
+The benchmarks are executed via a dedicated Python script and the results are saved in the fio_plots/ directory
+To run it:
+1. Install fio:
+   ```bash
+   sudo apt install fio
+   ```
+3. build program with the `release` preset
+4. Run the following command:
+   ```bash
+   ./.venv/bin/python3 ./fuse_benchmark/runner.py
    ```
 
 ## Building and Running PPFS with FUSE
@@ -68,7 +83,7 @@ After building the project, you’ll find two binaries:
 Both binaries are located in:
 
 ```
-./build/debug/fuse_exec/
+./build/<preset_name>/fuse_exec/
 ```
 
 ### Creating a filesystem image
@@ -78,7 +93,7 @@ Both binaries are located in:
 To create a new filesystem image, run:
 
 ```bash
-./build/debug/fuse_exec/mkfs_ppfs <config_file> <disk_file>
+./build/<preset_name>/fuse_exec/mkfs_ppfs <config_file> <disk_file>
 ````
 
 * `<disk_file>` – path to the image file that will store the filesystem (created if it doesn’t exist).
@@ -241,7 +256,7 @@ use_journal = false
 To mount an existing filesystem image, run:
 
 ```bash
-./build/debug/fuse_exec/mount_ppfs <disk_file> <mount_point> [-- fuse_options]
+./build/<preset_name>/fuse_exec/mount_ppfs <disk_file> <mount_point> [-- fuse_options]
 ```
 
 * `<disk_file>` – path to the filesystem image to mount.
