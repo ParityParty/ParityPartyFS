@@ -1,18 +1,18 @@
-#include "filesystem/ppfs.hpp"
-#include "common/math_helpers.hpp"
-#include "common/ppfs_mutex.hpp"
-#include "common/static_vector.hpp"
-#include "filesystem/mutex_wrapper.hpp"
+#include "ppfs/filesystem/ppfs.hpp"
+#include "ppfs/common/math_helpers.hpp"
+#include "ppfs/common/ppfs_mutex.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/filesystem/mutex_wrapper.hpp"
 #include <array>
 #include <cstring>
 #include <numeric>
 
-#include "blockdevice/crc_block_device.hpp"
-#include "blockdevice/hamming_block_device.hpp"
-#include "blockdevice/iblock_device.hpp"
-#include "blockdevice/parity_block_device.hpp"
-#include "blockdevice/raw_block_device.hpp"
-#include "blockdevice/rs_block_device.hpp"
+#include "ppfs/blockdevice/crc_block_device.hpp"
+#include "ppfs/blockdevice/hamming_block_device.hpp"
+#include "ppfs/blockdevice/iblock_device.hpp"
+#include "ppfs/blockdevice/parity_block_device.hpp"
+#include "ppfs/blockdevice/raw_block_device.hpp"
+#include "ppfs/blockdevice/rs_block_device.hpp"
 
 #include <mutex>
 
@@ -255,6 +255,11 @@ std::expected<void, FsError> PpFS::readDirectory(file_descriptor_t fd, std::uint
 {
     return mutex_wrapper<void>(
         _mutex, [&]() { return _unprotectedReadDirectory(fd, elements, offset, entries); });
+}
+
+std::expected<FileStat, FsError> PpFS::getFileStat(std::string_view path)
+{
+    return mutex_wrapper<FileStat>(_mutex, [&]() { return _unprotectedGetFileStat(path); });
 }
 
 std::expected<void, FsError> PpFS::_unprotectedCreate(std::string_view path)
@@ -713,6 +718,37 @@ std::expected<void, FsError> PpFS::_unprotectedCreateDirectory(std::string_view 
     }
 
     return {};
+}
+
+std::expected<FileStat, FsError> PpFS::_unprotectedGetFileStat(std::string_view path)
+{
+    if (!isInitialized()) {
+        return std::unexpected(FsError::PpFS_NotInitialized);
+    }
+    if (!_isPathValid(path)) {
+        return std::unexpected(FsError::PpFS_InvalidPath);
+    }
+
+    auto inode_res = _getInodeFromPath(path);
+    if (!inode_res.has_value()) {
+        return std::unexpected(inode_res.error());
+    }
+    inode_index_t inode = inode_res.value();
+
+    auto inode_data_res = _inodeManager->get(inode);
+    if (!inode_data_res.has_value()) {
+        return std::unexpected(inode_data_res.error());
+    }
+    Inode inode_data = inode_data_res.value();
+
+    FileStat stat {};
+    stat.size = inode_data.file_size;
+    if (inode_data.type == InodeType::Directory) {
+        stat.number_of_entries = inode_data.file_size / sizeof(DirectoryEntry);
+        stat.is_directory = true;
+    }
+
+    return stat;
 }
 
 std::expected<void, FsError> PpFS::_unprotectedReadDirectory(

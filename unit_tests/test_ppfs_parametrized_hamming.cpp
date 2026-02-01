@@ -1,5 +1,5 @@
-#include "common/static_vector.hpp"
-#include "super_block_manager/super_block.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/super_block_manager/super_block.hpp"
 #include "test_ppfs_parametrized_helpers.hpp"
 #include <array>
 #include <cstring>
@@ -65,8 +65,8 @@ TEST_P(PpFSParametrizedHammingTest, ErrorCorrection_Hamming_SingleBitFlip)
 
     ASSERT_EQ(read_data.size(), data_size);
     for (size_t i = 0; i < data_size; ++i) {
-        ASSERT_EQ(read_data[i], write_data_vec[i])
-            << "Data should be correctly recovered at index " << i << " for " << GetParam().test_name;
+        ASSERT_EQ(read_data[i], write_data_vec[i]) << "Data should be correctly recovered at index "
+                                                   << i << " for " << GetParam().test_name;
     }
 
     auto close_res2 = fs->close(fd2);

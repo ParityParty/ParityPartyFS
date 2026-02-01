@@ -1,8 +1,8 @@
-#include "block_manager/block_manager.hpp"
-#include "blockdevice/hamming_block_device.hpp"
-#include "blockdevice/raw_block_device.hpp"
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
+#include "ppfs/block_manager/block_manager.hpp"
+#include "ppfs/blockdevice/hamming_block_device.hpp"
+#include "ppfs/blockdevice/raw_block_device.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
 #include <array>
 #include <gtest/gtest.h>
 
@@ -10,7 +10,7 @@ TEST(BlockManager, Compiles)
 {
     StackDisk disk;
     HammingBlockDevice device(8, disk);
-    BlockManager block_manager(SuperBlock { }, device);
+    BlockManager block_manager(SuperBlock {}, device);
 
     EXPECT_TRUE(true);
 }
@@ -33,8 +33,7 @@ TEST(BlockManager, Formats)
     auto read_ret = disk.read(512, 1, read_data);
     ASSERT_TRUE(read_ret.has_value());
     // 7 bits free 8th unknown
-    EXPECT_TRUE(
-        static_cast<int>(read_data[0]) == 1 || static_cast<int>(read_data[0]) == 0);
+    EXPECT_TRUE(static_cast<int>(read_data[0]) == 1 || static_cast<int>(read_data[0]) == 0);
 }
 
 TEST(BlockManager, FormatsMore)

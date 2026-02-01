@@ -1,7 +1,7 @@
-#include "common/static_vector.hpp"
-#include "directory_manager/directory.hpp"
-#include "disk/stack_disk.hpp"
-#include "filesystem/ppfs.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/directory_manager/directory.hpp"
+#include "ppfs/disk/stack_disk.hpp"
+#include "ppfs/filesystem/ppfs.hpp"
 #include <array>
 #include <gtest/gtest.h>
 
@@ -1120,6 +1120,199 @@ TEST(PpFS, GetFileCount_Fails_NotInitialized)
     ASSERT_EQ(count_res.error(), FsError::PpFS_NotInitialized);
 }
 
+TEST(PpFS, GetFileStat_Fails_NotInitialized)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    auto stat_res = fs.getFileStat("/");
+    ASSERT_FALSE(stat_res.has_value());
+    ASSERT_EQ(stat_res.error(), FsError::PpFS_NotInitialized);
+}
+
+TEST(PpFS, GetFileStat_RootDirectory)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto stat_res = fs.getFileStat("/");
+    ASSERT_TRUE(stat_res.has_value()) << "GetFileStat failed: " << toString(stat_res.error());
+
+    FileStat stat = stat_res.value();
+    ASSERT_TRUE(stat.is_directory);
+    ASSERT_EQ(stat.number_of_entries, 0);
+}
+
+TEST(PpFS, GetFileStat_EmptyDirectory)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_dir_res = fs.createDirectory("/mydir");
+    ASSERT_TRUE(create_dir_res.has_value())
+        << "CreateDirectory failed: " << toString(create_dir_res.error());
+
+    auto stat_res = fs.getFileStat("/mydir");
+    ASSERT_TRUE(stat_res.has_value()) << "GetFileStat failed: " << toString(stat_res.error());
+
+    FileStat stat = stat_res.value();
+    ASSERT_TRUE(stat.is_directory);
+    ASSERT_EQ(stat.number_of_entries, 0);
+}
+
+TEST(PpFS, GetFileStat_NonEmptyDirectory)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_dir_res = fs.createDirectory("/mydir");
+    ASSERT_TRUE(create_dir_res.has_value())
+        << "CreateDirectory failed: " << toString(create_dir_res.error());
+
+    auto create_file_res1 = fs.create("/mydir/file1.txt");
+    ASSERT_TRUE(create_file_res1.has_value())
+        << "Create file1 failed: " << toString(create_file_res1.error());
+
+    auto create_file_res2 = fs.create("/mydir/file2.txt");
+    ASSERT_TRUE(create_file_res2.has_value())
+        << "Create file2 failed: " << toString(create_file_res2.error());
+
+    auto create_dir_res2 = fs.createDirectory("/mydir/subdir");
+    ASSERT_TRUE(create_dir_res2.has_value())
+        << "Create subdir failed: " << toString(create_dir_res2.error());
+
+    auto stat_res = fs.getFileStat("/mydir");
+    ASSERT_TRUE(stat_res.has_value()) << "GetFileStat failed: " << toString(stat_res.error());
+
+    FileStat stat = stat_res.value();
+    ASSERT_TRUE(stat.is_directory);
+    ASSERT_EQ(stat.number_of_entries, 3);
+}
+
+TEST(PpFS, GetFileStat_RegularFile)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.create("/file.txt");
+    ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
+
+    auto stat_res = fs.getFileStat("/file.txt");
+    ASSERT_TRUE(stat_res.has_value()) << "GetFileStat failed: " << toString(stat_res.error());
+
+    FileStat stat = stat_res.value();
+    ASSERT_FALSE(stat.is_directory);
+    ASSERT_EQ(stat.size, 0);
+}
+
+TEST(PpFS, GetFileStat_RegularFileWithData)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto create_res = fs.create("/file.txt");
+    ASSERT_TRUE(create_res.has_value()) << "Create file failed: " << toString(create_res.error());
+
+    auto open_res = fs.open("/file.txt");
+    ASSERT_TRUE(open_res.has_value()) << "Open file failed: " << toString(open_res.error());
+    file_descriptor_t fd = open_res.value();
+
+    std::array<uint8_t, 42> write_buf = { 1, 2, 3, 4, 5 };
+    static_vector<uint8_t> write_data(write_buf.data(), write_buf.size(), write_buf.size());
+    auto write_res = fs.write(fd, write_data);
+    ASSERT_TRUE(write_res.has_value()) << "Write failed: " << toString(write_res.error());
+
+    auto close_res = fs.close(fd);
+    ASSERT_TRUE(close_res.has_value()) << "Close file failed: " << toString(close_res.error());
+
+    auto stat_res = fs.getFileStat("/file.txt");
+    ASSERT_TRUE(stat_res.has_value()) << "GetFileStat failed: " << toString(stat_res.error());
+
+    FileStat stat = stat_res.value();
+    ASSERT_FALSE(stat.is_directory);
+    ASSERT_EQ(stat.size, 42);
+}
+
+TEST(PpFS, GetFileStat_Fails_FileDoesNotExist)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto stat_res = fs.getFileStat("/nonexistent_file.txt");
+    ASSERT_FALSE(stat_res.has_value());
+    ASSERT_EQ(stat_res.error(), FsError::PpFS_NotFound);
+}
+
+TEST(PpFS, GetFileStat_Fails_InvalidPath)
+{
+    StackDisk disk;
+    PpFS fs(disk);
+
+    FsConfig config;
+    config.total_size = 4096;
+    config.block_size = 128;
+    config.average_file_size = 256;
+    auto format_res = fs.format(config);
+    ASSERT_TRUE(format_res.has_value());
+    ASSERT_TRUE(fs.isInitialized());
+
+    auto stat_res1 = fs.getFileStat("file.txt");
+    ASSERT_FALSE(stat_res1.has_value());
+    ASSERT_EQ(stat_res1.error(), FsError::PpFS_InvalidPath);
+
+    auto stat_res2 = fs.getFileStat("/dir//file.txt");
+    ASSERT_FALSE(stat_res2.has_value());
+    ASSERT_EQ(stat_res2.error(), FsError::PpFS_InvalidPath);
+}
+
 TEST(PpFS, Read_Fails_NotInitialized)
 {
     StackDisk disk;
@@ -1380,7 +1573,8 @@ TEST(PpFS, WriteSeekWriteRead_Succeeds)
     file_descriptor_t fd = open_res.value();
 
     std::array<uint8_t, 5> first_write_buf = { 1, 2, 3, 4, 5 };
-    static_vector<uint8_t> first_write_data(first_write_buf.data(), first_write_buf.size(), first_write_buf.size());
+    static_vector<uint8_t> first_write_data(
+        first_write_buf.data(), first_write_buf.size(), first_write_buf.size());
     auto write_res1 = fs.write(fd, first_write_data);
     ASSERT_TRUE(write_res1.has_value()) << "First write failed: " << toString(write_res1.error());
 
@@ -1388,7 +1582,8 @@ TEST(PpFS, WriteSeekWriteRead_Succeeds)
     ASSERT_TRUE(seek_res.has_value()) << "Seek failed: " << toString(seek_res.error());
 
     std::array<uint8_t, 5> second_write_buf = { 6, 7, 8, 9, 10 };
-    static_vector<uint8_t> second_write_data(second_write_buf.data(), second_write_buf.size(), second_write_buf.size());
+    static_vector<uint8_t> second_write_data(
+        second_write_buf.data(), second_write_buf.size(), second_write_buf.size());
     auto write_res2 = fs.write(fd, second_write_data);
     ASSERT_TRUE(write_res2.has_value()) << "Second write failed: " << toString(write_res2.error());
 
@@ -1404,7 +1599,8 @@ TEST(PpFS, WriteSeekWriteRead_Succeeds)
     ASSERT_TRUE(close_res.has_value()) << "Close file failed: " << toString(close_res.error());
 
     std::array<uint8_t, 8> expected_buf = { 1, 2, 3, 6, 7, 8, 9, 10 };
-    static_vector<uint8_t> expected_data(expected_buf.data(), expected_buf.size(), expected_buf.size());
+    static_vector<uint8_t> expected_data(
+        expected_buf.data(), expected_buf.size(), expected_buf.size());
     ASSERT_EQ(read_data.size(), expected_data.size());
     for (size_t i = 0; i < expected_data.size(); ++i) {
         ASSERT_EQ(read_data[i], expected_data[i]) << "Mismatch at index " << i;
@@ -1498,7 +1694,8 @@ TEST(PpFS, Write_Succeeds_MultipleFD_AppendMode)
         << "Close re-opened FD failed: " << toString(close_res3.error());
 
     std::array<uint8_t, 9> expected_buf = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    static_vector<uint8_t> expected_data(expected_buf.data(), expected_buf.size(), expected_buf.size());
+    static_vector<uint8_t> expected_data(
+        expected_buf.data(), expected_buf.size(), expected_buf.size());
     ASSERT_EQ(read_data.size(), expected_data.size());
     for (size_t i = 0; i < expected_data.size(); ++i) {
         ASSERT_EQ(read_data[i], expected_data[i]) << "Mismatch at index " << i;

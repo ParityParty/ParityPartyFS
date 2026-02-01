@@ -1,5 +1,5 @@
-#include "low_level_fuse/fuse_ppfs.hpp"
-#include "common/static_vector.hpp"
+#include "ppfs/low_level_fuse/fuse_ppfs.hpp"
+#include "ppfs/common/static_vector.hpp"
 #include <cstring>
 #include <new>
 

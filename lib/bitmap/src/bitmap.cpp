@@ -1,9 +1,9 @@
-#include "bitmap/bitmap.hpp"
-#include "common/bit_helpers.hpp"
-#include "common/static_vector.hpp"
+#include "ppfs/bitmap/bitmap.hpp"
+#include "ppfs/common/bit_helpers.hpp"
+#include "ppfs/common/static_vector.hpp"
 
-#include <cmath>
 #include <array>
+#include <cmath>
 
 DataLocation Bitmap::_getByteLocation(unsigned int bit_index)
 {
@@ -167,7 +167,8 @@ std::expected<void, FsError> Bitmap::setAll(bool value)
     auto blocks_spanned = blocksSpanned();
     std::uint8_t value_byte = value ? 0xff : 0x00;
     std::array<uint8_t, MAX_BLOCK_SIZE> block_buffer;
-    static_vector<uint8_t> block_data(block_buffer.data(), MAX_BLOCK_SIZE, _block_device.dataSize());
+    static_vector<uint8_t> block_data(
+        block_buffer.data(), MAX_BLOCK_SIZE, _block_device.dataSize());
     std::fill(block_data.begin(), block_data.end(), value_byte);
     for (int block = 0; block < blocks_spanned; block++) {
         auto ret = _block_device.writeBlock(block_data, { _start_block + block, 0 });

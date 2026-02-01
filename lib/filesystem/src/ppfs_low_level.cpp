@@ -1,6 +1,6 @@
-#include "filesystem/ppfs_low_level.hpp"
-#include "common/static_vector.hpp"
-#include "filesystem/mutex_wrapper.hpp"
+#include "ppfs/filesystem/ppfs_low_level.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/filesystem/mutex_wrapper.hpp"
 #include <array>
 #include <cstring>
 
@@ -122,7 +122,8 @@ std::expected<void, FsError> PpFSLowLevel::_unprotectedGetDirectoryEntries(
         return std::unexpected(FsError::PpFS_NotInitialized);
     }
 
-    return _directoryManager->getEntries(inode, static_cast<std::uint32_t>(size), static_cast<std::uint32_t>(offset), buf);
+    return _directoryManager->getEntries(
+        inode, static_cast<std::uint32_t>(size), static_cast<std::uint32_t>(offset), buf);
 }
 
 std::expected<file_descriptor_t, FsError> PpFSLowLevel::_unprotectedOpenByInode(

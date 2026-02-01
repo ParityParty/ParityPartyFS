@@ -1,7 +1,7 @@
-#include "blockdevice/crc_block_device.hpp"
-#include "common/bit_helpers.hpp"
-#include "common/static_vector.hpp"
-#include "data_collection/data_colection.hpp"
+#include "ppfs/blockdevice/crc_block_device.hpp"
+#include "ppfs/common/bit_helpers.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/data_collection/data_colection.hpp"
 
 #include <algorithm>
 #include <array>
@@ -22,7 +22,6 @@ std::expected<void, FsError> CrcBlockDevice::_readAndCheckRaw(
     BitHelpers::blockToBits(block_buffer, block_bits);
     auto amount_unused_bits = (_block_size - dataSize()) * 8 - _polynomial.getDegree();
     block_bits.resize(block_bits.size() - amount_unused_bits);
-
 
     std::array<bool, MAX_CRC_POLYNOMIAL_SIZE> remainder_buffer;
     static_vector<bool> remainder(remainder_buffer.data(), MAX_CRC_POLYNOMIAL_SIZE);
@@ -64,7 +63,7 @@ std::expected<void, FsError> CrcBlockDevice::_calculateAndWrite(
     if (!disk_res.has_value()) {
         return std::unexpected(disk_res.error());
     }
-    return { };
+    return {};
 }
 
 CrcBlockDevice::CrcBlockDevice(
@@ -131,5 +130,5 @@ std::expected<void, FsError> CrcBlockDevice::formatBlock(unsigned int block_inde
     if (!ret.has_value()) {
         return std::unexpected(ret.error());
     }
-    return { };
+    return {};
 }

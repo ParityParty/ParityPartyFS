@@ -1,6 +1,6 @@
-#include "blockdevice/rs_block_device.hpp"
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
+#include "ppfs/blockdevice/rs_block_device.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
 
 #include <array>
 #include <gtest/gtest.h>
@@ -13,7 +13,8 @@ TEST(ReedSolomonBlockDevice, BasicReadWrite)
 
     auto data_size = rs.dataSize();
     std::array<uint8_t, 512> data_buffer;
-    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0xAB));
+    std::fill(
+        data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0xAB));
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
     ASSERT_TRUE(rs.formatBlock(0).has_value());
@@ -70,7 +71,8 @@ TEST(ReedSolomonBlockDevice, DoubleByteError)
 
     auto data_size = rs.dataSize();
     std::array<uint8_t, 512> data_buffer;
-    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0xAB));
+    std::fill(
+        data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0xAB));
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
     ASSERT_TRUE(rs.formatBlock(0).has_value());
@@ -105,7 +107,8 @@ TEST(ReedSolomonBlockDevice, TripleByteError)
 
     auto data_size = rs.dataSize();
     std::array<uint8_t, 512> data_buffer;
-    std::fill(data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0xAB));
+    std::fill(
+        data_buffer.begin(), data_buffer.begin() + data_size, static_cast<std::uint8_t>(0xAB));
     static_vector<uint8_t> data(data_buffer.data(), data_buffer.size(), data_size);
 
     ASSERT_TRUE(rs.formatBlock(0).has_value());

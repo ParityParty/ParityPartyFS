@@ -1,9 +1,9 @@
-#include "block_manager/block_manager.hpp"
-#include "blockdevice/raw_block_device.hpp"
-#include "common/static_vector.hpp"
-#include "directory_manager/directory_manager.hpp"
-#include "disk/stack_disk.hpp"
-#include "inode_manager/inode_manager.hpp"
+#include "ppfs/block_manager/block_manager.hpp"
+#include "ppfs/blockdevice/raw_block_device.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/directory_manager/directory_manager.hpp"
+#include "ppfs/disk/stack_disk.hpp"
+#include "ppfs/inode_manager/inode_manager.hpp"
 #include <array>
 #include <gtest/gtest.h>
 
@@ -11,7 +11,7 @@ TEST(DirectoryManager, compiles)
 {
     StackDisk disk;
     RawBlockDevice dev(64, disk);
-    BlockManager bm(SuperBlock { }, dev);
+    BlockManager bm(SuperBlock {}, dev);
     InodeManager im(dev, *(new SuperBlock()));
     FileIO fio(dev, bm, im);
     DirectoryManager dm(dev, im, fio);
@@ -126,7 +126,6 @@ TEST(DirectoryManager, checkNameUniqueNameTaken)
     e1.inode = 10;
     strcpy(e1.name.data(), "dup");
 
-
     ASSERT_TRUE(dm.addEntry(dir, e1).has_value());
     auto res = dm.checkNameUnique(dir, "dup");
     ASSERT_FALSE(res.has_value());
@@ -156,7 +155,6 @@ TEST(DirectoryManager, checkNameUniqueNameNotTaken)
 
     auto res = dm.checkNameUnique(dir, "dup");
     ASSERT_TRUE(res.has_value());
-
 }
 
 TEST(DirectoryManager, RemoveNonexistentEntryFails)

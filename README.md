@@ -31,7 +31,7 @@ Other presets you can use:
 
 After building the project, you’ll find two binaries:
 
-1. **`mkfs_ppfs`** – used for creating and formatting a filesystem image.  
+1. **`mkfs_ppfs`** – used for creating and formatting a filesystem image.
 2. **`mount_ppfs`** – used for mounting an existing filesystem image via FUSE.
 
 Both binaries are located in:
@@ -81,15 +81,16 @@ Each configuration option must be specified on a separate line.
 - Unknown keys cause a configuration error
 - Missing required fields cause a configuration error
 
-
 #### Required fields
 
 The following fields are always required:
 
 #### `total_size`
+
 - **Type:** `uint64_t`
 - **Description:** Total size of the filesystem image in bytes, must be a multiple of block size
 - **Example:**
+
 ```
 
 total_size = 1048576
@@ -97,9 +98,11 @@ total_size = 1048576
 ```
 
 #### `average_file_size`
+
 - **Type:** `uint64_t`
 - **Description:** Expected average file size, used to tune internal filesystem structures
 - **Example:**
+
 ```
 
 average_file_size = 4096
@@ -107,9 +110,11 @@ average_file_size = 4096
 ```
 
 #### `block_size`
+
 - **Type:** `uint32_t`
 - **Description:** Block size in bytes (must be a power of two)
 - **Example:**
+
 ```
 
 block_size = 512
@@ -117,10 +122,12 @@ block_size = 512
 ```
 
 #### `ecc_type`
+
 - **Type:** enum
 - **Allowed values:** `none`, `crc`, `reed_solomon`, `parity`, `hamming`
 - **Description:** Error correction mechanism used by the filesystem
 - **Example:**
+
 ```
 
 ecc_type = crc
@@ -134,11 +141,15 @@ ecc_type = crc
 Some fields are required only for specific `ecc_type` values.
 
 #### `crc_polynomial`
+
 - **Type:** `unsigned long int`
 - **Required when:** `ecc_type = crc`
-- **Description:** Polynomial used for CRC error detection. Each bit represents a coefficient in CRC polynomial, with the most significant bit corresponding to the highest degree. The constant term (`+1`) is implicit and is not encoded in this value.
+- **Description:** Polynomial used for CRC error detection. Each bit represents a coefficient in CRC polynomial, with
+  the most significant bit corresponding to the highest degree. The constant term (`+1`) is implicit and is not encoded
+  in this value.
 - **Format:** Decimal or hexadecimal (`0x` prefix supported)
 - **Examples:**
+
 ```
 
 crc_polynomial = 0x9960034c
@@ -147,10 +158,12 @@ crc_polynomial = 257
 ```
 
 #### `rs_correctable_bytes`
+
 - **Type:** `uint32_t`
 - **Required when:** `ecc_type = reed_solomon`
 - **Description:** Number of bytes that can be corrected per block
 - **Example:**
+
 ```
 
 rs_correctable_bytes = 3
@@ -162,11 +175,13 @@ rs_correctable_bytes = 3
 ### Optional fields
 
 #### `use_journal`
+
 - **Type:** `bool`
 - **Allowed values:** `true`, `false`, `1`, `0`
 - **Default:** `false`
 - **Description:** Enables or disables journaling support
 - **Example:**
+
 ```
 
 use_journal = false
@@ -200,7 +215,8 @@ To mount an existing filesystem image, run:
 
 * `<disk_file>` – path to the filesystem image to mount.
 * `<mount_point>` – path to an **existing, empty directory** that will serve as the mount point.
-* `fuse_options` – optional FUSE parameters (for example `-f` for foreground or `-d` for debug logs). Must be passed **after `--`**.
+* `fuse_options` – optional FUSE parameters (for example `-f` for foreground or `-d` for debug logs). Must be passed *
+  *after `--`**.
 
 Example:
 
@@ -208,6 +224,7 @@ Example:
 mkdir -p mnt
 ./build/debug/fuse_exec/mount_ppfs ppfs.img mnt -- -f -d
 ```
+
 ---
 
 ### Using the filesystem
@@ -256,8 +273,7 @@ To run it:
 1. build program
 2. ```bash
    ./.venv/bin/python3 ./simulation_runner/runner.py
-
-```
+   ```
 
 ## Run fuse benchmark
 

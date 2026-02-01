@@ -1,6 +1,6 @@
-#include "super_block_manager/super_block_manager.hpp"
-#include "common/bit_helpers.hpp"
-#include "common/static_vector.hpp"
+#include "ppfs/super_block_manager/super_block_manager.hpp"
+#include "ppfs/common/bit_helpers.hpp"
+#include "ppfs/common/static_vector.hpp"
 #include <array>
 #include <cmath>
 #include <cstring>
@@ -75,7 +75,9 @@ std::expected<void, FsError> SuperBlockManager::_writeToDisk(bool writeAtBeginni
     sb_data.push_back(_superBlock.value());
 
     if (writeAtBeginning) {
-        auto write_res = _disk.write(0, static_vector<uint8_t>((uint8_t*)sb_data.data(), sb_data.size() * sizeof(SuperBlock), sb_data.size() * sizeof(SuperBlock)));
+        auto write_res = _disk.write(0,
+            static_vector<uint8_t>((uint8_t*)sb_data.data(), sb_data.size() * sizeof(SuperBlock),
+                sb_data.size() * sizeof(SuperBlock)));
         if (!write_res.has_value())
             return std::unexpected(write_res.error());
     }
@@ -83,7 +85,9 @@ std::expected<void, FsError> SuperBlockManager::_writeToDisk(bool writeAtBeginni
     // write at the end
     if (writeAtEnd) {
         sb_data.resize(1);
-        auto write_res = _disk.write(_startByte, static_vector<uint8_t>((uint8_t*)sb_data.data(), sizeof(SuperBlock), sizeof(SuperBlock)));
+        auto write_res = _disk.write(_startByte,
+            static_vector<uint8_t>(
+                (uint8_t*)sb_data.data(), sizeof(SuperBlock), sizeof(SuperBlock)));
         if (!write_res.has_value())
             return std::unexpected(write_res.error());
     }
@@ -103,7 +107,8 @@ std::expected<void, FsError> SuperBlockManager::_readFromDisk()
 
     // read from the end
 
-    static_vector<uint8_t> temp2((uint8_t*)buffer.data() + 2 * sizeof(SuperBlock), sizeof(SuperBlock));
+    static_vector<uint8_t> temp2(
+        (uint8_t*)buffer.data() + 2 * sizeof(SuperBlock), sizeof(SuperBlock));
     read_res = _disk.read(_startByte, sizeof(SuperBlock), temp2);
     if (!read_res.has_value())
         return std::unexpected(read_res.error());
@@ -125,14 +130,14 @@ std::expected<void, FsError> SuperBlockManager::_readFromDisk()
     return {};
 }
 
-VotingResult SuperBlockManager::_performBitVoting(
-    const static_vector<SuperBlock> copies)
+VotingResult SuperBlockManager::_performBitVoting(const static_vector<SuperBlock> copies)
 {
     size_t numBytes = sizeof(SuperBlock);
     size_t numBits = numBytes * 8;
     SuperBlock sb;
 
-    static_vector<uint8_t> copies_bytes(static_vector<uint8_t>((uint8_t*)copies.data(), copies.size() * sizeof(SuperBlock)));
+    static_vector<uint8_t> copies_bytes(
+        static_vector<uint8_t>((uint8_t*)copies.data(), copies.size() * sizeof(SuperBlock)));
     static_vector<uint8_t> resultBytes((uint8_t*)&sb, numBytes, numBytes);
 
     bool damaged1 = false;

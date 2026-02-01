@@ -1,6 +1,6 @@
-#include "common/static_vector.hpp"
-#include "disk/stack_disk.hpp"
-#include "filesystem/ppfs_low_level.hpp"
+#include "ppfs/common/static_vector.hpp"
+#include "ppfs/disk/stack_disk.hpp"
+#include "ppfs/filesystem/ppfs_low_level.hpp"
 #include <array>
 #include <gtest/gtest.h>
 
@@ -185,7 +185,7 @@ TEST(PpFSLowLevel, TruncateFileSuccessfully)
     auto ppfs = prepareFS(disk);
     auto inode_res = ppfs->createWithParentInode("test_file", 0);
     ASSERT_TRUE(inode_res.has_value());
-    
+
     inode_index_t file_inode = inode_res.has_value();
 
     auto res = ppfs->truncate(file_inode, 50);
@@ -201,7 +201,7 @@ TEST(PpFSLowLevel, TruncateDirectoryFails)
     auto ppfs = prepareFS(disk);
     auto inode_res = ppfs->createDirectoryByParent(0, "abc");
     ASSERT_TRUE(inode_res.has_value());
-    
+
     inode_index_t dir_inode = inode_res.has_value();
 
     auto res = ppfs->truncate(dir_inode, 50);

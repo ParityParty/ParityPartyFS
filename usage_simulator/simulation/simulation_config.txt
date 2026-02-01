@@ -2,25 +2,25 @@
 
 # Filesystem configuration
 block_size=1024
-ecc_type=Hamming
+ecc_type=None
 rs_correctable_bytes=2
 use_journal=false
 
 # Bit flipper configuration
-krad_per_year=5.0
+krad_per_year=10.0
 bit_flip_seed=1
 
 # Mock user configuration
 num_users=10
-max_write_size=65535
-max_read_size=65535
-avg_steps_between_ops=90
-create_weight=3
+max_write_size=256
+max_read_size=1024
+avg_steps_between_ops=2
+create_weight=2
 write_weight=10
-read_weight=9
-delete_weight=2
+read_weight=4
+delete_weight=1
 
 # Simulation configuration
-simulation_seconds=10000
-seconds_per_step=1
+simulation_years=5
+seconds_per_step=900
 log_level=Medium
