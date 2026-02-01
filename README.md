@@ -53,12 +53,12 @@ There is also python simulation runner. Simulation runner creates simulation sce
 and runs them in parallel. Then it saves useful plots to `plots/` directory
 To run it:
 
-1. build program with the `release` preset
+1. Build program with the `release` preset
 2. Run the following command:
    ```bash
    ./.venv/bin/python3 ./simulation_runner/runner.py
    ```
-## Running fuse benchmark
+## Running FUSE benchmark
 
 To measure the performance of FUSE I/O operations for different ECC configurations, this project uses fio (Flexible I/O Tester).
 The benchmarks are executed via a dedicated Python script and the results are saved in the fio_plots/ directory
@@ -138,9 +138,7 @@ The following fields are always required:
 - **Example:**
 
 ```
-
 total_size = 1048576
-
 ```
 
 #### `average_file_size`
@@ -150,9 +148,7 @@ total_size = 1048576
 - **Example:**
 
 ```
-
 average_file_size = 4096
-
 ```
 
 #### `block_size`
@@ -162,9 +158,7 @@ average_file_size = 4096
 - **Example:**
 
 ```
-
 block_size = 512
-
 ```
 
 #### `ecc_type`
@@ -175,9 +169,7 @@ block_size = 512
 - **Example:**
 
 ```
-
 ecc_type = crc
-
 ```
 
 ---
@@ -197,10 +189,8 @@ Some fields are required only for specific `ecc_type` values.
 - **Examples:**
 
 ```
-
 crc_polynomial = 0x9960034c
 crc_polynomial = 257
-
 ```
 
 #### `rs_correctable_bytes`
@@ -211,9 +201,7 @@ crc_polynomial = 257
 - **Example:**
 
 ```
-
 rs_correctable_bytes = 3
-
 ```
 
 ---
@@ -229,9 +217,7 @@ rs_correctable_bytes = 3
 - **Example:**
 
 ```
-
 use_journal = false
-
 ````
 
 ---
