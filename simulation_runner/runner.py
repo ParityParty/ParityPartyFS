@@ -403,7 +403,7 @@ def main() -> int:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
-    plots_dir = Path("plots")
+    plots_dir = Path("simulator_plots")
     plots_dir.mkdir(exist_ok=True)
     print(f"Plots will be saved to: {plots_dir.absolute()}\n")
 

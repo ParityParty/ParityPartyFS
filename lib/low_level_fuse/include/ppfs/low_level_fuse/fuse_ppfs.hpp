@@ -34,4 +34,6 @@ public:
     static void unlink(fuse_req_t req, fuse_ino_t parent, const char* name);
     static void rmdir(fuse_req_t req, fuse_ino_t parent, const char* name);
     static void truncate(fuse_req_t req, fuse_ino_t ino, off_t size, struct fuse_file_info* fi);
+    static void setattr(
+        fuse_req_t req, fuse_ino_t ino, struct stat* attr, int to_set, struct fuse_file_info* fi);
 };

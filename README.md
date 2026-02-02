@@ -67,7 +67,7 @@ To run it:
    ```bash
    sudo apt install fio
    ```
-3. build program with the `release` preset
+3. Build program with the `release` preset
 4. Run the following command:
    ```bash
    ./.venv/bin/python3 ./fuse_benchmark/runner.py

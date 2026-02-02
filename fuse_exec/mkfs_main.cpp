@@ -13,12 +13,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    std::string_view disk_image_path = argv[1];
-    std::string_view config_path = argv[2];
+    std::string_view disk_image_path = argv[2];
+    std::string_view config_path = argv[1];
 
     auto cfg_res = load_fs_config(config_path);
     if (!cfg_res.has_value()) {
-        std::cerr << "Failed to load FsConfig: " << toString(cfg_res.error()) << std::endl;
+        std::cerr << "Failed to load FsConfig from " << config_path << ": "
+                  << toString(cfg_res.error()) << std::endl;
         print_fs_config_usage(std::cerr);
         return 1;
     }
