@@ -1,8 +1,8 @@
-# ParityPartyFS (ppfs)
+# Parity Party File System (PPFS)
 
-A filesystem implemented with **FUSE** and **C++23**, built using [Fusepp](https://github.com/jachappell/Fusepp).
+Parity Party File System is a filesystem designed to detect and correct data corruption caused by ionising radiation.
 
-## 📦 Dependencies
+## Setup
 
 On Ubuntu/Debian, install required packages:
 
@@ -11,21 +11,67 @@ sudo apt update
 sudo apt install -y build-essential cmake ninja-build pkg-config libfuse3-dev fuse3     
 ```
 
-## ⚡️ Build
-
-We use **CMake presets** with **Ninja**:
+to build the project, use the following commands:
 
 ```bash
-cmake --preset debug      # configure (Debug build)
-cmake --build --preset debug   # build everything
+cmake --preset debug
+cmake --build --preset debug
 ```
 
 Other presets you can use:
-
-- `debug` → Debug mode (with tests, symbols).
-- `release` → Release mode (optimized).
+- `debug`
+- `release`
 - `freertos_debug`
 - `freertos_release`
+
+## Runing Unit Tests
+
+To run unit tests, use:
+```bash
+ctest --preset debug
+```
+
+## Running benchmark
+
+To run the performance benchmark, build the project with the `release` preset and use:
+```bash
+./build/release/performance_tests/performance_tests --benchmark_counters_tabular=true
+```
+
+## Running Usage Simulator
+
+Usage simulator creates a filesystem instance and runs threads doing operations on it. Random bit flips are
+performed during the simulation.
+There is a configuration file allowing to modify simulation parameters. Example configuration can be found in
+`usage_simulator/simulation_config.txt`
+
+```bash
+./build/release/usage_simulator/usage_simulator <path_to_config_file> <logs_directory>
+```
+
+There is also python simulation runner. Simulation runner creates simulation scenarios defined in the script
+and runs them in parallel. Then it saves useful plots to `plots/` directory
+To run it:
+
+1. Build program with the `release` preset
+2. Run the following command:
+   ```bash
+   ./.venv/bin/python3 ./simulation_runner/runner.py
+   ```
+## Running FUSE benchmark
+
+To measure the performance of FUSE I/O operations for different ECC configurations, this project uses fio (Flexible I/O Tester).
+The benchmarks are executed via a dedicated Python script and the results are saved in the fio_plots/ directory
+To run it:
+1. Install fio:
+   ```bash
+   sudo apt install fio
+   ```
+3. Build program with the `release` preset
+4. Run the following command:
+   ```bash
+   ./.venv/bin/python3 ./fuse_benchmark/runner.py
+   ```
 
 ## Building and Running PPFS with FUSE
 
@@ -37,7 +83,7 @@ After building the project, you’ll find two binaries:
 Both binaries are located in:
 
 ```
-./build/debug/fuse_exec/
+./build/<preset_name>/fuse_exec/
 ```
 
 ### Creating a filesystem image
@@ -47,7 +93,7 @@ Both binaries are located in:
 To create a new filesystem image, run:
 
 ```bash
-./build/debug/fuse_exec/mkfs_ppfs <config_file> <disk_file>
+./build/<preset_name>/fuse_exec/mkfs_ppfs <config_file> <disk_file>
 ````
 
 * `<disk_file>` – path to the image file that will store the filesystem (created if it doesn’t exist).
@@ -92,9 +138,7 @@ The following fields are always required:
 - **Example:**
 
 ```
-
 total_size = 1048576
-
 ```
 
 #### `average_file_size`
@@ -104,9 +148,7 @@ total_size = 1048576
 - **Example:**
 
 ```
-
 average_file_size = 4096
-
 ```
 
 #### `block_size`
@@ -116,9 +158,7 @@ average_file_size = 4096
 - **Example:**
 
 ```
-
 block_size = 512
-
 ```
 
 #### `ecc_type`
@@ -129,9 +169,7 @@ block_size = 512
 - **Example:**
 
 ```
-
 ecc_type = crc
-
 ```
 
 ---
@@ -151,10 +189,8 @@ Some fields are required only for specific `ecc_type` values.
 - **Examples:**
 
 ```
-
 crc_polynomial = 0x9960034c
 crc_polynomial = 257
-
 ```
 
 #### `rs_correctable_bytes`
@@ -165,9 +201,7 @@ crc_polynomial = 257
 - **Example:**
 
 ```
-
 rs_correctable_bytes = 3
-
 ```
 
 ---
@@ -183,9 +217,7 @@ rs_correctable_bytes = 3
 - **Example:**
 
 ```
-
 use_journal = false
-
 ````
 
 ---
@@ -210,7 +242,7 @@ use_journal = false
 To mount an existing filesystem image, run:
 
 ```bash
-./build/debug/fuse_exec/mount_ppfs <disk_file> <mount_point> [-- fuse_options]
+./build/<preset_name>/fuse_exec/mount_ppfs <disk_file> <mount_point> [-- fuse_options]
 ```
 
 * `<disk_file>` – path to the filesystem image to mount.
@@ -242,45 +274,3 @@ To unmount:
 ```bash
 umount mnt
 ```
-
-## 🧪 Run Tests
-
-```bash
-ctest --preset debug
-```
-
-## Run benchmark
-
-```bash
-./build/release/performance_tests/performance_tests --benchmark_counters_tabular=true
-```
-
-## Run Usage Simulator
-
-Usage simulator creates filesystem instance and runs threads doing operations on it. There are random bit flips
-performed during the simulation.
-There is a configuration file allowing to modify simulation parameters. Example configuration can be found in
-`usage_simulator/simulation_config.txt`
-
-```bash
-./build/release/usage_simulator/usage_simulator <path_to_config_file> <logs_directory>
-```
-
-There is also python simulation runner. Simulation runner creates simulation scenarios defined in the script
-and runs them in parallel. Then it saves useful plots to `simulator_plots/` directory
-To run it:
-
-1. build program
-2. ```bash
-   ./.venv/bin/python3 ./simulation_runner/runner.py
-   ```
-
-## Run fuse benchmark
-
-In order to measure performance of FUSE I/O operations for different ECC, you can use a script that automates fio runs 
-and saves results to `fio_plots/` directory
-To run it:
-1. build program with `release` preset
-2. ```bash
-   ./.venv/bin/python3 ./fuse_benchmark/runner.py
-   ```
